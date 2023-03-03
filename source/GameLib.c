@@ -7,7 +7,7 @@
 // Entity
 //---------------------------------------------------------------------------------
 
-void EntitySetup(Entity* self, int x, int y, int w, int h, int health, int type) {
+void EntitySetup(Entity* self, int x, int y, int w, int h, int health, int type, int bullet_delay) {
 	self->x = x;
 	self->y = y;
 	self->w = w;
@@ -18,8 +18,14 @@ void EntitySetup(Entity* self, int x, int y, int w, int h, int health, int type)
 	
 	self->type = type;
 
-	self->last_movement[0] = 0;
-	self->last_movement[1] = 0;
+	self->bullet_delay = bullet_delay;
+	self->current_bullet_delay = 0;
+
+	self->h_flip = 0;
+	self->v_flip = 0;
+
+	self->counter = 0;
+	self->animation_frame_number = 0;
 }
 
 void EntityGetRectArray(Entity* self, int rect_array[4]) {
@@ -44,20 +50,12 @@ void EntitySetBottom(Entity* self, int bottom) {
 
 void EntityTakeDamage(Entity* self, int damage) {
 	self->health -= damage;
-	if (self->health < 0) {
+	if (self->health <= 0) {
 		self->dead = 1;
 	}
 }
 
-void EntityMove(Entity* self, int movement[2]) {
-	self->last_movement[0] = movement[0];
-	self->last_movement[1] = movement[1];
-	self->x += movement[0];
-	self->y += movement[1];
-}
-
-void EntityMoveAmount(Entity* self, int x, int y, int HitboxArray[][4], int HitboxLen) {
-	
+void EntityMove(Entity* self, int x, int y, int HitboxArray[][4], int HitboxLen) {	
 	int hitbox[4];
 
 	if (x != 0) {
@@ -66,12 +64,8 @@ void EntityMoveAmount(Entity* self, int x, int y, int HitboxArray[][4], int Hitb
 		for (int i = 0; i < HitboxLen; i++) {
 			if (RectangleCollision(hitbox, HitboxArray[i])) {  // If a collision
 				// Adjust the entity position accordingly
-				if (x > 0) {
-					EntitySetRight(self, HitboxArray[i][0]);
-				}
-				else {
-					self->x = RectangleGetRight(HitboxArray[i]);
-				}
+				if (x > 0)  EntitySetRight(self, HitboxArray[i][0]);
+				else self->x = RectangleGetRight(HitboxArray[i]);
 			}
 		}
 	}
@@ -82,12 +76,8 @@ void EntityMoveAmount(Entity* self, int x, int y, int HitboxArray[][4], int Hitb
 		for (int i = 0; i < HitboxLen; i++) {
 			if (RectangleCollision(hitbox, HitboxArray[i])) {  // If a collision
 				// Adjust the entity position accordingly
-				if (y > 0) {
-					EntitySetBottom(self, HitboxArray[i][1]);
-				}
-				else {
-					self->y = RectangleGetBottom(HitboxArray[i]);
-				}
+				if (y > 0) EntitySetBottom(self, HitboxArray[i][1]);
+				else self->y = RectangleGetBottom(HitboxArray[i]);
 			}
 		}
 	}
@@ -109,7 +99,7 @@ void BulletInitBulletArray(Bullet bullet_array[], int bullet_array_len) {
 	}
 }
 
-void BulletSetup(Bullet* self, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage, int type) {
+void BulletSetup(Bullet* self, float x, float y, int w, int h, float angle, float velocity, int lifespan, int damage, int type) {
 	self->x = x;
 	self->y = y;
 	self->w = w;
@@ -128,7 +118,7 @@ void BulletSetup(Bullet* self, float x, float y, int w, int h, float angle, int 
 	self->type = type;
 }
 
-void BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage, int type) {
+void BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float x, float y, int w, int h, float angle, float velocity, int lifespan, int damage, int type) {
 	for (int i = 0; i < bullet_array_len; i++) {
 		if (!bullet_array[i].alive) {
 			BulletSetup(
@@ -191,7 +181,7 @@ void BulletHandleBulletArray(Bullet bullet_array[], int bullet_array_length, int
 
 
 //---------------------------------------------------------------------------------
-// Collision Detection & related things
+// Collision Detection with rectangles & related things
 //---------------------------------------------------------------------------------
 
 _Bool RectangleCollision(int rect1[4], int rect2[4]) {
