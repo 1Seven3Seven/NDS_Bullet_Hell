@@ -1,6 +1,8 @@
 #include "GameLib.h" // As the struct needs to be defined in the header file
 #include <math.h>
 
+#define PI 3.14159265359
+
 //---------------------------------------------------------------------------------
 // Entity
 //---------------------------------------------------------------------------------
@@ -28,8 +30,8 @@ void EntityGetRectArray(Entity* self, int rect_array[4]) {
 }
 
 void EntityGetCenterArray(Entity* self, int center_array[2]) {
-	center_array[0] = self->x + self->w / 2;
-	center_array[1] = self->y + self->h / 2;
+	center_array[0] = (int)(self->x + self->w / 2);
+	center_array[1] = (int)(self->y + self->h / 2);
 }
 
 void EntitySetRight(Entity* self, int right) {
@@ -54,6 +56,44 @@ void EntityMove(Entity* self, int movement[2]) {
 	self->y += movement[1];
 }
 
+void EntityMoveAmount(Entity* self, int x, int y, int HitboxArray[][4], int HitboxLen) {
+	
+	int hitbox[4];
+
+	if (x != 0) {
+		self->x += x;  // Move the entity
+		EntityGetRectArray(self, hitbox);
+		for (int i = 0; i < HitboxLen; i++) {
+			if (RectangleCollision(hitbox, HitboxArray[i])) {  // If a collision
+				// Adjust the entity position accordingly
+				if (x > 0) {
+					EntitySetRight(self, HitboxArray[i][0]);
+				}
+				else {
+					self->x = RectangleGetRight(HitboxArray[i]);
+				}
+			}
+		}
+	}
+
+	if (y != 0) {
+		self->y += y;  // Move the entity
+		EntityGetRectArray(self, hitbox);
+		for (int i = 0; i < HitboxLen; i++) {
+			if (RectangleCollision(hitbox, HitboxArray[i])) {  // If a collision
+				// Adjust the entity position accordingly
+				if (y > 0) {
+					EntitySetBottom(self, HitboxArray[i][1]);
+				}
+				else {
+					self->y = RectangleGetBottom(HitboxArray[i]);
+				}
+			}
+		}
+	}
+}
+
+
 //---------------------------------------------------------------------------------
 // Bullets
 //---------------------------------------------------------------------------------
@@ -69,7 +109,7 @@ void BulletInitBulletArray(Bullet bullet_array[], int bullet_array_len) {
 	}
 }
 
-void BulletSetup(Bullet* self, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage) {
+void BulletSetup(Bullet* self, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage, int type) {
 	self->x = x;
 	self->y = y;
 	self->w = w;
@@ -84,9 +124,11 @@ void BulletSetup(Bullet* self, float x, float y, int w, int h, float angle, int 
 	self->damage = damage;
 	
 	self->alive = 1;
+
+	self->type = type;
 }
 
-void BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage) {
+void BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage, int type) {
 	for (int i = 0; i < bullet_array_len; i++) {
 		if (!bullet_array[i].alive) {
 			BulletSetup(
@@ -96,7 +138,8 @@ void BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float
 				angle,
 				velocity,
 				lifespan,
-				damage
+				damage,
+				type
 			);
 			break;
 		}
@@ -169,6 +212,28 @@ _Bool RectangleCollision(int rect1[4], int rect2[4]) {
 int RectangleGetRight(int rect[4]) {
 	return(rect[0] + rect[2]);
 }
+
 int RectangleGetBottom(int rect[4]) {
 	return(rect[1] + rect[3]);
+}
+
+
+//---------------------------------------------------------------------------------
+// Math stuff
+//---------------------------------------------------------------------------------
+
+float GetAngleFromOriginTo(int x, int y) {
+	float angle;
+
+	if (x != 0) angle = atanf(fabs(y) / fabs(x));
+	else {
+		if (y < 0) angle = PI / 2;
+		else angle = 3 * PI / 2;
+	}
+
+	if (x < 0 && y < 0) angle = PI - angle;
+	else if (x < 0 && y >= 0) angle += PI;
+	else if (x > 0 && y > 0) angle = 2 * PI - angle;
+
+	return angle;
 }
