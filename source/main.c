@@ -1,12 +1,8 @@
 /*
 ToDo:
-	Mine layer enemy
-		This includes movement, which should be easy
-		The mines, and their explosions
-			Yes i want the mines themselves to explode
-		Their animations as well
-
 	Level system / Portaling
+
+	Be super evil and make the chaser shoot bullets
 
 	Redo the player animation so it loads the sprite every time it changes, this is mainly to conserve GFX
 		If necessary
@@ -35,7 +31,8 @@ ToDo:
 #define PI 3.14159265359
 #define PLAYERBULLET 0
 #define SENTINELBULLET 1
-#define ENEYMINEBULLET 2
+#define MINERMINE 2
+#define MINERMINEBULLET 3
 #define TILESIZE 256  // The number of pixels in the tiles
 #define SPRITESHEETWIDTH 16  // Number of tiles the sprite sheet is wide
 
@@ -44,9 +41,9 @@ u16* PlayerGFXMem[8];
 u16* PlayerExplosionGFXMem[8];
 
 u16* SentinelGFXMem[2][8];
-u16* SentinelExplosionGFXMem[8];
-
 u16* ChaserGFXMem[4];
+u16* MinerGFXMem[8];
+u16* ExplosionGFXMem[8];
 
 u16* BulletGFXMem[4][4];
 
@@ -148,7 +145,7 @@ Entity EnemyEntityArray[3][5];
 int temp_enemy_hitbox[4];  // Used to hold an enemie's hitbox when handling said enemy
 
 // Universal enemy stuff
-void EnemySetupDeathAnimations(Entity enemy_entity_array[3][5]) {
+void EnemySetupDeathAnimations(Entity enemy_entity_array[3][5]) {  // Should be called after seting up all the enemies for a stage
 	for (int a = 0; a < 3; a++) {
 		for (int b = 0; b < 5; b++) {
 			if (!enemy_entity_array[a][b].dead) {
@@ -360,8 +357,85 @@ void ChaserAnimate(Entity* self, int oam_number, int frame_number, u16* chaser_g
 	}
 }
 
-// Enemy 3 handling
+// Miner handling
+int miner_movement_vector_array[5][2];
+int miner_place_mine_delay_array[5] = {30, 30, 30, 30, 30};
 
+void MinerMove(Entity* self, int vector[2], int HitboxArray[][4], int HitboxLen) {
+	_Bool x_movement = EntityMoveX(self, vector[0], HitboxArray, HitboxLen);
+	if (x_movement) vector[0] = -vector[0];
+
+	_Bool y_movement = EntityMoveY(self, vector[1], HitboxArray, HitboxLen);
+	if (y_movement) vector[1] = -vector[1];
+}
+
+void MinerPlaceMine(Entity* self, int* miner_place_mine_delay ,Bullet bullet_array[], int bullet_array_len) {
+	if (self->current_bullet_delay > 0) self->current_bullet_delay -= 1;
+	else {
+		if (*miner_place_mine_delay > 0) *miner_place_mine_delay -= 1;
+		else {
+			int my_center[2];
+			EntityGetCenterArray(self, my_center);
+
+			*miner_place_mine_delay = 30;
+			self->current_bullet_delay = self->bullet_delay;
+			BulletSetupInBulletArray(
+				bullet_array, bullet_array_len,
+				my_center[0] - 5, my_center[1] - 5,
+				8, 8,
+				0,
+				0,
+				240,
+				1,
+				MINERMINE
+			);
+		}
+	}
+}
+
+void MinerAnimate(Entity* self, int oam_number, int frame_number, u16* miner_gfx_mem[], u16* miner_explosion_gfx_mem[]) {
+	if (!self->dead) {
+		if (frame_number % 6 == 0) {
+			self->animation_frame_number += 1;
+			self->animation_frame_number %= 4;
+		}
+		oamSet(
+			&oamMain,
+			oam_number,
+			self->x, self->y,
+			0,
+			0,
+			SpriteSize_16x16,
+			SpriteColorFormat_256Color,
+			miner_gfx_mem[4 * (self->current_bullet_delay != 0) + self->animation_frame_number],
+			-1,
+			false,
+			false,
+			self->v_flip,
+			self->h_flip,
+			false
+		);
+	}
+	else {
+		if (self->counter > 0) self->counter -= 1;
+		oamSet(
+			&oamMain,
+			oam_number,
+			self->x, self->y,
+			0,
+			0,
+			SpriteSize_16x16,
+			SpriteColorFormat_256Color,
+			miner_explosion_gfx_mem[7 - (int)(self->counter / 2)],
+			-1,
+			false,
+			!self->counter,
+			self->v_flip,
+			self->h_flip,
+			false
+		);
+	}
+}
 
 // Take a guess
 int frame_number = 0;
@@ -369,6 +443,7 @@ int frame_number = 0;
 // Bullet array and other necessary information
 Bullet bullet_array[MAXBULLETCOUNT];
 int temp_bullet_hitbox[4];  // Used to hold a bullet's hitbox when handling said bullet
+int temp_bullet_center[2];  // Used to hold a bullet's center when handling said bullet
 
 int alive_bullets = 0;
 
@@ -379,6 +454,14 @@ int screen_boarder[4][4] = {
 	{0, 0, 256, 8},
 	{0, 184, 256, 8},
 	{248, 0, 8, 192}
+};
+
+// Portal stuff - Screen size is 256 × 192 pixels - Middle is 128 x 96
+int portal_hitboxes[4][4] = {
+	{120, 40, 16, 16},    // Top
+	{120, 136, 16, 16},  // Bottom
+	{72, 88, 16, 16},   // Right
+	{168, 88, 16, 16}  // Left
 };
 
 //---------------------------------------------------------------------------------
@@ -420,28 +503,42 @@ int main(void) {
 		ChaserGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
 		dmaCopy((u8*)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 3 + TILESIZE * a, ChaserGFXMem[a], 16 * 16);
 	}
+	// Allocating memory for, and loading the miner sprites
+	for (int a = 0; a < 8; a++) {
+		MinerGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8*)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 4 + TILESIZE * a, MinerGFXMem[a], 16 * 16);
+	}
 
 	// Allocating memory for, and loading the player explosion sprites
 	for (int a = 0; a < 8; a++) {
 		PlayerExplosionGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
 		dmaCopy((u8*)SpriteSheetTiles + TILESIZE * 8 +  TILESIZE * a, PlayerExplosionGFXMem[a], 16 * 16);
 	}
-	// Allocating memory for, and loading the sentinal explosion sprites
+	// Allocating memory for, and loading the explosion sprites
 	for (int a = 0; a < 8; a++) {
-		SentinelExplosionGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8*)SpriteSheetTiles + TILESIZE*SPRITESHEETWIDTH + TILESIZE * 8 + TILESIZE * a, SentinelExplosionGFXMem[a], 16 * 16);
+		ExplosionGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8*)SpriteSheetTiles + TILESIZE*SPRITESHEETWIDTH + TILESIZE * 8 + TILESIZE * a, ExplosionGFXMem[a], 16 * 16);
 	}
-	//
 
 	// Allocating memory for, and loading the player bullets
 	for (int a = 0; a < 4; a++) {
 		BulletGFXMem[0][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
 		dmaCopy((u8*)SpriteSheetTiles + TILESIZE*SPRITESHEETWIDTH*7 + TILESIZE * a, BulletGFXMem[0][a], 16 * 16);
 	}
-	// The above but for the sentinel enemy bullets
+	// The above but for the sentinel bullets
 	for (int a = 0; a < 4; a++) {
 		BulletGFXMem[1][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
 		dmaCopy((u8*)SpriteSheetTiles + TILESIZE*SPRITESHEETWIDTH*6 + TILESIZE * a, BulletGFXMem[1][a], 16 * 16);
+	}
+	// The above but for the mines
+	for (int a = 0; a < 4; a++) {
+		BulletGFXMem[2][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8*)SpriteSheetTiles + TILESIZE*SPRITESHEETWIDTH*5 + TILESIZE * a, BulletGFXMem[2][a], 16 * 16);
+	}
+	// The above but for the mines bullets
+	for (int a = 0; a < 4; a++) {
+		BulletGFXMem[3][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8*)SpriteSheetTiles + TILESIZE*SPRITESHEETWIDTH*5 + TILESIZE * 4 + TILESIZE * a, BulletGFXMem[3][a], 16 * 16);
 	}
 	
 	// Setting up the player
@@ -468,40 +565,72 @@ int main(void) {
 
 	/* Sentinel example
 	// Do one for easy, both for hard
-	EntitySetup(&enemy_entity_array[0][0], 15, 15, 16, 16, 10, 1, 60);
+	EntitySetup(&EnemyEntityArray[0][0], 15, 15, 16, 16, 10, 1, 60);
 	sentinel_move_direction_array[0] = 1;
-	enemy_entity_array[0][0].current_bullet_delay = 60;
-	EntitySetup(&enemy_entity_array[0][1], 15, 15, 16, 16, 10, 1, 60);
+	EnemyEntityArray[0][0].current_bullet_delay = 60;
+	EntitySetup(&EnemyEntityArray[0][1], 15, 15, 16, 16, 10, 1, 60);
 	sentinel_move_direction_array[1] = 0;
-	enemy_entity_array[0][1].current_bullet_delay = 60;
+	EnemyEntityArray[0][1].current_bullet_delay = 60;
 
-	EntitySetup(&enemy_entity_array[0][2], 225, 161, 16, 16, 10, 1, 60);
+	EntitySetup(&EnemyEntityArray[0][2], 225, 161, 16, 16, 10, 1, 60);
 	sentinel_move_direction_array[2] = 1;
-	enemy_entity_array[0][2].current_bullet_delay = 60;
-	EntitySetup(&enemy_entity_array[0][3], 225, 161, 16, 16, 10, 1, 60);
+	EnemyEntityArray[0][2].current_bullet_delay = 60;
+	EntitySetup(&EnemyEntityArray[0][3], 225, 161, 16, 16, 10, 1, 60);
 	sentinel_move_direction_array[3] = 0;
-	enemy_entity_array[0][3].current_bullet_delay = 60;
+	EnemyEntityArray[0][3].current_bullet_delay = 60;
 	*/
 
 	/* Chaser example
 	// Easy
-	EntitySetup(&EnemyEntityArray[1][0], 15, 15, 15, 15, 3, 3, 60);
-	EntitySetup(&EnemyEntityArray[1][1], 15, 65, 15, 15, 3, 3, 60);
-	EntitySetup(&EnemyEntityArray[1][2], 15, 90, 15, 15, 3, 3, 60);
-	EntitySetup(&EnemyEntityArray[1][3], 15, 111, 15, 15, 3, 3, 60);
-	EntitySetup(&EnemyEntityArray[1][4], 15, 161, 15, 15, 3, 3, 60);
+	EntitySetup(&EnemyEntityArray[1][0], 15, 15, 15, 15, 3, 2, 60);
+	EntitySetup(&EnemyEntityArray[1][1], 15, 65, 15, 15, 3, 2, 60);
+	EntitySetup(&EnemyEntityArray[1][2], 15, 90, 15, 15, 3, 2, 60);
+	EntitySetup(&EnemyEntityArray[1][3], 15, 111, 15, 15, 3, 2, 60);
+	EntitySetup(&EnemyEntityArray[1][4], 15, 161, 15, 15, 3, 2, 60);
 
 	// Hard
-	EntitySetup(&EnemyEntityArray[1][0], 15, 15, 15, 15, 3, 3, 60);
-	EntitySetup(&EnemyEntityArray[1][1], 225, 15, 15, 15, 3, 3, 60);
-	EntitySetup(&EnemyEntityArray[1][2], 15, 161, 15, 15, 3, 3, 60);
-	EntitySetup(&EnemyEntityArray[1][3], 226, 161, 15, 15, 3, 3, 60);
+	EntitySetup(&EnemyEntityArray[1][0], 15, 15, 15, 15, 3, 2, 60);
+	EntitySetup(&EnemyEntityArray[1][1], 225, 15, 15, 15, 3, 2, 60);
+	EntitySetup(&EnemyEntityArray[1][2], 15, 161, 15, 15, 3, 2, 60);
+	EntitySetup(&EnemyEntityArray[1][3], 226, 161, 15, 15, 3, 2, 60);
 	*/
 
-	EntitySetup(&EnemyEntityArray[1][0], 15, 15, 15, 15, 3, 3, 60);
-	EntitySetup(&EnemyEntityArray[1][1], 225, 15, 15, 15, 3, 3, 60);
-	EntitySetup(&EnemyEntityArray[1][2], 15, 161, 15, 15, 3, 3, 60);
-	EntitySetup(&EnemyEntityArray[1][3], 226, 161, 15, 15, 3, 3, 60);
+	/* Miner example
+	// Do all for hard, less for easy
+	EntitySetup(&EnemyEntityArray[2][0], 15, 15, 16, 16, 5, 3, 120);
+	EnemyEntityArray[2][0].current_bullet_delay = 10;
+	miner_movement_vector_array[0][0] = 1;
+	miner_movement_vector_array[0][1] = 1;
+	EntitySetup(&EnemyEntityArray[2][1], 15, 65, 16, 16, 5, 3, 120);
+	EnemyEntityArray[2][0].current_bullet_delay = 10;
+	miner_movement_vector_array[1][0] = 1;
+	miner_movement_vector_array[1][1] = 1;
+	EntitySetup(&EnemyEntityArray[2][2], 65, 15, 16, 16, 5, 3, 120);
+	EnemyEntityArray[2][0].current_bullet_delay = 10;
+	miner_movement_vector_array[2][0] = 1;
+	miner_movement_vector_array[2][1] = 1;
+	EntitySetup(&EnemyEntityArray[2][3], 65, 65, 16, 16, 5, 3, 120);
+	EnemyEntityArray[2][3].current_bullet_delay = 10;
+	miner_movement_vector_array[3][0] = -1;
+	miner_movement_vector_array[3][1] = -1;
+	*/
+
+	EntitySetup(&EnemyEntityArray[2][0], 15, 15, 16, 16, 5, 3, 120);
+	EnemyEntityArray[2][0].current_bullet_delay = 10;
+	miner_movement_vector_array[0][0] = 1;
+	miner_movement_vector_array[0][1] = 1;
+	EntitySetup(&EnemyEntityArray[2][1], 15, 65, 16, 16, 5, 3, 120);
+	EnemyEntityArray[2][0].current_bullet_delay = 10;
+	miner_movement_vector_array[1][0] = 1;
+	miner_movement_vector_array[1][1] = 1;
+	EntitySetup(&EnemyEntityArray[2][2], 65, 15, 16, 16, 5, 3, 120);
+	EnemyEntityArray[2][0].current_bullet_delay = 10;
+	miner_movement_vector_array[2][0] = 1;
+	miner_movement_vector_array[2][1] = 1;
+	EntitySetup(&EnemyEntityArray[2][3], 65, 65, 16, 16, 5, 3, 120);
+	EnemyEntityArray[2][3].current_bullet_delay = 10;
+	miner_movement_vector_array[3][0] = -1;
+	miner_movement_vector_array[3][1] = -1;
 
 	EnemySetupDeathAnimations(EnemyEntityArray);
 	
@@ -528,23 +657,49 @@ int main(void) {
 		}
 		
 		// Handle enemies here
-		// Sentinel handling
 		for (int i = 0; i < 5; i++) {
+			// Sentinel handling
 			if (!EnemyEntityArray[0][i].dead) {
 				SentinelMove(&EnemyEntityArray[0][i], sentinel_move_direction_array[i], player_center, screen_boarder, 4);
 				SentinelFireBullet(&EnemyEntityArray[0][i], sentinel_move_direction_array[i], bullet_array, MAXBULLETCOUNT);
 			}
-		}
-		// Chaser handling
-		for (int i = 0; i < 5; i++) {
+
+			// Chaser handling
 			if (!EnemyEntityArray[1][i].dead) {
 				ChaserMove(&EnemyEntityArray[1][i], chaser_movement_vector_array[i], player_center, screen_boarder, 4);
 			}
-		}
 
+			// Miner handling
+			if (!EnemyEntityArray[2][i].dead) {
+				MinerMove(&EnemyEntityArray[2][i], miner_movement_vector_array[i], screen_boarder, 4);
+				MinerPlaceMine(&EnemyEntityArray[2][i], &miner_place_mine_delay_array[i], bullet_array, MAXBULLETCOUNT);
+			}
+
+		}
 	
 		// Kind of 'deleting' old bullets and then updating them if they go outside the screen
 		BulletHandleBulletArray(bullet_array, MAXBULLETCOUNT, playable_area);
+		// Spawning in the mines offspring
+		for (int i = 0; i < MAXBULLETCOUNT; i++) {
+			if (bullet_array[i].type == MINERMINE) {
+				if (bullet_array[i].to_die) {
+					BulletGetCenterArray(&bullet_array[i], temp_bullet_center);
+					for (int a = 0; a < 8; a++) {
+						BulletSetupInBulletArray(
+							bullet_array,
+							MAXBULLETCOUNT,
+							temp_bullet_center[0] - 1, temp_bullet_center[1] - 1,
+							3, 3,
+							PI / 4 * a,
+							1,
+							60,
+							1,
+							MINERMINEBULLET
+						);
+					}
+				}
+			}
+		}
 
 		// Bullet collision with player and enemies
 		for (int bullet_index = 0; bullet_index < MAXBULLETCOUNT; bullet_index++) {
@@ -602,8 +757,9 @@ int main(void) {
 
 		// Draw enemies here
 		for (int i = 0; i < 5; i++) {
-			SentinelAnimate(&EnemyEntityArray[0][i], 5 + i, frame_number, SentinelGFXMem[!sentinel_move_direction_array[i]], SentinelExplosionGFXMem);
-			ChaserAnimate(&EnemyEntityArray[1][i], 10 + i, frame_number, ChaserGFXMem, SentinelExplosionGFXMem);
+			SentinelAnimate(&EnemyEntityArray[0][i], 5 + i, frame_number, SentinelGFXMem[!sentinel_move_direction_array[i]], ExplosionGFXMem);
+			ChaserAnimate(&EnemyEntityArray[1][i], 10 + i, frame_number, ChaserGFXMem, ExplosionGFXMem);
+			MinerAnimate(&EnemyEntityArray[2][i], 15 + i, frame_number, MinerGFXMem, ExplosionGFXMem);
 		}
 
 		// Drawing the bullets
@@ -631,10 +787,7 @@ int main(void) {
 		iprintf("\nX = %d\nY = %d\n", (int)player.x, (int)player.y);
 		iprintf("Player Center [%d, %d]\n", player_center[0], player_center[1]);
 		iprintf("Alive Bullets = %d\n", alive_bullets);
-		// iprintf("Current Bullet Delay = %d\n", player.current_bullet_delay);
 		iprintf("Player Dead = %d\n", player.dead);
-		iprintf("\nEnemy Health = %d\n", EnemyEntityArray[1][0].health);
-		iprintf("Enemy Dead = %d\n", EnemyEntityArray[1][0].dead);
 		for (int a = 0; a < 3; a++) {
 			for (int b = 0; b < 5; b++) {
 				iprintf("%d", EnemyEntityArray[a][b].dead);
@@ -675,4 +828,9 @@ Finished:
 		Go untill hit either the player or the boarder
 		Wait a bit, then repeat
 		Dont forget their animations
+
+	Mine layer enemy
+		This includes movement, which should be easy
+		The mines, and their explosions
+			Yes i want the mines themselves to explode
 */

@@ -32,6 +32,8 @@ void EntityGetCenterArray(Entity* self, int center_array[2]);
 void EntitySetRight(Entity* self, int right);
 void EntitySetBottom(Entity* self, int bottom);
 void EntityTakeDamage(Entity* self, int damage);
+_Bool EntityMoveX(Entity* self, float x, int HitboxArray[][4], int HitboxLen);
+_Bool EntityMoveY(Entity* self, float y, int HitboxArray[][4], int HitboxLen);
 _Bool EntityMove(Entity* self, float x, float y, int HitboxArray[][4], int HitboxLen);
 
 //---------------------------------------------------------------------------------

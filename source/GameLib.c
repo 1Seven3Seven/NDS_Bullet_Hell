@@ -55,7 +55,7 @@ void EntityTakeDamage(Entity* self, int damage) {
 	}
 }
 
-_Bool EntityMove(Entity* self, float x, float y, int HitboxArray[][4], int HitboxLen) {	
+_Bool EntityMoveX(Entity* self, float x, int HitboxArray[][4], int HitboxLen) {
 	int hitbox[4];
 	_Bool hit_a_hitbox = 0;
 
@@ -72,6 +72,13 @@ _Bool EntityMove(Entity* self, float x, float y, int HitboxArray[][4], int Hitbo
 		}
 	}
 
+	return hit_a_hitbox;
+}
+
+_Bool EntityMoveY(Entity* self, float y, int HitboxArray[][4], int HitboxLen) {
+	int hitbox[4];
+	_Bool hit_a_hitbox = 0;
+
 	if (y != 0) {
 		self->y += y;  // Move the entity
 		EntityGetRectArray(self, hitbox);
@@ -86,6 +93,13 @@ _Bool EntityMove(Entity* self, float x, float y, int HitboxArray[][4], int Hitbo
 	}
 
 	return hit_a_hitbox;
+}
+
+_Bool EntityMove(Entity* self, float x, float y, int HitboxArray[][4], int HitboxLen) {	
+	_Bool x_movement = EntityMoveX(self, x, HitboxArray, HitboxLen);
+	_Bool y_movement = EntityMoveY(self, y, HitboxArray, HitboxLen);
+
+	return x_movement || y_movement;
 }
 
 
