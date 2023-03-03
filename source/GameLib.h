@@ -6,8 +6,8 @@
 //---------------------------------------------------------------------------------
 
 typedef struct {
-	int x;
-	int y;
+	float x;
+	float y;
 	int w;
 	int h;
 	
@@ -32,7 +32,7 @@ void EntityGetCenterArray(Entity* self, int center_array[2]);
 void EntitySetRight(Entity* self, int right);
 void EntitySetBottom(Entity* self, int bottom);
 void EntityTakeDamage(Entity* self, int damage);
-void EntityMove(Entity* self, int x, int y, int HitboxArray[][4], int HitboxLen);
+_Bool EntityMove(Entity* self, float x, float y, int HitboxArray[][4], int HitboxLen);
 
 //---------------------------------------------------------------------------------
 // Bullets
@@ -81,5 +81,6 @@ int RectangleGetBottom(int rect[4]);
 //---------------------------------------------------------------------------------
 
 float GetAngleFromOriginTo(int x, int y);
+void GetVectorFromAngle(float angle, float vector_array[2]);
 
 #endif

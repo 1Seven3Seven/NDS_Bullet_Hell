@@ -1,9 +1,18 @@
 /*
 ToDo:
-	Explosions
+	Mine layer enemy
+		This includes movement, which should be easy
+		The mines, and their explosions
+			Yes i want the mines themselves to explode
+		Their animations as well
+
+	Level system / Portaling
 
 	Redo the player animation so it loads the sprite every time it changes, this is mainly to conserve GFX
 		If necessary
+
+	Redo all enemy animations so they load the new sprite
+		Same as above
 	
 	Potentially do some research into sounds
 		They make everything better
@@ -27,10 +36,18 @@ ToDo:
 #define PLAYERBULLET 0
 #define SENTINELBULLET 1
 #define ENEYMINEBULLET 2
+#define TILESIZE 256  // The number of pixels in the tiles
+#define SPRITESHEETWIDTH 16  // Number of tiles the sprite sheet is wide
 
 // A series of 2d arrays of pointers to the graphics memory of the sprites
 u16* PlayerGFXMem[8];
-u16* EnemyGFXMem[3][8];
+u16* PlayerExplosionGFXMem[8];
+
+u16* SentinelGFXMem[2][8];
+u16* SentinelExplosionGFXMem[8];
+
+u16* ChaserGFXMem[4];
+
 u16* BulletGFXMem[4][4];
 
 // Player Entity
@@ -82,12 +99,13 @@ void PlayerFireBullet(Entity* self, int keys, Bullet bullet_array[], int bullet_
 	}
 }
 
-void PlayerAnimate(Entity* self, int frame_number, u16* player_gfx_mem[]) {
-	if (frame_number % 6 == 0) {
+void PlayerAnimate(Entity* self, int frame_number, u16* player_gfx_mem[], u16* player_explosion_gfx_mem[]) {
+	if (!self->dead) {
+		if (frame_number % 6 == 0) {
 			self->animation_frame_number += 1;
 			self->animation_frame_number %= 4;
-	}
-	oamSet(
+		}
+		oamSet(
 			&oamMain,
 			0,
 			self->x, self->y,
@@ -98,31 +116,14 @@ void PlayerAnimate(Entity* self, int frame_number, u16* player_gfx_mem[]) {
 			player_gfx_mem[4 * (self->current_bullet_delay != 0) + self->animation_frame_number],
 			-1,
 			false,
-			self->dead,
+			false,
 			self->v_flip,
 			self->h_flip,
 			false
 		);
-	/* Old animate code
-	if (self->current_bullet_delay == 0) {
-		oamSet(
-			&oamMain,
-			0,
-			self->x, self->y,
-			0,
-			0,
-			SpriteSize_16x16,
-			SpriteColorFormat_256Color,
-			player_gfx_mem[self->animation_frame_number],
-			-1,
-			false,
-			false,
-			false,
-			false,
-			false
-		);
 	}
 	else {
+		if (self->counter > 0) self->counter -= 1;
 		oamSet(
 			&oamMain,
 			0,
@@ -131,52 +132,34 @@ void PlayerAnimate(Entity* self, int frame_number, u16* player_gfx_mem[]) {
 			0,
 			SpriteSize_16x16,
 			SpriteColorFormat_256Color,
-			player_gfx_mem[4 + self->animation_frame_number],
+			player_explosion_gfx_mem[7 - (int)(self->counter / 2)],
 			-1,
 			false,
-			false,
-			false,
-			false,
+			!self->counter,
+			self->v_flip,
+			self->h_flip,
 			false
 		);
 	}
-	*/
 }
 
-// Enemy Allocation, 15 total enemies, lets say 5 of each
-Entity enemy_entity_array[3][5];
+// Enemy Allocation, 15 total enemies, lets say up to 5 of each
+Entity EnemyEntityArray[3][5];
 int temp_enemy_hitbox[4];  // Used to hold an enemie's hitbox when handling said enemy
-_Bool sentinel_move_direction_array[5];  // If false then the sentinel will only move along the x axis, y axis if true
 
-
-/*
-Find difference in x and y compared to the player
-Adjust vflip and xflip accordingly
-Move accordingly
-Attempt to shoot if close enough to the player or whenever possible
-Dont move is reloading
-*/ 
-/*
-void BasicEnemyHandle(Entity* self, int HitboxArray[][4], int HitboxLen) {
-	int my_center[2];
-	EntityGetCenterArray(self, my_center);
-
-	int x_difference = player_center[0] - my_center[0];
-	int y_difference = player_center[1] - my_center[1];
-
-	_Bool move_along_x = 1;
-	if (y_difference > x_difference) move_along_x = 0;
-
-	if (x_difference > 0) self->h_flip = 0;
-	else self->h_flip = 1;
-
-	int y = 0;
-	if (y_difference > 0) y = 1;
-	else if (y_difference < 0) y = -1;
-
-	EntityMove(self, 0, y, HitboxArray, HitboxLen);
+// Universal enemy stuff
+void EnemySetupDeathAnimations(Entity enemy_entity_array[3][5]) {
+	for (int a = 0; a < 3; a++) {
+		for (int b = 0; b < 5; b++) {
+			if (!enemy_entity_array[a][b].dead) {
+				enemy_entity_array[a][b].counter = 12;  // As the death animation lasts 12 frames
+			}
+		}
+	}
 }
-*/
+
+// Sentinel handling
+_Bool sentinel_move_direction_array[5];  // If false then the sentinel will only move along the x axis, y axis if true
 
 void SentinelMove(Entity* self, _Bool sentinel_move_direction, int player_center[2], int HitboxArray[][4], int HitboxLen) {
 	if (self->current_bullet_delay == 0) {
@@ -235,7 +218,7 @@ void SentinelFireBullet(Entity* self, _Bool sentinel_move_direction, Bullet bull
 				8, 8,
 				angle,
 				1,
-				120,
+				240,
 				1,
 				SENTINELBULLET
 			);
@@ -243,12 +226,51 @@ void SentinelFireBullet(Entity* self, _Bool sentinel_move_direction, Bullet bull
 	}
 }
 
-void SentinelAnimate(Entity* self, int oam_number, int frame_number, u16* enemy_gfx_mem[8]) {
-	if (frame_number % 6 == 0) {
+void SentinelAnimate(Entity* self, int oam_number, int frame_number, u16* sentinel_gfx_mem[8], u16* sentinel_explosion_gfx_mem[8]) {
+	if (!self->dead) {
+		if (frame_number % 6 == 0) {
 			self->animation_frame_number += 1;
 			self->animation_frame_number %= 4;
+		}
+		if (self->current_bullet_delay == 0) {
+			oamSet(
+				&oamMain,
+				oam_number,
+				self->x, self->y,
+				0,
+				0,
+				SpriteSize_16x16,
+				SpriteColorFormat_256Color,
+				sentinel_gfx_mem[self->animation_frame_number],
+				-1,
+				false,
+				self->dead,
+				self->v_flip,
+				self->h_flip,
+				false
+			);
+		}
+		else {
+			oamSet(
+				&oamMain,
+				oam_number,
+				self->x, self->y,
+				0,
+				0,
+				SpriteSize_16x16,
+				SpriteColorFormat_256Color,
+				sentinel_gfx_mem[4 + 3 - self->current_bullet_delay / 15 % 4],
+				-1,
+				false,
+				self->dead,
+				self->v_flip,
+				self->h_flip,
+				false
+			);
+		}
 	}
-	if (self->current_bullet_delay == 0) {
+	else {
+		if (self->counter > 0) self->counter -= 1;
 		oamSet(
 			&oamMain,
 			oam_number,
@@ -257,16 +279,68 @@ void SentinelAnimate(Entity* self, int oam_number, int frame_number, u16* enemy_
 			0,
 			SpriteSize_16x16,
 			SpriteColorFormat_256Color,
-			enemy_gfx_mem[self->animation_frame_number],
+			sentinel_explosion_gfx_mem[7 - (int)(self->counter / 2)],
 			-1,
 			false,
-			self->dead,
+			!self->counter,
+			self->v_flip,
+			self->h_flip,
+			false
+		);
+	}
+}
+
+// Chaser handling
+float chaser_movement_vector_array[5][2];
+
+void ChaserMove(Entity* self, float vector[2], int player_center[2], int HitboxArray[][4], int HitboxLen) {
+	if (self->bullet_delay == 0) {
+		_Bool collision = 0;
+		// Move in given direction
+		collision = EntityMove(self, vector[0], vector[1], HitboxArray, HitboxLen);
+		// Collision detection
+		if (collision) {
+			self->bullet_delay = 60;
+		}
+	}
+	else {
+		self->bullet_delay -= 1;
+		if (self->bullet_delay == 0) {
+			// Get vector to the player
+			int my_center[2];
+			EntityGetCenterArray(self, my_center);
+			GetVectorFromAngle(GetAngleFromOriginTo(player_center[0] - my_center[0], player_center[1] - my_center[1]), vector);
+			vector[0] *= 3;
+			vector[1] *= 3;
+		}
+	}
+}
+
+void ChaserAnimate(Entity* self, int oam_number, int frame_number, u16* chaser_gfx_mem[4], u16* chaser_explosion_gfx_mem[8]) {
+	if (!self->dead) {
+		if (frame_number % 6 == 0) {
+			self->animation_frame_number += 1;
+			self->animation_frame_number %= 4;
+		}
+		oamSet(
+			&oamMain,
+			oam_number,
+			self->x, self->y,
+			0,
+			0,
+			SpriteSize_16x16,
+			SpriteColorFormat_256Color,
+			chaser_gfx_mem[self->animation_frame_number],
+			-1,
+			false,
+			false,
 			self->v_flip,
 			self->h_flip,
 			false
 		);
 	}
 	else {
+		if (self->counter > 0) self->counter -= 1;
 		oamSet(
 			&oamMain,
 			oam_number,
@@ -275,17 +349,19 @@ void SentinelAnimate(Entity* self, int oam_number, int frame_number, u16* enemy_
 			0,
 			SpriteSize_16x16,
 			SpriteColorFormat_256Color,
-			enemy_gfx_mem[4 + 3 - self->current_bullet_delay / 15 % 4],
+			chaser_explosion_gfx_mem[7 - (int)(self->counter / 2)],
 			-1,
 			false,
-			self->dead,
+			!self->counter,
 			self->v_flip,
 			self->h_flip,
 			false
 		);
 	}
-	
 }
+
+// Enemy 3 handling
+
 
 // Take a guess
 int frame_number = 0;
@@ -327,27 +403,45 @@ int main(void) {
 	// Setting the sprite palette
 	dmaCopy(SpriteSheetPal, SPRITE_PALETTE, 512);
 	
-	// Allocating memory for, and loading the player
+	// Allocating memory for, and loading the player sprites
 	for (int a = 0; a < 8; a++) {
 		PlayerGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8*)SpriteSheetTiles + 16*16 * a, PlayerGFXMem[a], 16 * 16);
+		dmaCopy((u8*)SpriteSheetTiles + TILESIZE * a, PlayerGFXMem[a], 16 * 16);
 	}
-	// Allocating memory for, and loading all the sentinal sprites
+	// Allocating memory for, and loading the sentinal sprites
+	for (int a = 0; a < 2; a++) {
+		for (int b = 0; b < 8; b++) {
+			SentinelGFXMem[a][b] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+			dmaCopy((u8*)SpriteSheetTiles + TILESIZE*SPRITESHEETWIDTH * (a + 1) + TILESIZE * b, SentinelGFXMem[a][b], 16 * 16);
+		}
+	}
+	// Allocating memory for, and loading the chaser sprites
+	for (int a = 0; a < 4; a++) {
+		ChaserGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8*)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 3 + TILESIZE * a, ChaserGFXMem[a], 16 * 16);
+	}
+
+	// Allocating memory for, and loading the player explosion sprites
 	for (int a = 0; a < 8; a++) {
-		EnemyGFXMem[0][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8*)SpriteSheetTiles + 16*16*8 + 16*16 * a, EnemyGFXMem[0][a], 16 * 16);
+		PlayerExplosionGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8*)SpriteSheetTiles + TILESIZE * 8 +  TILESIZE * a, PlayerExplosionGFXMem[a], 16 * 16);
 	}
-	
-	
+	// Allocating memory for, and loading the sentinal explosion sprites
+	for (int a = 0; a < 8; a++) {
+		SentinelExplosionGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8*)SpriteSheetTiles + TILESIZE*SPRITESHEETWIDTH + TILESIZE * 8 + TILESIZE * a, SentinelExplosionGFXMem[a], 16 * 16);
+	}
+	//
+
 	// Allocating memory for, and loading the player bullets
 	for (int a = 0; a < 4; a++) {
 		BulletGFXMem[0][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8*)SpriteSheetTiles + 16*16*8*7 + 16*16 * a, BulletGFXMem[0][a], 16 * 16);
+		dmaCopy((u8*)SpriteSheetTiles + TILESIZE*SPRITESHEETWIDTH*7 + TILESIZE * a, BulletGFXMem[0][a], 16 * 16);
 	}
-	// The above but for the basic enemy bullets
+	// The above but for the sentinel enemy bullets
 	for (int a = 0; a < 4; a++) {
 		BulletGFXMem[1][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8*)SpriteSheetTiles + 16*16*8*6 + 16*16 * a, BulletGFXMem[1][a], 16 * 16);
+		dmaCopy((u8*)SpriteSheetTiles + TILESIZE*SPRITESHEETWIDTH*6 + TILESIZE * a, BulletGFXMem[1][a], 16 * 16);
 	}
 	
 	// Setting up the player
@@ -360,19 +454,24 @@ int main(void) {
 		10  // Bullet delay
 	);
 	EntityGetRectArray(&player, player_hitbox);
+	player.counter = 16;
 	
 	// Setting up the bullet array
 	BulletInitBulletArray(bullet_array, MAXBULLETCOUNT);
 
-	// Basic sentinel stuff
-	for (int i = 0; i < 5; i++) {
-		enemy_entity_array[0][i].dead = 1;
+	// Every enemy needs to start off as dead
+	for (int a = 0; a < 3; a++) {
+		for (int b = 0; b < 5; b++) {
+			EnemyEntityArray[a][b].dead = 1;
+		}
 	}
 
-	EntitySetup(&enemy_entity_array[0][0], 15, 25, 16, 16, 10, 1, 60);
+	/* Sentinel example
+	// Do one for easy, both for hard
+	EntitySetup(&enemy_entity_array[0][0], 15, 15, 16, 16, 10, 1, 60);
 	sentinel_move_direction_array[0] = 1;
 	enemy_entity_array[0][0].current_bullet_delay = 60;
-	EntitySetup(&enemy_entity_array[0][1], 15, 25, 16, 16, 10, 1, 60);
+	EntitySetup(&enemy_entity_array[0][1], 15, 15, 16, 16, 10, 1, 60);
 	sentinel_move_direction_array[1] = 0;
 	enemy_entity_array[0][1].current_bullet_delay = 60;
 
@@ -382,7 +481,29 @@ int main(void) {
 	EntitySetup(&enemy_entity_array[0][3], 225, 161, 16, 16, 10, 1, 60);
 	sentinel_move_direction_array[3] = 0;
 	enemy_entity_array[0][3].current_bullet_delay = 60;
-	
+	*/
+
+	/* Chaser example
+	// Easy
+	EntitySetup(&EnemyEntityArray[1][0], 15, 15, 15, 15, 3, 3, 60);
+	EntitySetup(&EnemyEntityArray[1][1], 15, 65, 15, 15, 3, 3, 60);
+	EntitySetup(&EnemyEntityArray[1][2], 15, 90, 15, 15, 3, 3, 60);
+	EntitySetup(&EnemyEntityArray[1][3], 15, 111, 15, 15, 3, 3, 60);
+	EntitySetup(&EnemyEntityArray[1][4], 15, 161, 15, 15, 3, 3, 60);
+
+	// Hard
+	EntitySetup(&EnemyEntityArray[1][0], 15, 15, 15, 15, 3, 3, 60);
+	EntitySetup(&EnemyEntityArray[1][1], 225, 15, 15, 15, 3, 3, 60);
+	EntitySetup(&EnemyEntityArray[1][2], 15, 161, 15, 15, 3, 3, 60);
+	EntitySetup(&EnemyEntityArray[1][3], 226, 161, 15, 15, 3, 3, 60);
+	*/
+
+	EntitySetup(&EnemyEntityArray[1][0], 15, 15, 15, 15, 3, 3, 60);
+	EntitySetup(&EnemyEntityArray[1][1], 225, 15, 15, 15, 3, 3, 60);
+	EntitySetup(&EnemyEntityArray[1][2], 15, 161, 15, 15, 3, 3, 60);
+	EntitySetup(&EnemyEntityArray[1][3], 226, 161, 15, 15, 3, 3, 60);
+
+	EnemySetupDeathAnimations(EnemyEntityArray);
 	
 	while(1) {
 		// Clear the text
@@ -407,17 +528,25 @@ int main(void) {
 		}
 		
 		// Handle enemies here
+		// Sentinel handling
 		for (int i = 0; i < 5; i++) {
-			if (!enemy_entity_array[0][i].dead) {
-				SentinelMove(&enemy_entity_array[0][i], sentinel_move_direction_array[i], player_center, screen_boarder, 4);
-				SentinelFireBullet(&enemy_entity_array[0][i], sentinel_move_direction_array[i], bullet_array, MAXBULLETCOUNT);
+			if (!EnemyEntityArray[0][i].dead) {
+				SentinelMove(&EnemyEntityArray[0][i], sentinel_move_direction_array[i], player_center, screen_boarder, 4);
+				SentinelFireBullet(&EnemyEntityArray[0][i], sentinel_move_direction_array[i], bullet_array, MAXBULLETCOUNT);
 			}
 		}
+		// Chaser handling
+		for (int i = 0; i < 5; i++) {
+			if (!EnemyEntityArray[1][i].dead) {
+				ChaserMove(&EnemyEntityArray[1][i], chaser_movement_vector_array[i], player_center, screen_boarder, 4);
+			}
+		}
+
 	
 		// Kind of 'deleting' old bullets and then updating them if they go outside the screen
 		BulletHandleBulletArray(bullet_array, MAXBULLETCOUNT, playable_area);
 
-		// Bullet collision with player and enemies here
+		// Bullet collision with player and enemies
 		for (int bullet_index = 0; bullet_index < MAXBULLETCOUNT; bullet_index++) {
 			if (bullet_array[bullet_index].alive){
 				BulletGetRectArray(&bullet_array[bullet_index], temp_bullet_hitbox);
@@ -426,10 +555,10 @@ int main(void) {
 					// Check against every alive enemy
 					for (int a = 0; a < 3; a++) {
 						for (int b = 0; b < 5; b++) {
-							if (!enemy_entity_array[a][b].dead) {
-								EntityGetRectArray(&enemy_entity_array[a][b], temp_enemy_hitbox);
+							if (!EnemyEntityArray[a][b].dead) {
+								EntityGetRectArray(&EnemyEntityArray[a][b], temp_enemy_hitbox);
 								if (RectangleCollision(temp_bullet_hitbox, temp_enemy_hitbox)) {
-									EntityTakeDamage(&enemy_entity_array[a][b], bullet_array[bullet_index].damage);
+									EntityTakeDamage(&EnemyEntityArray[a][b], bullet_array[bullet_index].damage);
 									bullet_array[bullet_index].to_die = 1;
 								}
 							}
@@ -448,6 +577,18 @@ int main(void) {
 			}
 		}
 		
+		// Player collision with enemies
+		for (int a = 0; a < 3; a++) {
+			for (int b = 0; b < 5; b++) {
+				if (!EnemyEntityArray[a][b].dead) {
+					EntityGetRectArray(&EnemyEntityArray[a][b], temp_enemy_hitbox);
+					if (RectangleCollision(player_hitbox, temp_enemy_hitbox)) {
+						EntityTakeDamage(&player, 1);
+					}
+				}
+			}
+		}
+
 		// Counting Bullets, not necessary
 		alive_bullets = 0;
 		for (int i = 0; i < MAXBULLETCOUNT; i++) {
@@ -457,11 +598,12 @@ int main(void) {
 		}
 		
 		// Drawing and animating the player
-		PlayerAnimate(&player, frame_number, PlayerGFXMem);
+		PlayerAnimate(&player, frame_number, PlayerGFXMem, PlayerExplosionGFXMem);
 
 		// Draw enemies here
 		for (int i = 0; i < 5; i++) {
-			SentinelAnimate(&enemy_entity_array[0][i], 5 + i, frame_number, EnemyGFXMem[0]);
+			SentinelAnimate(&EnemyEntityArray[0][i], 5 + i, frame_number, SentinelGFXMem[!sentinel_move_direction_array[i]], SentinelExplosionGFXMem);
+			ChaserAnimate(&EnemyEntityArray[1][i], 10 + i, frame_number, ChaserGFXMem, SentinelExplosionGFXMem);
 		}
 
 		// Drawing the bullets
@@ -489,11 +631,15 @@ int main(void) {
 		iprintf("\nX = %d\nY = %d\n", (int)player.x, (int)player.y);
 		iprintf("Player Center [%d, %d]\n", player_center[0], player_center[1]);
 		iprintf("Alive Bullets = %d\n", alive_bullets);
-		iprintf("Current Bullet Delay = %d\n", player.current_bullet_delay);
-		// iprintf("%d\n", keys);
-		// iprintf("%d, %d, %d, %d\n", KEY_RIGHT, KEY_LEFT, KEY_UP, KEY_DOWN);
-		// iprintf("%d, %d, %d, %d", keys & KEY_RIGHT, keys & KEY_LEFT, keys & KEY_UP, keys & KEY_DOWN);
-		iprintf("Health = %d", enemy_entity_array[0][0].health);
+		// iprintf("Current Bullet Delay = %d\n", player.current_bullet_delay);
+		iprintf("Player Dead = %d\n", player.dead);
+		iprintf("\nEnemy Health = %d\n", EnemyEntityArray[1][0].health);
+		iprintf("Enemy Dead = %d\n", EnemyEntityArray[1][0].dead);
+		for (int a = 0; a < 3; a++) {
+			for (int b = 0; b < 5; b++) {
+				iprintf("%d", EnemyEntityArray[a][b].dead);
+			}
+		}
 		
 		// Waiting 
 		swiWaitForVBlank();
@@ -520,4 +666,13 @@ Finished:
 	Improve player sprite so it isnt direction based
 	
 	Get the sentinel enemy working, animations, movement and all
+	
+	Explosions
+		This means explosion animations
+
+	Sawblade enemy
+		Rush at player
+		Go untill hit either the player or the boarder
+		Wait a bit, then repeat
+		Dont forget their animations
 */

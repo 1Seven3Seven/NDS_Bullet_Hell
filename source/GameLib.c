@@ -55,8 +55,9 @@ void EntityTakeDamage(Entity* self, int damage) {
 	}
 }
 
-void EntityMove(Entity* self, int x, int y, int HitboxArray[][4], int HitboxLen) {	
+_Bool EntityMove(Entity* self, float x, float y, int HitboxArray[][4], int HitboxLen) {	
 	int hitbox[4];
+	_Bool hit_a_hitbox = 0;
 
 	if (x != 0) {
 		self->x += x;  // Move the entity
@@ -66,6 +67,7 @@ void EntityMove(Entity* self, int x, int y, int HitboxArray[][4], int HitboxLen)
 				// Adjust the entity position accordingly
 				if (x > 0)  EntitySetRight(self, HitboxArray[i][0]);
 				else self->x = RectangleGetRight(HitboxArray[i]);
+				hit_a_hitbox = 1;
 			}
 		}
 	}
@@ -78,9 +80,12 @@ void EntityMove(Entity* self, int x, int y, int HitboxArray[][4], int HitboxLen)
 				// Adjust the entity position accordingly
 				if (y > 0) EntitySetBottom(self, HitboxArray[i][1]);
 				else self->y = RectangleGetBottom(HitboxArray[i]);
+				hit_a_hitbox = 1;
 			}
 		}
 	}
+
+	return hit_a_hitbox;
 }
 
 
@@ -226,4 +231,9 @@ float GetAngleFromOriginTo(int x, int y) {
 	else if (x > 0 && y > 0) angle = 2 * PI - angle;
 
 	return angle;
+}
+
+void GetVectorFromAngle(float angle, float vector_array[2]) {
+	vector_array[0] = cosf(angle);
+	vector_array[1] = -sinf(angle);
 }
