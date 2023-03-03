@@ -5,7 +5,7 @@
 // Entity
 //---------------------------------------------------------------------------------
 
-void SetupEntity(Entity* self, int x, int y, int w, int h, int health, int type) {
+void EntitySetup(Entity* self, int x, int y, int w, int h, int health, int type) {
 	self->x = x;
 	self->y = y;
 	self->w = w;
@@ -24,27 +24,27 @@ void EntityGetRectArray(Entity* self, int rect_array[4]) {
 	rect_array[3] = self->h;
 }
 
-void GetCenterArray(Entity* self, int center_array[2]) {
+void EntityGetCenterArray(Entity* self, int center_array[2]) {
 	center_array[0] = (int)self->x + self->w / 2;
 	center_array[1] = (int)self->y + self->h / 2;
 }
 
-void SetRight(Entity* self, int right) {
+void EntitySetRight(Entity* self, int right) {
 	self->x = right - self->w;
 }
 
-void SetBottom(Entity* self, int bottom) {
+void EntitySetBottom(Entity* self, int bottom) {
 	self->y = bottom - self->h;
 }
 
-void TakeDamage(Entity* self, int damage) {
+void EntityTakeDamage(Entity* self, int damage) {
 	self->health -= damage;
 	if (self->health < 0) {
 		self->dead = 1;
 	}
 }
 
-void PlayerMove(Entity* self, int movement[2]) {
+void EntityMove(Entity* self, int movement[2]) {
 	self->x += movement[0];
 	self->y += movement[1];
 }
@@ -54,24 +54,23 @@ void PlayerMove(Entity* self, int movement[2]) {
 //---------------------------------------------------------------------------------
 
 void BulletInit(Bullet* self) {
-	self->w = 8;  // All bullets will have an 8x8 hitbox
-	self->h = 8;
-	self->alive = 0;  // So I know this bullet struct can be reused for a new bullet
-	self->to_delete = 0;
+	self->alive = 0;
+	self->to_die = 0;
 }
 
-void SetupBullet(Bullet* self, float x, float y, float angle, int velocity, int damage, int lifetime, int type) {
+void BulletSetup(Bullet* self, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage) {
 	self->x = x;
 	self->y = y;
+	self->w = w;
+	self->h = h;
 	
+	self->angle = angle;
+	self->velocity = velocity;
 	self->vector[0] = cosf(angle) * velocity;
-	self->vector[1] = sinf(angle) * velocity;
+	self->vector[1] = -sinf(angle) * velocity;
 	
+	self->lifespan = lifespan;
 	self->damage = damage;
-	
-	self->lifetime = lifetime;
-	
-	self->type = type;
 	
 	self->alive = 1;
 }
@@ -83,21 +82,36 @@ void BulletGetRectArray(Bullet* self, int rect_array[4]) {
 	rect_array[3] = self->h;
 }
 
+void BulletGetCenterArray(Bullet* self, int center_array[2]) {
+	center_array[0] = (int)self->x + self->w / 2;
+	center_array[1] = (int)self->y + self->h / 2;
+}
+
 void BulletMove(Bullet* self) {
 	self->x += self->vector[0];
 	self->y += self->vector[1];
 }
 
+_Bool BulletSetupInArray(Bullet BulletArray[], int ArrayLength, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage) {
+	for (int i = 0; i < ArrayLength; i++) {
+		if (BulletArray[i].alive == 0) {
+			BulletSetup(&BulletArray[i], x, y, w, h, angle, velocity, lifespan, damage);
+			return 1;
+		}
+	}
+	return 0;
+}
+
 void BulletUpdate(Bullet* self) {
 	BulletMove(self);
-	self->lifetime -= 1;
-	if (self->lifetime == 0) {
-		self->to_delete = 1;
+	self->lifespan--;
+	if (self->lifespan == 0) {
+		self->to_die = 1;
 	}
 }
 
 //---------------------------------------------------------------------------------
-// Collision Detection
+// Collision Detection & related things
 //---------------------------------------------------------------------------------
 
 _Bool RectangleCollision(int rect1[4], int rect2[4]) {
@@ -113,4 +127,11 @@ _Bool RectangleCollision(int rect1[4], int rect2[4]) {
 	}
 
 	return(0);
+}
+
+int GetRightOfRectangle(int rect[4]) {
+	return(rect[0] + rect[2]);
+}
+int GetBottomOfRectangle(int rect[4]) {
+	return(rect[1] + rect[3]);
 }

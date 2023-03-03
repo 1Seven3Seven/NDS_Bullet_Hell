@@ -4,7 +4,7 @@
 //---------------------------------------------------------------------------------
 // Entity
 //---------------------------------------------------------------------------------
-typedef struct{
+typedef struct {
 	float x;
 	float y;
 	int w;
@@ -14,40 +14,43 @@ typedef struct{
 	_Bool dead;
 	
 	int type;
-}Entity;
+} Entity;
 
-void SetupEntity(Entity* self, int x, int y, int w, int h, int health, int type);
-void GetRectArray(Entity* self, int rect_array[4]);
-void GetCenterArray(Entity* self, int center_array[2]);
-void SetRight(Entity* self, int right);
-void SetBottom(Entity* self, int bottom);
-void TakeDamage(Entity* self, int damage);
-void PlayerMove(Entity* self, int movement[2]);
+void EntitySetup(Entity* self, int x, int y, int w, int h, int health, int type);
+void EntityGetRectArray(Entity* self, int rect_array[4]);
+void EntityGetCenterArray(Entity* self, int center_array[2]);
+void EntitySetRight(Entity* self, int right);
+void EntitySetBottom(Entity* self, int bottom);
+void EntityTakeDamage(Entity* self, int damage);
+void EntityMove(Entity* self, int movement[2]);
 
 //---------------------------------------------------------------------------------
 // Bullets
 //---------------------------------------------------------------------------------
-typedef struct{
+typedef struct {
 	float x;
 	float y;
 	int w;
 	int h;
 	
+	float angle;
+	float velocity;
 	float vector[2];
+	
+	int lifespan;
 	int damage;
 	
-	int lifetime;
+	_Bool alive;  // Whether or not the bullet should be handled
+	_Bool to_die;  // Whether or not the bullet should stop being handled
 	
-	int type;
-	
-	_Bool alive;
-	_Bool to_delete;
-}Bullet;
+} Bullet;
 
 void BulletInit(Bullet* self);
-void SetupBullet(Bullet* self, float x, float y, float angle, int velocity, int damage, int lifetime, int type);
+void BulletSetup(Bullet* self, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage);
 void BulletGetRectArray(Bullet* self, int rect_array[4]);
+void BulletGetCenterArray(Bullet* self, int center_array[2]);
 void BulletMove(Bullet* self);
+_Bool BulletSetupInArray(Bullet BulletArray[], int ArrayLength, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage);
 void BulletUpdate(Bullet* self);
 
 //---------------------------------------------------------------------------------
@@ -55,5 +58,7 @@ void BulletUpdate(Bullet* self);
 //---------------------------------------------------------------------------------
 
 _Bool RectangleCollision(int rect1[4], int rect2[4]);
+int GetRightOfRectangle(int rect[4]);
+int GetBottomOfRectangle(int rect[4]);
 
 #endif

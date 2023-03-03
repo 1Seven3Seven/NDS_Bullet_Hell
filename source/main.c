@@ -10,44 +10,63 @@
 
 // Pictures and sprites
 #include "SpriteSheet.h"
+#include "BasicBackground.h"
 
-// A 2d array of pointers to the graphics memory of the Character
+// A series of 2d arrays of pointers to the graphics memory of the sprites
 u16* PlayerGFXMem[6];
 u16* PlayerBulletGFXMem[4];
 
 // Character Entity
-Entity Player;
+Entity player;
 int current_movement[2] = {0, 0};
 int direction = 0;
-int PlayerAnimationFrameNumber = 0;
+int player_animation_frame_number = 0;
 _Bool moving = 0;
+int player_center[2];
+int player_hitbox[4];
 
 // Take a guess
 int frame_number = 0;
 
 // Bullet array and other necessary information
-Bullet BulletArray[MAXBULLETCOUNT];
-int BulletAnimationFrameNumber = 0;
-enum {PlayerBullet = 0, EnemyBullet = 1};
+Bullet bullet_array[100];
+int temp_bullet_hitbox[4];  // Used to hold a bullet's hitbox when handling said bullet
 
+int alive_bullets = 0;
+
+int bullet_delay = 10;
 int current_bullet_delay = 0;
-int bullet_delay = 5;
 
-int BulletsFired = 0;
+// Main boarder hitboxes
+int screen_rectangle[4] = {0, 0, 256, 192};
+int screen_boarder[4][4] = {
+	{0, 0, 16, 192},
+	{0, 0, 256, 192},
+	{0, 176, 256, 16},
+	{240, 0, 16, 192}
+};
 
 //---------------------------------------------------------------------------------
 int main(void) {
 //---------------------------------------------------------------------------------
-	// Enable the main screen with background 0 active
-	videoSetMode(MODE_0_2D | DISPLAY_BG0_ACTIVE);
+	// Enable the main screen
+	videoSetMode(MODE_5_2D);
 	// Setting and Initalising VRAM Bank A to sprites
 	vramSetBankA(VRAM_A_MAIN_SPRITE);
 	oamInit(&oamMain, SpriteMapping_1D_128, false);
+	// Setting and Initalising VRAM bank B to background slot 0
+	vramSetBankB(VRAM_B_MAIN_BG_0x06000000);
 	
 	// Initalise the bottom screen for text
 	consoleDemoInit();
 	
-	// Setting the palette
+	// Loading the background
+	int bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
+	dmaCopy(BasicBackgroundBitmap, bgGetGfxPtr(bg3), 256*256);
+	dmaCopy(BasicBackgroundPal, BG_PALETTE, sizeof(BasicBackgroundPal));
+	bgShow(bg3);
+
+	// Setting the sprite palette
 	dmaCopy(SpriteSheetPal, SPRITE_PALETTE, 512);
 	
 	// Allocating memory for, and loading the player
@@ -61,15 +80,15 @@ int main(void) {
 		dmaCopy((u8*)SpriteSheetTiles + 16*16*8*7 + 16*16 * a, PlayerBulletGFXMem[a], 16 * 16);
 	}
 	
-	// Setting up the player - void SetupEntity(Entity* self, int x, int y, int w, int h, int health, int type);
-	SetupEntity(&Player, 100, 100, 8, 8, 10, 0);
+	// Setting up the player - void EntitySetup(Entity* self, int x, int y, int w, int h, int health, int type);
+	EntitySetup(&player, 100, 100, 12, 12, 10, 0);
+	EntityGetRectArray(&player, player_hitbox);
 	
-	// Setting up the bullet array - void SetupBullet(Bullet* self, float x, float y, int w, int h, float angle, int damage, int type);
+	// Setting up the bullet array
 	for (int i = 0; i < MAXBULLETCOUNT; i++) {
-		BulletInit(&BulletArray[i]);
+		BulletInit(&bullet_array[i]);
 	}
-	SetupBullet(&BulletArray[0], 0, 0, 315, 1, 1, 180, PlayerBullet);
-
+	
 	while(1) {
 		// Clear the text
 		consoleClear();
@@ -92,12 +111,12 @@ int main(void) {
 		}
 		if (keys & KEY_LEFT) {
 			current_movement[0] = -1;
-			direction = 1;
+			direction = 2;
 			moving = 1;
 		}
 		if (keys & KEY_UP){
 			current_movement[1] = -1;
-			direction = 2;
+			direction = 1;
 			moving = 1;
 		}
 		if (keys & KEY_DOWN) {
@@ -106,7 +125,16 @@ int main(void) {
 			moving = 1;
 		}
 		
-		PlayerMove(&Player, current_movement);
+		EntityMove(&player, current_movement);
+		EntityGetRectArray(&player, player_hitbox);
+
+		for (int i = 0; i < 4; i++) {
+			if (RectangleCollision(player_hitbox, screen_boarder[i])) {
+				
+			}
+		}
+
+		EntityGetCenterArray(&player, player_center);
 		
 		// Adding in bullets
 		if (current_bullet_delay > 0) {
@@ -114,81 +142,123 @@ int main(void) {
 		}
 		else {
 			if (keys & KEY_A) {
-				BulletsFired++;
+				current_bullet_delay = bullet_delay;
 				for (int i = 0; i < MAXBULLETCOUNT; i++) {
-					if (BulletArray[i].alive == 0) {
-						SetupBullet(&BulletArray[i], Player.x, Player.y, 0, 1, 1, 120, PlayerBullet);
+					if (!bullet_array[i].alive) {
+						BulletSetup(
+							&bullet_array[i],
+							player_center[0] - 4, player_center[1] - 4,  // x, y
+							8, 8,  // w, h
+							1.5708 * direction,  // angle
+							2,  // velocity
+							120,  // lifespan
+							1  // damage
+						);
 						break;
 					}
 				}
-				current_bullet_delay = bullet_delay;
+			}
+		}
+	
+		// Kind of deleting old bullets and then updating them
+		for (int i = 0; i < MAXBULLETCOUNT; i++) {
+			if (bullet_array[i].to_die) {
+				bullet_array[i].to_die = 0;
+				bullet_array[i].alive = 0;
+			}
+			else {
+				BulletUpdate(&bullet_array[i]);
+				BulletGetRectArray(&bullet_array[i], temp_bullet_hitbox);  // Deleting if the bullets go outside the screen
+				if (!RectangleCollision(screen_rectangle, temp_bullet_hitbox)) {
+					bullet_array[i].to_die = 0;
+					bullet_array[i].alive = 0;
+				}
 			}
 		}
 		
-		// Kind of deleting old bullets and then updating them
+		// Counting Bullets
+		alive_bullets = 0;
 		for (int i = 0; i < MAXBULLETCOUNT; i++) {
-			if (BulletArray[i].to_delete) {
-				BulletArray[i].to_delete = 0;
-				BulletArray[i].alive = 0;
-			}
-			else {
-				if (BulletArray[i].alive) {
-					BulletUpdate(&BulletArray[i]);
-				}
+			if (bullet_array[i].alive) {
+				alive_bullets++;
 			}
 		}
 		
 		// Drawing in the player
 		if (frame_number % 6 == 0) {
-			PlayerAnimationFrameNumber++;
-			PlayerAnimationFrameNumber = PlayerAnimationFrameNumber % 4;
+			player_animation_frame_number++;
+			player_animation_frame_number = player_animation_frame_number % 4;
 		}
 		if (moving) {
 			oamSet(
-				&oamMain, 0, Player.x, Player.y, 1, 0, SpriteSize_16x16, SpriteColorFormat_256Color, PlayerGFXMem[PlayerAnimationFrameNumber], -1, false, false, false, false, false
+				&oamMain,
+				0,
+				player.x, player.y,
+				0,
+				0,
+				SpriteSize_16x16,
+				SpriteColorFormat_256Color,
+				PlayerGFXMem[player_animation_frame_number],
+				-1,
+				false,
+				false,
+				false,
+				false,
+				false
 			);
 		}
 		else {
 			oamSet(
-				&oamMain, 0, Player.x, Player.y, 1, 0, SpriteSize_16x16, SpriteColorFormat_256Color, PlayerGFXMem[4 + PlayerAnimationFrameNumber % 2], -1, false, false, false, false, false
+				&oamMain,
+				0,
+				player.x,
+				player.y,
+				0,
+				0,
+				SpriteSize_16x16,
+				SpriteColorFormat_256Color,
+				PlayerGFXMem[4 + player_animation_frame_number % 2],
+				-1,
+				false,
+				false,
+				false,
+				false,
+				false
 			);
 		}
 		
-		// Drawing the bulletS
-		if (frame_number % 4 == 0) {
-			BulletAnimationFrameNumber++;
-			BulletAnimationFrameNumber = BulletAnimationFrameNumber % 4;
-		}
+		// Drawing the bullets
 		for (int i = 0; i < MAXBULLETCOUNT; i++) {
 			oamSet(
 				&oamMain,
-				28 + i,  // The sprite id to be set
-				(int)BulletArray[i].x,
-				(int)BulletArray[i].y,
-				1,  // Priority from 0 to 3
-				0,  // Palette alpha, idk
+				28 + i,
+				bullet_array[i].x,
+				bullet_array[i].y,
+				0,
+				0,
 				SpriteSize_16x16,
 				SpriteColorFormat_256Color,
-				PlayerBulletGFXMem[BulletAnimationFrameNumber],
-				-1,  // Affine index to use (if < 0 or > 31 the sprite will be unrotated)
-				false,  // Size double
-				BulletArray[i].alive,  //  Hide, if non zero then it will be hidden
-				false,  // vertical flip
-				false,  // horizontal flip
-				false  // mosaic
+				PlayerBulletGFXMem[bullet_array[i].lifespan / 6 % 4],
+				-1,
+				false,
+				!bullet_array[i].alive,
+				false,
+				false,
+				false
 			);
-			
 		}
 		
-		// Displaying the player position
-		iprintf("\nX = %d\nY = %d\n", (int)Player.x, (int)Player.y);
-		iprintf("[%d, %d]\n", current_movement[0], current_movement[1]);
+		// Displaying the player position and other stuff
+		iprintf("\nX = %d\nY = %d\n", (int)player.x, (int)player.y);
+		iprintf("Player Center [%d, %d]\n", player_center[0], player_center[1]);
 		iprintf("Direction = %d\n", direction);
-		iprintf("Bullet = %d\n", BulletArray[0].to_delete);
-		iprintf("BulletsFired = %d\n", BulletsFired);
+		iprintf("Alive Bullets = %d\n", alive_bullets);
+		iprintf("Current Bullet Delay = %d\n", current_bullet_delay);
+		iprintf("%d", sizeof(BasicBackgroundBitmap));
 		
 		// Waiting 
 		swiWaitForVBlank();
+		// Update the screen
 		oamUpdate(&oamMain);
 		// To exit I think
 		if(pressed & KEY_START) break;
