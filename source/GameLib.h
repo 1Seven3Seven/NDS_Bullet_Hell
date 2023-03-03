@@ -5,8 +5,8 @@
 // Entity
 //---------------------------------------------------------------------------------
 typedef struct {
-	float x;
-	float y;
+	int x;
+	int y;
 	int w;
 	int h;
 	
@@ -14,6 +14,8 @@ typedef struct {
 	_Bool dead;
 	
 	int type;
+
+	int last_movement[2];
 } Entity;
 
 void EntitySetup(Entity* self, int x, int y, int w, int h, int health, int type);
@@ -46,19 +48,21 @@ typedef struct {
 } Bullet;
 
 void BulletInit(Bullet* self);
+void BulletInitBulletArray(Bullet bullet_array[], int bullet_array_len);
 void BulletSetup(Bullet* self, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage);
+void BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage);
 void BulletGetRectArray(Bullet* self, int rect_array[4]);
 void BulletGetCenterArray(Bullet* self, int center_array[2]);
 void BulletMove(Bullet* self);
-_Bool BulletSetupInArray(Bullet BulletArray[], int ArrayLength, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage);
 void BulletUpdate(Bullet* self);
+void BulletHandleBulletArray(Bullet bullet_array[], int bullet_array_length, int screen_rectangle[4]);
 
 //---------------------------------------------------------------------------------
 // Collision Detection
 //---------------------------------------------------------------------------------
 
 _Bool RectangleCollision(int rect1[4], int rect2[4]);
-int GetRightOfRectangle(int rect[4]);
-int GetBottomOfRectangle(int rect[4]);
+int RectangleGetRight(int rect[4]);
+int RectangleGetBottom(int rect[4]);
 
 #endif

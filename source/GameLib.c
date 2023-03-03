@@ -15,18 +15,21 @@ void EntitySetup(Entity* self, int x, int y, int w, int h, int health, int type)
 	self->dead = 0;
 	
 	self->type = type;
+
+	self->last_movement[0] = 0;
+	self->last_movement[1] = 0;
 }
 
 void EntityGetRectArray(Entity* self, int rect_array[4]) {
-	rect_array[0] = (int)self->x;
-	rect_array[1] = (int)self->y;
+	rect_array[0] = self->x;
+	rect_array[1] = self->y;
 	rect_array[2] = self->w;
 	rect_array[3] = self->h;
 }
 
 void EntityGetCenterArray(Entity* self, int center_array[2]) {
-	center_array[0] = (int)self->x + self->w / 2;
-	center_array[1] = (int)self->y + self->h / 2;
+	center_array[0] = self->x + self->w / 2;
+	center_array[1] = self->y + self->h / 2;
 }
 
 void EntitySetRight(Entity* self, int right) {
@@ -45,6 +48,8 @@ void EntityTakeDamage(Entity* self, int damage) {
 }
 
 void EntityMove(Entity* self, int movement[2]) {
+	self->last_movement[0] = movement[0];
+	self->last_movement[1] = movement[1];
 	self->x += movement[0];
 	self->y += movement[1];
 }
@@ -56,6 +61,12 @@ void EntityMove(Entity* self, int movement[2]) {
 void BulletInit(Bullet* self) {
 	self->alive = 0;
 	self->to_die = 0;
+}
+
+void BulletInitBulletArray(Bullet bullet_array[], int bullet_array_len) {
+	for (int i = 0; i < bullet_array_len; i++) {
+		BulletInit(&bullet_array[i]);
+	}
 }
 
 void BulletSetup(Bullet* self, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage) {
@@ -75,6 +86,23 @@ void BulletSetup(Bullet* self, float x, float y, int w, int h, float angle, int 
 	self->alive = 1;
 }
 
+void BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage) {
+	for (int i = 0; i < bullet_array_len; i++) {
+		if (!bullet_array[i].alive) {
+			BulletSetup(
+				&bullet_array[i],
+				x, y,
+				w, h,
+				angle,
+				velocity,
+				lifespan,
+				damage
+			);
+			break;
+		}
+	}
+}
+
 void BulletGetRectArray(Bullet* self, int rect_array[4]) {
 	rect_array[0] = (int)self->x;
 	rect_array[1] = (int)self->y;
@@ -92,16 +120,6 @@ void BulletMove(Bullet* self) {
 	self->y += self->vector[1];
 }
 
-_Bool BulletSetupInArray(Bullet BulletArray[], int ArrayLength, float x, float y, int w, int h, float angle, int velocity, int lifespan, int damage) {
-	for (int i = 0; i < ArrayLength; i++) {
-		if (BulletArray[i].alive == 0) {
-			BulletSetup(&BulletArray[i], x, y, w, h, angle, velocity, lifespan, damage);
-			return 1;
-		}
-	}
-	return 0;
-}
-
 void BulletUpdate(Bullet* self) {
 	BulletMove(self);
 	self->lifespan--;
@@ -109,6 +127,25 @@ void BulletUpdate(Bullet* self) {
 		self->to_die = 1;
 	}
 }
+
+void BulletHandleBulletArray(Bullet bullet_array[], int bullet_array_length, int screen_rectangle[4]) {
+	int temp_bullet_hitbox[4];
+	for (int i = 0; i < bullet_array_length; i++) {
+		if (bullet_array[i].to_die) {
+				bullet_array[i].to_die = 0;
+				bullet_array[i].alive = 0;
+			}
+		else {
+			BulletUpdate(&bullet_array[i]);
+			BulletGetRectArray(&bullet_array[i], temp_bullet_hitbox);  // Deleting if the bullets go outside the screen
+			if (!RectangleCollision(screen_rectangle, temp_bullet_hitbox)) {
+				bullet_array[i].to_die = 0;
+				bullet_array[i].alive = 0;
+			}
+		}
+	}
+}
+
 
 //---------------------------------------------------------------------------------
 // Collision Detection & related things
@@ -129,9 +166,9 @@ _Bool RectangleCollision(int rect1[4], int rect2[4]) {
 	return(0);
 }
 
-int GetRightOfRectangle(int rect[4]) {
+int RectangleGetRight(int rect[4]) {
 	return(rect[0] + rect[2]);
 }
-int GetBottomOfRectangle(int rect[4]) {
+int RectangleGetBottom(int rect[4]) {
 	return(rect[1] + rect[3]);
 }

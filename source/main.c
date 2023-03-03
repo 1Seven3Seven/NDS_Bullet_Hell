@@ -1,9 +1,7 @@
 // Default stuff
 #include <nds.h>
 #include <stdio.h>
-
-// Constants
-#define MAXBULLETCOUNT 100
+#include <math.h>
 
 // My stuff
 #include "GameLib.h"
@@ -12,18 +10,152 @@
 #include "SpriteSheet.h"
 #include "BasicBackground.h"
 
+// Constants
+#define MAXBULLETCOUNT 100
+#define PI 3.14159265359
+
 // A series of 2d arrays of pointers to the graphics memory of the sprites
 u16* PlayerGFXMem[6];
 u16* PlayerBulletGFXMem[4];
 
 // Character Entity
 Entity player;
-int current_movement[2] = {0, 0};
-int direction = 0;
+int player_movement[2];
+int direction = 0;  // This is technically a global variable as it is used and edited within functions, i dont really like this but i cant be bothered to rectify it
 int player_animation_frame_number = 0;
 _Bool moving = 0;
 int player_center[2];
 int player_hitbox[4];
+
+void PlayerMovement(Entity* self, int keys, int HitboxArray[][4], int HitboxLen, int movement_array[2]) {
+	int player_hitbox[4];
+	// X Movement
+	int x = 0;
+	if (keys & KEY_RIGHT) {
+		x = 1;
+		direction = 0;
+	}
+	if (keys & KEY_LEFT) {
+		x = -1;
+		direction = 2;
+		}
+	// Moving the player
+	self->x += x;
+	// Collision Detection if the player actually moved
+	if (x != 0) {
+		EntityGetRectArray(self, player_hitbox);
+		for (int i = 0; i < HitboxLen; i++) {
+			if (RectangleCollision(player_hitbox, HitboxArray[i])) {  // If a collision
+				// Adjust the player position accordingly
+				if (x > 0) {
+					EntitySetRight(self, HitboxArray[i][0]);
+				}
+				else {
+					self->x = RectangleGetRight(HitboxArray[i]);
+				}
+				// Update the hitbox
+				EntityGetRectArray(self, player_hitbox);
+			}
+		}
+	}
+	
+	// Y Movement
+	int y = 0;
+	if (keys & KEY_DOWN) {
+		y = 1;
+		direction = 3;
+	}
+	if (keys & KEY_UP) {
+		y = -1;
+		direction = 1;
+	}
+	// Moving the player
+	self->y +=y ;
+	// Collision Detection if the player actually moved
+	if (y != 0) {
+		EntityGetRectArray(self, player_hitbox);
+		for (int i = 0; i < HitboxLen; i++) {
+			if (RectangleCollision(player_hitbox, HitboxArray[i])) {  // If a collision
+				// Adjust the player position accordingly
+				if (y > 0) {
+					EntitySetBottom(self, HitboxArray[i][1]);
+				}
+				else {
+					self->y = RectangleGetBottom(HitboxArray[i]);
+				}
+				// Update the hitbox
+				EntityGetRectArray(self, player_hitbox);
+			}
+		}
+	}
+
+	// Passing the movement to the movement array
+	movement_array[0] = x;
+	movement_array[1] = y;
+}
+
+void PlayerFireBullet(Entity* self, int keys, int bullet_delay, int* current_bullet_delay, Bullet bullet_array[], int bullet_array_len) {
+	if (*current_bullet_delay > 0) {
+			*current_bullet_delay = *current_bullet_delay - 1;
+		}
+	else {
+		if (keys & KEY_A) {
+			*current_bullet_delay = bullet_delay;  // Reset the bullet delay
+			BulletSetupInBulletArray(
+				bullet_array, MAXBULLETCOUNT,  // Bullet array information
+				player_center[0] - 4, player_center[1] - 4,  // x, y
+				8, 8,  // w, h
+				PI / 2 * direction,  // angle
+				2,  // velocity
+				120,  // lifespan
+				1  // damage
+			);
+		}
+	}
+}
+
+void PlayerAnimate(Entity* self, int frame_number, int* player_animation_frame_number, u16* player_gfx_mem[], _Bool moving) {
+	if (frame_number % 6 == 0) {
+			*player_animation_frame_number = *player_animation_frame_number + 1;
+			*player_animation_frame_number = *player_animation_frame_number % 4;
+	}
+	if (moving) {
+		oamSet(
+			&oamMain,
+			0,
+			self->x, self->y,
+			0,
+			0,
+			SpriteSize_16x16,
+			SpriteColorFormat_256Color,
+			player_gfx_mem[*player_animation_frame_number],
+			-1,
+			false,
+			false,
+			false,
+			false,
+			false
+		);
+	}
+	else {
+		oamSet(
+			&oamMain,
+			0,
+			self->x, self->y,
+			0,
+			0,
+			SpriteSize_16x16,
+			SpriteColorFormat_256Color,
+			player_gfx_mem[4 + *player_animation_frame_number % 2],
+			-1,
+			false,
+			false,
+			false,
+			false,
+			false
+		);
+	}
+}
 
 // Take a guess
 int frame_number = 0;
@@ -38,12 +170,12 @@ int bullet_delay = 10;
 int current_bullet_delay = 0;
 
 // Main boarder hitboxes
-int screen_rectangle[4] = {0, 0, 256, 192};
+int playable_area[4] = {0, 0, 256, 192};
 int screen_boarder[4][4] = {
-	{0, 0, 16, 192},
-	{0, 0, 256, 192},
-	{0, 176, 256, 16},
-	{240, 0, 16, 192}
+	{0, 0, 8, 192},
+	{0, 0, 256, 8},
+	{0, 184, 256, 8},
+	{248, 0, 8, 192}
 };
 
 //---------------------------------------------------------------------------------
@@ -64,7 +196,6 @@ int main(void) {
 	int bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
 	dmaCopy(BasicBackgroundBitmap, bgGetGfxPtr(bg3), 256*256);
 	dmaCopy(BasicBackgroundPal, BG_PALETTE, sizeof(BasicBackgroundPal));
-	bgShow(bg3);
 
 	// Setting the sprite palette
 	dmaCopy(SpriteSheetPal, SPRITE_PALETTE, 512);
@@ -80,14 +211,12 @@ int main(void) {
 		dmaCopy((u8*)SpriteSheetTiles + 16*16*8*7 + 16*16 * a, PlayerBulletGFXMem[a], 16 * 16);
 	}
 	
-	// Setting up the player - void EntitySetup(Entity* self, int x, int y, int w, int h, int health, int type);
-	EntitySetup(&player, 100, 100, 12, 12, 10, 0);
+	// Setting up the player
+	EntitySetup(&player, 100, 100, 10, 10, 10, 0);
 	EntityGetRectArray(&player, player_hitbox);
 	
 	// Setting up the bullet array
-	for (int i = 0; i < MAXBULLETCOUNT; i++) {
-		BulletInit(&bullet_array[i]);
-	}
+	BulletInitBulletArray(bullet_array, MAXBULLETCOUNT);
 	
 	while(1) {
 		// Clear the text
@@ -98,83 +227,26 @@ int main(void) {
 		int pressed = keysDown();
 		// Frame number
 		frame_number++;
-		frame_number = frame_number % 60;
+		frame_number %= 60;
 		
 		// Player movement
-		current_movement[0] = 0;  // Reset the movement
-		current_movement[1] = 0;
-		moving = 0;
-		if (keys & KEY_RIGHT) {
-			current_movement[0] = 1;
-			direction = 0;
+		PlayerMovement(&player, keys, screen_boarder, 4, player_movement);
+		if (player_movement[0] || player_movement[1]) {
 			moving = 1;
 		}
-		if (keys & KEY_LEFT) {
-			current_movement[0] = -1;
-			direction = 2;
-			moving = 1;
+		else {
+			moving = 0;
 		}
-		if (keys & KEY_UP){
-			current_movement[1] = -1;
-			direction = 1;
-			moving = 1;
-		}
-		if (keys & KEY_DOWN) {
-			current_movement[1] = 1;
-			direction = 3;
-			moving = 1;
-		}
-		
-		EntityMove(&player, current_movement);
+
+		// Collecting player infomation
 		EntityGetRectArray(&player, player_hitbox);
-
-		for (int i = 0; i < 4; i++) {
-			if (RectangleCollision(player_hitbox, screen_boarder[i])) {
-				
-			}
-		}
-
 		EntityGetCenterArray(&player, player_center);
 		
 		// Adding in bullets
-		if (current_bullet_delay > 0) {
-			current_bullet_delay--;
-		}
-		else {
-			if (keys & KEY_A) {
-				current_bullet_delay = bullet_delay;
-				for (int i = 0; i < MAXBULLETCOUNT; i++) {
-					if (!bullet_array[i].alive) {
-						BulletSetup(
-							&bullet_array[i],
-							player_center[0] - 4, player_center[1] - 4,  // x, y
-							8, 8,  // w, h
-							1.5708 * direction,  // angle
-							2,  // velocity
-							120,  // lifespan
-							1  // damage
-						);
-						break;
-					}
-				}
-			}
-		}
+		PlayerFireBullet(&player, keys, bullet_delay, &current_bullet_delay, bullet_array, MAXBULLETCOUNT);
 	
-		// Kind of deleting old bullets and then updating them
-		for (int i = 0; i < MAXBULLETCOUNT; i++) {
-			if (bullet_array[i].to_die) {
-				bullet_array[i].to_die = 0;
-				bullet_array[i].alive = 0;
-			}
-			else {
-				BulletUpdate(&bullet_array[i]);
-				BulletGetRectArray(&bullet_array[i], temp_bullet_hitbox);  // Deleting if the bullets go outside the screen
-				if (!RectangleCollision(screen_rectangle, temp_bullet_hitbox)) {
-					bullet_array[i].to_die = 0;
-					bullet_array[i].alive = 0;
-				}
-			}
-		}
+		// Kind of 'deleting' old bullets and then updating them
+		BulletHandleBulletArray(bullet_array, MAXBULLETCOUNT, playable_area);
 		
 		// Counting Bullets
 		alive_bullets = 0;
@@ -184,48 +256,8 @@ int main(void) {
 			}
 		}
 		
-		// Drawing in the player
-		if (frame_number % 6 == 0) {
-			player_animation_frame_number++;
-			player_animation_frame_number = player_animation_frame_number % 4;
-		}
-		if (moving) {
-			oamSet(
-				&oamMain,
-				0,
-				player.x, player.y,
-				0,
-				0,
-				SpriteSize_16x16,
-				SpriteColorFormat_256Color,
-				PlayerGFXMem[player_animation_frame_number],
-				-1,
-				false,
-				false,
-				false,
-				false,
-				false
-			);
-		}
-		else {
-			oamSet(
-				&oamMain,
-				0,
-				player.x,
-				player.y,
-				0,
-				0,
-				SpriteSize_16x16,
-				SpriteColorFormat_256Color,
-				PlayerGFXMem[4 + player_animation_frame_number % 2],
-				-1,
-				false,
-				false,
-				false,
-				false,
-				false
-			);
-		}
+		// Drawing and animating the player
+		PlayerAnimate(&player, frame_number, &player_animation_frame_number, PlayerGFXMem, moving);
 		
 		// Drawing the bullets
 		for (int i = 0; i < MAXBULLETCOUNT; i++) {
@@ -254,13 +286,15 @@ int main(void) {
 		iprintf("Direction = %d\n", direction);
 		iprintf("Alive Bullets = %d\n", alive_bullets);
 		iprintf("Current Bullet Delay = %d\n", current_bullet_delay);
-		iprintf("%d", sizeof(BasicBackgroundBitmap));
+		// iprintf("%d\n", keys);
+		// iprintf("%d, %d, %d, %d\n", KEY_RIGHT, KEY_LEFT, KEY_UP, KEY_DOWN);
+		// iprintf("%d, %d, %d, %d", keys & KEY_RIGHT, keys & KEY_LEFT, keys & KEY_UP, keys & KEY_DOWN);
 		
 		// Waiting 
 		swiWaitForVBlank();
 		// Update the screen
 		oamUpdate(&oamMain);
-		// To exit I think
+		// To exit
 		if(pressed & KEY_START) break;
 	}
 	
