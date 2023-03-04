@@ -1,6 +1,9 @@
 /*
 ToDo:
 	Level system / Portaling <-- DO THIS FUTURE ME
+		Portals!!!
+
+	Bosses
 
 	Improve the miner as it doesnt feel right in comparison to the other enemies
 		Either sprite wise or ai wise
@@ -39,6 +42,7 @@ ToDo:
 // Constants
 #define MAXBULLETCOUNT 110
 #define PI 3.14159265359
+#define QUARTERPI 0.78539816339
 #define TILESIZE 256		// The number of pixels in the tiles
 #define SPRITESHEETWIDTH 16 // Number of tiles the sprite sheet is wide
 
@@ -209,27 +213,6 @@ void PlayerQuickSetup(Entity *player)
 Entity EnemyEntityArray[8];
 int TempEnemyHitbox[4]; // Used to hold an enemies hitbox when handling said enemy
 int TempEnemyCenter[2]; // Used to hold an enemies center when handling said enemy
-
-// Enemy setup stuff
-void EnemyDeaden()
-{ // Should be called before setting up all the enemies for a stage
-	for (int i = 0; i < 8; i++)
-	{
-		EnemyEntityArray[i].dead = 1;
-		EnemyEntityArray[i].counter = 0;
-	}
-}
-
-void EnemySetupDeathAnimations()
-{ // Should be called after seting up all the enemies for a stage
-	for (int i = 0; i < 8; i++)
-	{
-		if (!EnemyEntityArray[i].dead)
-		{
-			EnemyEntityArray[i].counter = 12; // As the death animation lasts 12 frames
-		}
-	}
-}
 
 // Sentinel handling
 // #region
@@ -488,17 +471,21 @@ void ShredderAnimate(Entity *self, int oam_number, int frame_number, u16 *shredd
 #define MINERPLACEMINEDELAY 30
 
 float MinerMovementVectorArray[8][2];
-int MinerPlaceMineDelayArray[8] = {30, 30, 30, 30, 30, 30, 30, 30};
+int MinerPlaceMineDelayArray[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 
 void MinerMove(Entity *self, float vector[2], int HitboxArray[][4], int HitboxLen)
 {
-	_Bool x_movement = EntityMoveX(self, vector[0], HitboxArray, HitboxLen);
-	if (x_movement)
-		vector[0] = -vector[0];
+	if (self->current_bullet_delay)
+	{
+		_Bool x_movement = EntityMoveX(self, vector[0], HitboxArray, HitboxLen);
+		if (x_movement)
+			vector[0] = -vector[0];
 
-	_Bool y_movement = EntityMoveY(self, vector[1], HitboxArray, HitboxLen);
-	if (y_movement)
-		vector[1] = -vector[1];
+		_Bool y_movement = EntityMoveY(self, vector[1], HitboxArray, HitboxLen);
+		if (y_movement)
+			vector[1] = -vector[1];
+	}
+	
 }
 
 void MinerPlaceMine(Entity *self, int *miner_place_mine_delay, Bullet bullet_array[], int bullet_array_len)
@@ -507,7 +494,7 @@ void MinerPlaceMine(Entity *self, int *miner_place_mine_delay, Bullet bullet_arr
 		self->current_bullet_delay -= 1;
 	else
 	{
-		if (*miner_place_mine_delay > 0)
+		if (*miner_place_mine_delay > 0)  // To hold the mine for some time before placing it
 			*miner_place_mine_delay -= 1;
 		else
 		{
@@ -587,13 +574,6 @@ int NumActiveSentinels = 0;
 int NumActiveShredders = 0;
 int NumActiveMiners = 0;
 
-void EnemyResetCounters()
-{
-	NumActiveSentinels = 0;
-	NumActiveShredders = 0;
-	NumActiveMiners = 0;
-}
-
 _Bool EnemySetupSentinel(int x, int y, _Bool move_direction)
 {
 	_Bool success = 0;
@@ -607,7 +587,7 @@ _Bool EnemySetupSentinel(int x, int y, _Bool move_direction)
 
 		if (index >= 0)
 		{
-			SentinelMoveDirectionArray[index] = move_direction;
+			SentinelMoveDirectionArray[NumActiveSentinels] = move_direction;
 			EnemyEntityArray[index].current_bullet_delay = SENTINELSTARTDELAY;
 
 			NumActiveSentinels++;
@@ -652,9 +632,10 @@ _Bool EnemySetupMiner(int x, int y, float vx, float vy)
 
 		if (index >= 0)
 		{
-			EnemyEntityArray[index].current_bullet_delay = MINERSTARTDELAY;
-			MinerMovementVectorArray[index][0] = vx;
-			MinerMovementVectorArray[index][1] = vy;
+			EnemyEntityArray[index].current_bullet_delay = 0;
+			MinerPlaceMineDelayArray[NumActiveMiners] = MINERSTARTDELAY;
+			MinerMovementVectorArray[NumActiveMiners][0] = vx;
+			MinerMovementVectorArray[NumActiveMiners][1] = vy;
 
 			NumActiveMiners++;
 			success = 1;
@@ -662,6 +643,35 @@ _Bool EnemySetupMiner(int x, int y, float vx, float vy)
 	}
 
 	return success;
+}
+
+void PreEnemySetup()
+{
+	for (int i = 0; i < 8; i++)
+	{
+		// Making sure each enemy is dead
+		EnemyEntityArray[i].dead = 1;
+		EnemyEntityArray[i].counter = 0;
+		// Resetting Miner place mine delay
+		MinerPlaceMineDelayArray[i] = -1;
+	}
+
+	// As all enemies are dead
+	NumActiveSentinels = 0;
+	NumActiveShredders = 0;
+	NumActiveMiners = 0;
+}
+
+void PostEnemySetup()
+{
+	// Setting up the death animations
+	for (int i = 0; i < 8; i++)
+	{
+		if (!EnemyEntityArray[i].dead)
+		{
+			EnemyEntityArray[i].counter = 12; // As the death animation lasts 12 frames
+		}
+	}
 }
 // #endregion
 
@@ -672,8 +682,8 @@ _Bool EnemySetupMiner(int x, int y, float vx, float vy)
 // If the player dies, re-setup the enemies and player
 //---------------------------------------------------------------------------------
 
-int Level = 0;	// The current difficulty level, 0 = no change, 1 = three bullets spawned on death, 2 = +2 enemies for each difficulty, mini bosses for levels 1 and 2, final boss for 3
-int Sector = 0; // The current sector, seven sectors for each level, in pairs if difficulties 1, 2 and 3 and a final boss
+int Level = 2;	// The current difficulty level, 0 = no change, 1 = three bullets spawned on death, 2 = +2 enemies for each difficulty, mini bosses for levels 1 and 2, final boss for 3
+int Sector = 5; // The current sector, seven sectors for each level, in pairs if difficulties 1, 2 and 3 and a final boss
 
 
 //---------------------------------------------------------------------------------
@@ -717,16 +727,16 @@ int EnemySpawnData[3][8][4] = {  // Information about the spawn location and sta
 	 {209, 31, -5, -5},
 	 {209, 145, 5, -5}}};
 
-int EnemySpawnIndexes[3][5] = {
+int EnemySpawnIndexes[3][8] = {  // Randomly selected enemies from EnemySpawnData
 	{0, 1, 2, 3, 4, 5, 6, 7},
 	{0, 1, 2, 3, 4, 5, 6, 7},
 	{0, 1, 2, 3, 4, 5, 6, 7}
 };
 
-int EnemiesToSpawn[24] = {
-	0, 0, 0, 0,
+int EnemiesToSpawn[12] = {  // As there can be at most 4 sets of 2 of each enemy, 4 Shredders and Miners seems impossible on Level 1+ so that doesnt exist
 	1, 1, 1, 1,
-	2, 2, 2, 2
+	2, 2, 2,
+	3, 3, 3,
 };
 
 void ShuffleEnemySpawnIndexes()
@@ -742,7 +752,13 @@ void ShuffleEnemySpawnIndexes()
 
 void ShuffleEnemiesToSpawn() 
 {
-	Shuffle(EnemiesToSpawn, 24);
+	Shuffle(EnemiesToSpawn, 10);
+}
+
+void RandomiseEnemySpawns() 
+{
+	ShuffleEnemySpawnIndexes();
+	ShuffleEnemiesToSpawn();
 }
 
 void LoadNumberOfSentinels(int preset_indexes[], int number_of_enemies)
@@ -778,129 +794,60 @@ void LoadNumberOfMiners(int preset_indexes[], int number_of_enemies)
 	}
 }
 
-void LoadRandomEnemies(int start_index, int end_index, int min_number_of_enemies, int max_number_of_enemies, int specific_enemy_index, _Bool deaden_enemies)
-{
-	if (start_index < 0)
-		start_index = 0;
-	else if (start_index > 8)
-		start_index = 8;
-
-	if (end_index < start_index)
-		end_index = start_index;
-	else if (end_index > 8)
-		end_index = 8;
-
-	if (min_number_of_enemies < 1)
-		min_number_of_enemies = 1;
-	else if (min_number_of_enemies > 8)
-		min_number_of_enemies = 8;
-
-	if (max_number_of_enemies < min_number_of_enemies)
-		max_number_of_enemies = min_number_of_enemies;
-	else if (max_number_of_enemies > 8)
-		max_number_of_enemies = 8;
-
-	if (deaden_enemies) EnemyDeaden();
-
-	int preset_indexes[end_index - start_index];
-	for (int i = start_index; i < end_index; i++)
-	{
-		preset_indexes[i] = i;
-	}
-
-	EnemyResetCounters();
-
-	Shuffle(preset_indexes, max_number_of_enemies);
-
-	int index;
-	if (specific_enemy_index >= 0)
-		index = specific_enemy_index;
-	else
-		index = rand() % 3;
-
-	int number_of_enemies = rand() % (max_number_of_enemies - min_number_of_enemies + 1) + min_number_of_enemies;
-
-	switch (index)
-	{
-	case 0:
-		LoadNumberOfSentinels(preset_indexes, number_of_enemies);
-		break;
-
-	case 1:
-		LoadNumberOfShredders(preset_indexes, number_of_enemies);
-		break;
-
-	case 2:
-		LoadNumberOfMiners(preset_indexes, number_of_enemies);
-		break;
-	}
-
-	EnemySetupDeathAnimations();
-}
-
-void LoadRandomEnemies2() {
+void LoadRandomEnemies() {
 	// Pre enemy setup stuff
-	EnemyDeaden();
-	EnemyResetCounters();
+	PreEnemySetup();
 
 	// Finding the number of enemies to spawn depending on how far through the game the player is
-	int number_of_enemies_to_spawn = 0;
+	int sets_of_enemies_to_spawn = 0;
 
 	switch(Sector)
 	{
 		case 0:
 		case 1:
-			number_of_enemies_to_spawn = 2;
+			sets_of_enemies_to_spawn = 1;
 			break;
 
 		case 2:
 		case 3:
-			number_of_enemies_to_spawn = 4;
+			sets_of_enemies_to_spawn = 2;
 			break;
 
 		case 4:
 		case 5:
-			number_of_enemies_to_spawn = 6;
+			sets_of_enemies_to_spawn = 3;
 			break;
 	}
 
 	if (Level == 2)
-		number_of_enemies_to_spawn += 2;
+		sets_of_enemies_to_spawn += 1;
 
 	// Random enemy type
 	int enemy_type;
-	// Randomly chosen enemy presets
-	ShuffleEnemySpawnIndexes();
 
 	// Spawn in sets of 2
-	for (int i = 0; i < number_of_enemies_to_spawn; i += 2)
+	for (int i = 0; i < sets_of_enemies_to_spawn; i++)
 	{
+		enemy_type = EnemiesToSpawn[i];
 
-	}
-	while (number_of_enemies_to_spawn > 0)
-	{
-		enemy_type = rand() % 3 + 1;
-		
 		switch (enemy_type) 
 		{
 			case (int)SENTINELTYPE:
-				LoadNumberOfSentinels(indexes[0], 2);
+				LoadNumberOfSentinels(EnemySpawnIndexes[0], 2);
 				break;
 
 			case (int)SHREDDERTYPE:
-				LoadNumberOfShredders(indexes[1], 2);
+				LoadNumberOfShredders(EnemySpawnIndexes[1], 2);
 				break;
 
 			case (int)MINERTYPE:
-				LoadNumberOfMiners(indexes[2], 2);
+				LoadNumberOfMiners(EnemySpawnIndexes[2], 2);
 				break;
 		}
-
-		number_of_enemies_to_spawn -= 2;
 	}
 
 	// Post enemy setup stuff
-	EnemySetupDeathAnimations();
+	PostEnemySetup();
 }
 // #endregion
 
@@ -930,6 +877,11 @@ void PlayerHandle(int keys)
 
 		// Collecting player infomation
 		EntityGetRectArray(&Player, PlayerHitbox);
+		// Adjusting the hitbox so it is smaller than the sprite
+		PlayerHitbox[0] += 2;
+		PlayerHitbox[1] += 2;
+		PlayerHitbox[2] -= 4;
+		PlayerHitbox[3] -= 4;
 		EntityGetCenterArray(&Player, PlayerCenter);
 
 		PlayerFireBullet(&Player, keys, BulletArray, MAXBULLETCOUNT, ScreenBoarder, 4);
@@ -1036,6 +988,87 @@ void BulletSpawnMineOffspring()
 						1,
 						MINERMINEBULLET);
 				}
+
+				if (Level)
+				{
+					BulletGetCenterArray(&BulletArray[i], TempBulletCenter);
+					float angle = GetAngleFromOriginTo(PlayerCenter[0] - TempBulletCenter[0], PlayerCenter[1] - TempBulletCenter[1]);
+					BulletSetupInBulletArray(
+						BulletArray, MAXBULLETCOUNT,
+						TempBulletCenter[0], TempBulletCenter[1],
+						3, 3,
+						angle,
+						1,
+						320,
+						1,
+						MINERMINEBULLET
+					);
+					BulletSetupInBulletArray(
+						BulletArray, MAXBULLETCOUNT,
+						TempBulletCenter[0], TempBulletCenter[1],
+						3, 3,
+						angle + QUARTERPI,
+						1,
+						320,
+						1,
+						MINERMINEBULLET
+					);
+					BulletSetupInBulletArray(
+						BulletArray, MAXBULLETCOUNT,
+						TempBulletCenter[0], TempBulletCenter[1],
+						3, 3,
+						angle - QUARTERPI,
+						1,
+						320,
+						1,
+						MINERMINEBULLET
+					);
+				}
+			}
+		}
+	}
+}
+
+void BulletSpawnDeathBullets()
+{
+	if (Level)
+	{
+		for (int i = 0; i < 8; i++)
+		{
+			if (EnemyEntityArray[i].dead && EnemyEntityArray[i].counter == 11)
+			{
+				EntityGetCenterArray(&EnemyEntityArray[i], TempEnemyCenter);
+				float angle = GetAngleFromOriginTo(PlayerCenter[0] - TempEnemyCenter[0], PlayerCenter[1] - TempEnemyCenter[1]);
+				BulletSetupInBulletArray(
+					BulletArray, MAXBULLETCOUNT,
+					TempEnemyCenter[0], TempEnemyCenter[1],
+					3, 3,
+					angle,
+					1,
+					320,
+					1,
+					MINERMINEBULLET
+				);
+				BulletSetupInBulletArray(
+					BulletArray, MAXBULLETCOUNT,
+					TempEnemyCenter[0], TempEnemyCenter[1],
+					3, 3,
+					angle + QUARTERPI,
+					1,
+					320,
+					1,
+					MINERMINEBULLET
+				);
+				BulletSetupInBulletArray(
+					BulletArray, MAXBULLETCOUNT,
+					TempEnemyCenter[0], TempEnemyCenter[1],
+					3, 3,
+					angle - QUARTERPI,
+					1,
+					320,
+					1,
+					MINERMINEBULLET
+				);
 			}
 		}
 	}
@@ -1122,10 +1155,15 @@ void BulletDrawAll()
 // Combat loops
 // Player portals in
 // Enemies all portal in at the same time
-// Pause, comnat starts
+// Wait for 1 second
+// Combat starts
 // Once all enemies are dead and all bullets decayed
 // 		Player portals away
 //		Pause, change background, repeat
+// If player dies
+// 		Wait for 1 second
+// 		Reset everything
+//		Start again
 //---------------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------------
@@ -1324,12 +1362,15 @@ int main(void)
 	BulletInitBulletArray(BulletArray, MAXBULLETCOUNT);
 
 	// Test enemy spawning
-	// LoadRandomEnemies(0, 8, 8, 8, 2, 1);
-	// LoadRandomEnemies(4, 8, 4, 4, 0, 1);
+	//RandomiseEnemySpawns();
+	//LoadRandomEnemies();
+	PreEnemySetup();
+	EnemySetupMiner(15, 15, 0.5, 0.5);
+	PostEnemySetup();
 
-	LoadRandomEnemies2();
-
-	_Bool temp = 0;
+	_Bool RunOnce = 0;
+	_Bool ResetOrStartBool = 0;  // 1 = reset, 0 = start
+	_Bool UpdateEnemiesBool = 0;  // If the enemies should be updated
 
 	while (1)
 	{
@@ -1343,27 +1384,38 @@ int main(void)
 		FrameNumber++;
 		FrameNumber %= 60;
 
-		// Reset
+		// Reset and start
 		if (keys & KEY_SELECT)
 		{
-			if (temp)
+			if (RunOnce)
 			{
-				PlayerQuickSetup(&Player);							// Resetup the player
-				// LoadRandomEnemies(0, 8, 8, 8, 2, 1);				// Enemy setup
-				// LoadRandomEnemies(4, 8, 4, 4, 0, 1);
-				LoadRandomEnemies2();
-				BulletInitBulletArray(BulletArray, MAXBULLETCOUNT); // Clearing all bullets
-				temp = 0;											// To prevent running once every frame
+				RunOnce = 0;
+
+				if (ResetOrStartBool)
+				{
+					PlayerQuickSetup(&Player);							// Resetup the player
+					LoadRandomEnemies();								// Enemy setup
+					BulletInitBulletArray(BulletArray, MAXBULLETCOUNT); // Clearing all bullets
+					ResetOrStartBool = 0;								// To prevent running once every frame
+					UpdateEnemiesBool = 0;
+				}
+				else 
+				{
+					ResetOrStartBool = 1;
+					UpdateEnemiesBool = 1;
+				}
 			}
 		}
 		else
-			temp = 1;
+			RunOnce = 1;
 
 		// Player movement and bullet firing
 		PlayerHandle(keys);
 
 		// Handle enemies here
-		EnemyHandleAll(PlayerCenter, ScreenBoarder, 4);
+		if (UpdateEnemiesBool)
+			EnemyHandleAll(PlayerCenter, ScreenBoarder, 4);
+		BulletSpawnDeathBullets();
 
 		// Bullet handling
 		BulletHandleBulletArray(BulletArray, MAXBULLETCOUNT, PlayableArea);
@@ -1395,9 +1447,16 @@ int main(void)
 			iprintf("%d", EnemyEntityArray[i].dead);
 		}
 		iprintf("\n");
-		for (int i = 0; i < 8; i++)
+		iprintf("Delay = ");
+		for (int i = 0; i < 4; i++)
 		{
-			iprintf("%d,", EnemyEntityArray[i].counter);
+			iprintf("%d,", EnemyEntityArray[i].current_bullet_delay);
+		}
+		iprintf("\n");
+		iprintf("Miner Delay = ");
+		for (int i = 0; i < 4; i++)
+		{
+			iprintf("%d,", MinerPlaceMineDelayArray[i]);
 		}
 		iprintf("\n");
 
@@ -1453,4 +1512,6 @@ Finished:
 	Rework how enemies are handled, as there will only ever be a max of 8 enemise on screen at once
 
 	Functions to easily handle the player and enemies
+
+	Fix miners seemingly starting at random times
 */
