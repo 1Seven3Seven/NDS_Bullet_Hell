@@ -13,6 +13,7 @@ ToDo:
 		If necessary
 
 	Redo all enemy animations so they load the new sprite
+		If necessary
 
 	Potentially do some more research into sounds
 		They make everything better
@@ -1161,13 +1162,34 @@ void sector_setup()
 
 	BulletInitBulletArray(BulletArray, MAXBULLETCOUNT);
 
+	PreEnemySetup();
 	LoadRandomEnemies();
 
-	int playerSpawnCounter = 64;
-	int enemySpawnCounter = 64;
+	// Hiding every sprite
+	for (int i = 0; i < 128; i++)
+	{
+		oamSet(
+			&oamMain,
+			i,
+			0, 0,
+			0,
+			0,
+			SpriteSize_16x16,
+			SpriteColorFormat_256Color,
+			PortalGFXMem[0],
+			-1,
+			false,
+			true,
+			false,
+			false,
+			false);
+	}
+
+	int playerSpawnCounter = 32;
+	int enemySpawnCounter = 32;
 
 	PlayerPriority = 1;
-	EnemyPriority = 0;
+	EnemyPriority = 1;
 
 	while(playerSpawnCounter || enemySpawnCounter)
 	{
@@ -1177,6 +1199,7 @@ void sector_setup()
 
 		if (playerSpawnCounter) playerSpawnCounter--;
 
+		// Player portal
 		oamSet(
 			&oamMain,
 			9,
@@ -1185,7 +1208,7 @@ void sector_setup()
 			0,
 			SpriteSize_16x16,
 			SpriteColorFormat_256Color,
-			PortalGFXMem[15 - (int)(playerSpawnCounter/4)],
+			PortalGFXMem[15 - (int)(playerSpawnCounter/2)],
 			-1,
 			false,
 			!playerSpawnCounter,
@@ -1193,12 +1216,13 @@ void sector_setup()
 			false,
 			false);
 
-		if (playerSpawnCounter < 32) PlayerAnimate(&Player, FrameNumber, PlayerGFXMem, PlayerExplosionGFXMem);
+		if (playerSpawnCounter < 16) PlayerAnimate(&Player, FrameNumber, PlayerGFXMem, PlayerExplosionGFXMem);
 
 		if (!playerSpawnCounter)
 		{
 			if (enemySpawnCounter) enemySpawnCounter--;
 
+			// Enemies portal
 			for (int i = 0; i < 8; i++)
 			{
 				if (!EnemyEntityArray[i].dead)
@@ -1211,7 +1235,7 @@ void sector_setup()
 						0,
 						SpriteSize_16x16,
 						SpriteColorFormat_256Color,
-						PortalGFXMem[15 - (int)(enemySpawnCounter/4)],
+						PortalGFXMem[15 - (int)(enemySpawnCounter/2)],
 						-1,
 						false,
 						!enemySpawnCounter,
@@ -1221,7 +1245,7 @@ void sector_setup()
 				}
 			}
 
-			if (enemySpawnCounter < 32) EnemyDrawAll(FrameNumber);
+			if (enemySpawnCounter < 16) EnemyDrawAll(FrameNumber);
 		}
 
 		// Waiting
@@ -1235,6 +1259,7 @@ void sector_setup()
 	EnemyPriority = 0;
 
 }
+
 
 //---------------------------------------------------------------------------------
 int main(void)
@@ -1348,8 +1373,6 @@ int main(void)
 	sector_setup();
 	
 	_Bool RunOnce = 0;
-	_Bool ResetOrStartBool = 0;  // 1 = reset, 0 = start
-	_Bool UpdateEnemiesBool = 0;  // If the enemies should be updated
 
 	while (1)
 	{
@@ -1363,39 +1386,34 @@ int main(void)
 		FrameNumber++;
 		FrameNumber %= 60;
 
-		// Reset and start
+		// Reset
 		if (keys & KEY_SELECT)
 		{
 			if (RunOnce)
 			{
 				RunOnce = 0;
-
-				if (ResetOrStartBool)
-				{
-					PlayerQuickSetup(&Player);							// Resetup the player
-					LoadRandomEnemies();								// Enemy setup
-					BulletInitBulletArray(BulletArray, MAXBULLETCOUNT); // Clearing all bullets
-					ResetOrStartBool = 0;								// To prevent running once every frame
-					UpdateEnemiesBool = 0;
-				}
-				else 
-				{
-					ResetOrStartBool = 1;
-					UpdateEnemiesBool = 1;
-				}
+				sector_setup();
+				TimeTillRestart = RESTARTDELAY;
 			}
 		}
 		else RunOnce = 1;
+
+		if (Player.dead) {
+			TimeTillRestart--;
+			if (!TimeTillRestart){
+				sector_setup();
+				TimeTillRestart = RESTARTDELAY;
+			}
+		}
 
 		// Player movement and bullet firing
 		PlayerHandle(keys);
 
 		// Handle enemies here
-		if (UpdateEnemiesBool)
-			EnemyHandleAll(PlayerCenter, ScreenBoarder, 4);
-		BulletSpawnDeathBullets();
+		EnemyHandleAll(PlayerCenter, ScreenBoarder, 4);
 
 		// Bullet handling
+		BulletSpawnDeathBullets();
 		BulletHandleBulletArray(BulletArray, MAXBULLETCOUNT, PlayableArea);
 		BulletSpawnMineOffspring();
 
