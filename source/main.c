@@ -1,13 +1,26 @@
 /*
 ToDo:
-	Level system / Portaling <-- DO THIS FUTURE ME
-		Portals!!!
+	LASER Boss
+		The main bit of information is where boss combat loop is
 
-	Bosses
+		Work on the boss setup and entrance - tick
 
-	Improve the miner as it doesnt feel right in comparison to the other enemies
-		Either sprite wise or ai wise
-			Duncan noted that it is the only one that doesnt have movement based off of the player, maybe that has something to do with it
+		LASER SPRITES - 
+
+		Complete the boss attacks
+			Strafing attack - tick
+			Pincer attack - 
+			Sweeping attack - 
+
+		Smooth transitions between attacks - 
+
+		Decreased firerate when health is below 2/3 and 1/3 - 
+
+	Super Sentinel Boss
+		BIG BULLET GO BOOM
+
+	Final Boss
+		IDK
 
 	Redo the player animation so it loads the sprite every time it changes, this is mainly to conserve GFX
 		If necessary
@@ -21,9 +34,6 @@ ToDo:
 		https://gbatemp.net/threads/maxmod-hates-me.327662/
 		Google search "libnds No rule to make target, needed by 'soundbank.bin'."
 		C:\devkitPro\examples\nds\audio\maxmod\basic_sound
-
-	Semi-persistent laser as an idea for a miniboss attack
-	Super Sentinel as another idea for a mini boss
 */
 
 // Default stuff
@@ -82,9 +92,10 @@ ToDo:
 #define MINERPLACEMINEDELAY 30
 
 // Boss constructor constants
-#define LASERBOSSHEALTH 200
-#define LASERWEAPONHEALTH 100
+#define LASERBOSSHEALTH 200  // The amount of damage across all parts to make the boss die
 
+#define LASERBOSSSTARTX 112
+#define LASERBOSSSTARTY -32
 
 //---------------------------------------------------------------------------------
 // A series of 2d arrays of pointers to the graphics memory of the sprites
@@ -707,10 +718,10 @@ void PostEnemySetup()
 // #region
 char LaserBossAttackChoices[3] = {
 	'B',  // Bullet attack
-	'S',  // Strafing attack
+	'S',  // Sweeping attack
 	'P'   // Pincer attack
 };
-char LaserBossCurrentAttack = 'B';
+char LaserBossCurrentAttack = 'P';
 
 int LaserBossSegmentCenterOffsets[4][2] = {
 	{8, 8},		// Top left
@@ -719,7 +730,7 @@ int LaserBossSegmentCenterOffsets[4][2] = {
 	{24, 24}  	// Bottom right
 };
 
-int LaserBossPotentialXPos[2] = {24, 200};
+const int LaserBossPotentialXPos[2] = {24, 200};
 int LaserBossXPosIndex = 0;
 
 int LaserBossPotentialBulletRuns[4] = {2, 3, 4, 5};
@@ -727,16 +738,75 @@ int LaserBossBulletRunsLeft = 4;
 
 int LaserBossSegmentCurrentBulletDelay[4] = {30, 60, 90, 120};
 int LaserBossBulletDelays[3] = {30, 20, 10};  // Which one is chosen depends on health
-int LaserBossBulletDelaysIndex = 0;
+int LaserBossBulletDelaysIndex = 0;  // Depends on health
+
+const int LaserBossLaserWeaponXPos[2] = {8, 232};  // The starting x positions of the lasers for the pincer attack
+
+_Bool LaserBossFireLaser = false;
+_Bool LaserBossLaserWeaponsConnected = false;
+
+void LaserBossShuffleAttackInfo()
+{
+	Shuffle(LaserBossPotentialBulletRuns, 4);
+}
+
+void LaserBossSetup()
+{
+	PreEnemySetup();
+
+	// Setup the main body entity
+	EntitySetup(
+		&EnemyEntityArray[0],
+		LASERBOSSSTARTX, LASERBOSSSTARTY,
+		32, 29,
+		LASERBOSSHEALTH,
+		-1,
+		60);
+
+	// Setup the laser entities
+	EntitySetup(  // Left laser
+		&EnemyEntityArray[1],
+		LASERBOSSSTARTX - 16, LASERBOSSSTARTY,
+		16, 32,
+		LASERBOSSHEALTH,
+		-1,
+		10);
+	EntitySetup(  // Right laser
+		&EnemyEntityArray[2],
+		LASERBOSSSTARTX + 32, LASERBOSSSTARTY,
+		16, 32,
+		LASERBOSSHEALTH,
+		-1,
+		10);
+
+	// Reset all the data to its starting values
+	LaserBossXPosIndex = 0;
+	LaserBossBulletRunsLeft = 4;
+	for (int i = 0; i < 4; i++)
+	{
+		LaserBossSegmentCurrentBulletDelay[i] = 30 + 30 * i;
+	}
+	LaserBossBulletDelaysIndex = 0;
+	LaserBossFireLaser = false;
+
+}
 
 void LaserBossBulletAttackMove()
 {
 	int difference = LaserBossPotentialXPos[LaserBossXPosIndex] - EnemyEntityArray[0].x;
 
 	if (difference < 0)
+	{
 		EnemyEntityArray[0].x -= 0.5f;
+		EnemyEntityArray[1].x -= 0.5f;
+		EnemyEntityArray[2].x -= 0.5f;
+	}
 	else if (difference > 0)
+	{
 		EnemyEntityArray[0].x += 0.5f;
+		EnemyEntityArray[1].x += 0.5f;
+		EnemyEntityArray[2].x += 0.5f;
+	}
 		
 	if (difference == 0)
 	{
@@ -746,13 +816,71 @@ void LaserBossBulletAttackMove()
 	}
 }
 
+void LaserBossSweepingAttackMove()
+{
+	int difference = LaserBossPotentialXPos[LaserBossXPosIndex] - EnemyEntityArray[0].x;
+
+	if (difference < 0)
+	{
+		EnemyEntityArray[0].x -= 0.5f;
+		EnemyEntityArray[1].x -= 0.5f;
+		EnemyEntityArray[2].x -= 0.5f;
+	}
+	else if (difference > 0)
+	{
+		EnemyEntityArray[0].x += 0.5f;
+		EnemyEntityArray[1].x += 0.5f;
+		EnemyEntityArray[2].x += 0.5f;
+	}
+		
+	if (difference == 0)
+	{
+		LaserBossBulletRunsLeft -= 1;
+		LaserBossXPosIndex += 1;
+		LaserBossXPosIndex %= 2;
+		LaserBossFireLaser = true;
+	}
+}
+
+void LaserBossPincerAttackMove()
+{
+	// Assumes the boss is at the center of the screen
+
+	// Move the lasers to the sides of the screen
+	if (!LaserBossFireLaser)
+	{
+		EnemyEntityArray[1].x -= 0.5f;
+		EnemyEntityArray[2].x += 0.5f;
+
+		LaserBossFireLaser = EnemyEntityArray[1].x == LaserBossLaserWeaponXPos[0] && EnemyEntityArray[2].x == LaserBossLaserWeaponXPos[1];
+	}
+	else{
+
+		if (!LaserBossLaserWeaponsConnected)
+		{
+			// Move the lasers to the main boss
+			EnemyEntityArray[1].x += 0.25f;
+			EnemyEntityArray[2].x -= 0.25f;
+
+			LaserBossLaserWeaponsConnected = EnemyEntityArray[1].x == EnemyEntityArray[0].x - 16 && EnemyEntityArray[2].x == EnemyEntityArray[0].x + 32;
+		}
+		else
+		{
+			// Once they have connected to the boss, move the boss to the side of the screen
+			EnemyEntityArray[0].x += 0.5f;
+			EnemyEntityArray[1].x += 0.5f;
+			EnemyEntityArray[2].x += 0.5f;
+		}
+	}
+}
+
+
 void LaserBossBulletAttackFireBullets()
 {
 	if (EnemyEntityArray[0].current_bullet_delay > 0)
 		EnemyEntityArray[0].current_bullet_delay--;
 	else
 	{
-
 		int sum_bullet_delays = 0;
 
 		for (int i = 0; i < 4; i++)
@@ -795,7 +923,133 @@ void LaserBossBulletAttackFireBullets()
 	}
 }
 
-void LaserBossBulletAttackAnimate(int frame_number)
+void LaserBossSweepingAttackFireBullets()
+{
+	if (EnemyEntityArray[0].current_bullet_delay > 0)
+		EnemyEntityArray[0].current_bullet_delay--;
+	else
+	{
+		if (LaserBossFireLaser)
+		{
+			BulletSetupInBulletArray(
+				BulletArray, MAXBULLETCOUNT,
+				EnemyEntityArray[2 - LaserBossXPosIndex].x + 4, EnemyEntityArray[2 - LaserBossXPosIndex].y + 32,
+				8, 16,
+				-PI / 2,
+				16,
+				30,
+				1,
+				SENTINELBULLET
+			);
+		}
+
+		// To fire bullets while lasering
+		int sum_bullet_delays = 0;
+
+		for (int i = 0; i < 4; i++)
+		{
+			if (LaserBossSegmentCurrentBulletDelay[i] > 0)
+				LaserBossSegmentCurrentBulletDelay[i]--;
+			else
+			{
+				if (!LaserBossSegmentCurrentBulletDelay[i])
+				{
+					float angle = GetAngleFromOriginTo(
+						PlayerCenter[0] - EnemyEntityArray[0].x - LaserBossSegmentCenterOffsets[i][0],
+						PlayerCenter[1] - EnemyEntityArray[0].y - LaserBossSegmentCenterOffsets[i][0]);
+
+					BulletSetupInBulletArray(
+						BulletArray, MAXBULLETCOUNT,
+						EnemyEntityArray[0].x + LaserBossSegmentCenterOffsets[i][0] - 4, EnemyEntityArray[0].y + LaserBossSegmentCenterOffsets[i][1] - 4,
+						8, 8,
+						angle,
+						1,
+						270,
+						1,
+						LASERBOSSBULLET
+					);
+				}
+
+				LaserBossSegmentCurrentBulletDelay[i] = -1;
+			}
+
+			sum_bullet_delays += LaserBossSegmentCurrentBulletDelay[i];
+		}
+
+		if (sum_bullet_delays == -4)
+		{
+			for (int i = 0; i < 4; i++)
+			{
+				LaserBossSegmentCurrentBulletDelay[i] = LaserBossBulletDelays[LaserBossBulletDelaysIndex] * (i + 3);  // A longer delay compared to the normal bullet attack
+			}
+		}
+	}
+}
+
+void LaserBossPincerAttackFireBullets()
+{
+	if (LaserBossFireLaser)
+	{
+		BulletSetupInBulletArray(
+			BulletArray, MAXBULLETCOUNT,
+			EnemyEntityArray[1].x + 4, EnemyEntityArray[1].y + 32,
+			8, 16,
+			-PI / 2,
+			16,
+			30,
+			1,
+			SENTINELBULLET
+		);
+		BulletSetupInBulletArray(
+			BulletArray, MAXBULLETCOUNT,
+			EnemyEntityArray[2].x + 4, EnemyEntityArray[2].y + 32,
+			8, 16,
+			-PI / 2,
+			16,
+			30,
+			1,
+			SENTINELBULLET
+		);
+	}
+}
+
+void LaserBossMove()
+{
+	switch (LaserBossCurrentAttack)
+	{
+		case 'B':
+			LaserBossBulletAttackMove();
+			break;
+
+		case 'S':
+			LaserBossSweepingAttackMove();
+			break;
+
+		case 'P':
+			LaserBossPincerAttackMove();
+			break;
+	}
+}
+
+void LaserBossFireBullets()
+{
+	switch (LaserBossCurrentAttack)
+	{
+		case 'B':
+			LaserBossBulletAttackFireBullets();
+			break;
+
+		case 'S':
+			LaserBossSweepingAttackFireBullets();
+			break;
+
+		case 'P':
+			LaserBossPincerAttackFireBullets();
+			break;
+	}
+}
+
+void LaserBossAnimate(int frame_number)
 {
 	if (frame_number % 6 == 0)
 	{
@@ -808,7 +1062,7 @@ void LaserBossBulletAttackAnimate(int frame_number)
 	{
 		for (int b = 0; b < 2; b++)
 		{
-			_Bool empty_bullet = 0;
+			_Bool empty_bullet = false;
 			/*
 			if (LaserBossSegmentCurrentBulletDelay[b + a * 2] > LaserBossBulletDelays[LaserBossBulletDelaysIndex])
 				empty_bullet = 1;
@@ -817,9 +1071,9 @@ void LaserBossBulletAttackAnimate(int frame_number)
 			*/
 
 			if (LaserBossSegmentCurrentBulletDelay[0] > LaserBossBulletDelays[LaserBossBulletDelaysIndex] + LaserBossBulletDelays[LaserBossBulletDelaysIndex] * (3 - (b + a * 2)) / 4)
-				empty_bullet = 1;
+				empty_bullet = true;
 			else if (LaserBossSegmentCurrentBulletDelay[b + a * 2] <= 0)
-				empty_bullet = 1;
+				empty_bullet = true;
 
 			oamSet(
 				&oamMain,
@@ -846,7 +1100,7 @@ void LaserBossBulletAttackAnimate(int frame_number)
 		oamSet(
 			&oamMain,
 			5 + i,
-			EnemyEntityArray[0].x - 16 + 48 * i, EnemyEntityArray[0].y,
+			EnemyEntityArray[1 + i].x, EnemyEntityArray[1 + i].y,
 			0,
 			0,
 			SpriteSize_16x32,
@@ -861,17 +1115,10 @@ void LaserBossBulletAttackAnimate(int frame_number)
 	}
 }
 
-void LaserBossSweepingAttackMove()
+void LaserBossThink()
 {
 
 }
-
-void LaserBossPincerAttackMove()
-{
-
-}
-
-
 
 // #endregion
 
@@ -896,10 +1143,10 @@ int Sector = 0; // The current sector, seven sectors for each level, in pairs if
 // Difficulty 3 has up to three types of enemies, up to six in total
 //---------------------------------------------------------------------------------
 // #region
-int EnemySpawnData[3][8][4] = {  // Information about the spawn location and state of enemies
-	//             ^ Enemy index, 0 = sentinel, 1 = shredder, 2 = miner
-	//                ^ Number of enemies to chose from, here there are 8 enemies
-	//                   ^ Enemy data [x, y, move_direction or vx, vy] vx and vy are divided by 10
+const int EnemySpawnData[3][8][4] = {  // Information about the spawn location and state of enemies
+	//                   ^ Enemy index, 0 = sentinel, 1 = shredder, 2 = miner
+	//                      ^ Number of enemies to chose from, here there are 8 enemies
+	//                         ^ Enemy data [x, y, move_direction or vx, vy] vx and vy are divided by 10
 	{  // Sentinels, x, y, move_direction, NONE
 	 {31, 15, 0, 0},
 	 {15, 31, 1, 0},
@@ -953,7 +1200,7 @@ void ShuffleEnemySpawnIndexes()
 
 void ShuffleEnemiesToSpawn() 
 {
-	Shuffle(EnemiesToSpawn, 10);
+	Shuffle(EnemiesToSpawn, 12);
 }
 
 void RandomiseEnemySpawns() 
@@ -1067,6 +1314,12 @@ int ScreenBoarder[4][4] = {
 	{0, 184, 256, 8},
 	{248, 0, 8, 192}};
 
+// Pixel offsets for screen shake, needs to be shuffled
+int ScreenShakeX[9] = {1, 1, 1, 0, 0, 0, -1, -1, -1};
+int ScreenShakeY[9] = {1, 1, 1, 0, 0, 0, -1, -1, -1};
+int ScreenShakeIndex = 0;
+const int ScreenShakeLength = 9;
+
 void HideEverySprite()
 {
 	for (int i = 0; i < 128; i++)
@@ -1087,7 +1340,24 @@ void HideEverySprite()
 			false,
 			false);
 	}
+}
 
+_Bool CheckFinishedLevel()
+{
+	// Checks if all enemies are dead and all bullets decayed
+	for (int i = 0; i < 8; i++)
+	{
+		if (!EnemyEntityArray[0].dead)
+			return false;
+	}
+
+	return !NumberOfAliveBullets;
+}
+
+void RandomiseScreenShake()
+{
+	Shuffle(ScreenShakeX, 9);
+	Shuffle(ScreenShakeY, 9);
 }
 // #endregion
 
@@ -1372,30 +1642,30 @@ If player dies
 	Start again
 */		
 //---------------------------------------------------------------------------------
-void enemy_sector_setup() 
+void enemy_combat_setup() 
 {
 
 	PlayerQuickSetup(&Player);
 
 	BulletInitBulletArray(BulletArray, MAXBULLETCOUNT);
 
-	PreEnemySetup();
 	LoadRandomEnemies();
 
-	// Hiding every sprite
 	HideEverySprite();
 
+	// Timers
 	int playerSpawnCounter = 32;
 	int enemySpawnCounter = 32;
 
+	// So the player and enemies appear behind the portals
 	PlayerPriority = 1;
 	EnemyPriority = 1;
 
+	// Doing the portal animations
 	while(playerSpawnCounter || enemySpawnCounter)
 	{
 		// Frame number
 		FrameNumber++;
-		FrameNumber %= 60;
 
 		if (playerSpawnCounter) playerSpawnCounter--;
 
@@ -1420,7 +1690,7 @@ void enemy_sector_setup()
 
 		if (!playerSpawnCounter)
 		{
-			if (enemySpawnCounter) enemySpawnCounter--;
+			enemySpawnCounter--;
 
 			// Enemies portal
 			for (int i = 0; i < 8; i++)
@@ -1477,7 +1747,7 @@ void enemy_combat(void)
 		if (Player.dead) {
 			TimeTillRestart--;
 			if (!TimeTillRestart){
-				enemy_sector_setup();
+				enemy_combat_setup();
 				TimeTillRestart = RESTARTDELAY;
 			}
 		}
@@ -1529,13 +1799,13 @@ void enemy_combat(void)
 //---------------------------------------------------------------------------------
 /* LASERS!!!
 Boss info
-	Health???
+	Health maybe 200
 	Speed is 0.5
 
 	Attacks
 		Bullet attack
 		Shifting left and right at the top of the screen shooting the four bullets
-			Every 50 frames, then 40, finally 30
+			Every 30 frames, then 20, finally 10
 
 		Sweeping attack
 		Going to either the right or left of the screen and firing that laser, moving to the other side
@@ -1548,7 +1818,88 @@ Boss info
 				Starting at firing once every 90 frames, reducing gradually to every default frames...
 */
 //---------------------------------------------------------------------------------
-void laser_boss(void)
+void laser_boss_battle_setup(int bgID)
+{
+
+	PlayerQuickSetup(&Player);
+
+	BulletInitBulletArray(BulletArray, MAXBULLETCOUNT);
+
+	LaserBossSetup();
+
+	HideEverySprite();
+
+	// Timers
+	int playerSpawnCounter = 32;
+	int enemySpawnCounter = 80;
+
+	// So the player appears behind the portal, the boss doesnt change as no portal
+	PlayerPriority = 1;
+
+	// Doing the portal animations
+	while(playerSpawnCounter || enemySpawnCounter)
+	{
+		// Frame number
+		FrameNumber++;
+
+		if (playerSpawnCounter) playerSpawnCounter--;
+
+		// Player portal
+		oamSet(
+			&oamMain,
+			9,
+			Player.x - 1, Player.y - 1,
+			0,
+			0,
+			SpriteSize_16x16,
+			SpriteColorFormat_256Color,
+			PortalGFXMem[15 - (int)(playerSpawnCounter/2)],
+			-1,
+			false,
+			!playerSpawnCounter,
+			false,
+			false,
+			false);
+
+		if (playerSpawnCounter < 16) PlayerAnimate(&Player, FrameNumber, PlayerGFXMem, PlayerExplosionGFXMem);
+
+		if (!playerSpawnCounter)
+		{
+			// Boss entrance here
+			enemySpawnCounter--;
+			if (EnemyEntityArray[0].y != 8)
+			{
+				EnemyEntityArray[0].y += 0.5f;  // Move the boss onto the screen
+				EnemyEntityArray[1].y += 0.5f;
+				EnemyEntityArray[2].y += 0.5f;
+				// Screen shake cause dramatic
+				bgSetScroll(bgID, ScreenShakeX[ScreenShakeIndex], ScreenShakeY[ScreenShakeIndex]);
+				bgUpdate();
+				ScreenShakeIndex += 1;
+				ScreenShakeIndex %= ScreenShakeLength;
+			}
+			
+			LaserBossAnimate(FrameNumber);
+		}
+
+		// Waiting
+		swiWaitForVBlank();
+		// Update the screen
+		oamUpdate(&oamMain);
+
+	}
+
+	// Reset the bg scroll to make it centered again
+	bgSetScroll(bgID, 0, 0);
+	bgUpdate();
+
+	// Resetting the background to normal
+
+	PlayerPriority = 0;
+
+}
+
+void laser_boss_battle(int bgID)
 {
 	while (1)
 	{
@@ -1565,10 +1916,7 @@ void laser_boss(void)
 		if (Player.dead) {
 			TimeTillRestart--;
 			if (!TimeTillRestart){
-
-				PreEnemySetup();
-				EntitySetup(&EnemyEntityArray[0], 112, 8, 32, 32, 100, -1, 10);
-				PostEnemySetup();
+				laser_boss_battle_setup(bgID);
 
 				TimeTillRestart = RESTARTDELAY;
 			}
@@ -1578,13 +1926,11 @@ void laser_boss(void)
 		PlayerHandle(keys);
 
 		// Handle the boss here
-		LaserBossBulletAttackMove();
-		LaserBossBulletAttackFireBullets();
+		LaserBossMove();
+		LaserBossFireBullets();
 
 		// Bullet handling
-		//BulletSpawnDeathBullets();
 		BulletHandleBulletArray(BulletArray, MAXBULLETCOUNT, PlayableArea);
-		//BulletSpawnMineOffspring();
 
 		// Bullet collision with player and boss
 		BulletCollisionWithPlayerAndEnemies();
@@ -1597,7 +1943,7 @@ void laser_boss(void)
 		PlayerAnimate(&Player, FrameNumber, PlayerGFXMem, PlayerExplosionGFXMem);
 
 		// Draw the boss here
-		LaserBossBulletAttackAnimate(FrameNumber);
+		LaserBossAnimate(FrameNumber);
 
 		// Drawing the bullets
 		BulletDrawAll();
@@ -1614,6 +1960,15 @@ void laser_boss(void)
 			iprintf("%d, ", LaserBossSegmentCurrentBulletDelay[i]);
 		}
 		iprintf("\n");
+		iprintf("Left  Laser Top left [%d, %d]\n", (int)EnemyEntityArray[1].x, (int)EnemyEntityArray[1].y);
+		iprintf("Right Laser Top left [%d, %d]\n", (int)EnemyEntityArray[2].x, (int)EnemyEntityArray[2].y);
+
+		iprintf("\n[");
+		for (int i = 0; i < 3; i++)
+		{
+			iprintf("%d, ", EnemyEntityArray[i].health);
+		}
+		iprintf("\b\b]\n");
 
 		// Waiting
 		swiWaitForVBlank();
@@ -1762,15 +2117,15 @@ int main(void)
 	}
 	// #endregion
 
+	// I dont really know
 	RandomiseEnemySpawns();
 
-	// Setup everything for the current sector and level
-	enemy_sector_setup();
+	// Shuffling for the screen shake
+	RandomiseScreenShake();
 
-	PreEnemySetup();
-	EntitySetup(&EnemyEntityArray[0], 112, 8, 32, 32, 100, -1, 10);
-	
-	_Bool RunOnce = 0;
+	// Setup everything for the current sector and level
+	laser_boss_battle_setup(bg3);
+	laser_boss_battle(bg3);
 
 	while (1)
 	{
@@ -1783,74 +2138,7 @@ int main(void)
 		// Frame number
 		FrameNumber++;
 
-		// Reset
-		if (keys & KEY_SELECT)
-		{
-			if (RunOnce)
-			{
-				RunOnce = 0;
-				enemy_sector_setup();
-				TimeTillRestart = RESTARTDELAY;
-			}
-		}
-		else RunOnce = 1;
-
-		if (Player.dead) {
-			TimeTillRestart--;
-			if (!TimeTillRestart){
-				enemy_sector_setup();
-
-				PreEnemySetup();
-				EntitySetup(&EnemyEntityArray[0], 112, 8, 32, 32, 100, -1, 10);
-
-				TimeTillRestart = RESTARTDELAY;
-			}
-		}
-
-		// Player movement and bullet firing
-		PlayerHandle(keys);
-
-		// Handle enemies here
-		EnemyHandleAll(PlayerCenter, ScreenBoarder, 4);
-
-		LaserBossBulletAttackMove();
-		LaserBossBulletAttackFireBullets();
-
-		// Bullet handling
-		BulletSpawnDeathBullets();
-		BulletHandleBulletArray(BulletArray, MAXBULLETCOUNT, PlayableArea);
-		BulletSpawnMineOffspring();
-
-		// Bullet collision with player and enemies
-		BulletCollisionWithPlayerAndEnemies();
-		BulletCountAlive();
-
-		// Player collision with enemies
-		PlayerCheckCollisionAgainstAllEnemies();
-
-		// Drawing and animating the player
-		PlayerAnimate(&Player, FrameNumber, PlayerGFXMem, PlayerExplosionGFXMem);
-
-		// Draw enemies here
-		EnemyDrawAll(FrameNumber);
-
-		// Drawing the bullets
-		BulletDrawAll();
-
-		LaserBossBulletAttackAnimate(FrameNumber);
-
-		// Displaying the player position and other stuff
-		iprintf("\nX = %d\nY = %d\n", (int)Player.x, (int)Player.y);
-		iprintf("Player Center [%d, %d]\n", PlayerCenter[0], PlayerCenter[1]);
-		iprintf("Alive Bullets = %d\n", NumberOfAliveBullets);
-		iprintf("Player Dead = %d\n", Player.dead);
-
-		iprintf("\nBoss Top left [%d, %d]\n", (int)EnemyEntityArray[0].x, (int)EnemyEntityArray[0].y);
-		for (int i = 0; i < 4; i++)
-		{
-			iprintf("%d, ", LaserBossSegmentCurrentBulletDelay[i]);
-		}
-		iprintf("\n");
+		
 
 		// Waiting
 		swiWaitForVBlank();
@@ -1906,4 +2194,9 @@ Finished:
 	Functions to easily handle the player and enemies
 
 	Fix miners seemingly starting at random times
+	
+	Level system / Portaling <-- DO THIS FUTURE ME
+		Portals!!!
+		
+		done, kind of
 */
