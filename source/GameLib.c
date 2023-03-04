@@ -1,5 +1,6 @@
 #include "GameLib.h" // As the struct needs to be defined in the header file
 #include <math.h>
+#include <stdlib.h>
 
 #define PI 3.14159265359
 
@@ -110,6 +111,7 @@ _Bool EntityMove(Entity* self, float x, float y, int HitboxArray[][4], int Hitbo
 void BulletInit(Bullet* self) {
 	self->alive = 0;
 	self->to_die = 0;
+	self->type = -1;
 }
 
 void BulletInitBulletArray(Bullet bullet_array[], int bullet_array_len) {
@@ -250,4 +252,17 @@ float GetAngleFromOriginTo(int x, int y) {
 void GetVectorFromAngle(float angle, float vector_array[2]) {
 	vector_array[0] = cosf(angle);
 	vector_array[1] = -sinf(angle);
+}
+
+void Shuffle(int array[], int array_length) {  // https://stackoverflow.com/questions/6127503/shuffle-array-in-c
+	if (array_length > 1) {
+
+		for (int i = array_length - 1; i > 0; i--) {
+			int j = rand() % (i + 1);
+
+			int tmp = array[i];
+			array[i] = array[j];
+			array[j] = tmp;
+		}
+	}
 }

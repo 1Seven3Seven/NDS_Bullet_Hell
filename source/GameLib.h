@@ -84,5 +84,6 @@ int RectangleGetBottom(int rect[4]);
 
 float GetAngleFromOriginTo(int x, int y);
 void GetVectorFromAngle(float angle, float vector_array[2]);
+void Shuffle(int array[], int array_length);
 
 #endif
