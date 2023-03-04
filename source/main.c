@@ -1,19 +1,26 @@
 /*
 ToDo:
-	Potentially do some research into sounds
-		They make everything better
+	Rework how enemies are handled, as there will only ever be a max of 8 enemise on screen at once
+
+	Functions to easily handle the player and enemies
 
 	Level system / Portaling <-- DO THIS FUTURE ME
 
 	Improve the miner as it doesnt feel right in comparison to the other enemies
 		Either sprite wise or ai wise
 			Duncan noted that it is the only one that doesnt have movement based off of the player, maybe that has something to do with it
-		Same as above
 
 	Redo the player animation so it loads the sprite every time it changes, this is mainly to conserve GFX
 		If necessary
 
 	Redo all enemy animations so they load the new sprite
+
+	Potentially do some more research into sounds
+		They make everything better
+		https://maxmod.devkitpro.org/ref/tut/dsprog.html
+		https://gbatemp.net/threads/maxmod-hates-me.327662/
+		Google search "libnds No rule to make target, needed by 'soundbank.bin'."
+		C:\devkitPro\examples\nds\audio\maxmod\basic_sound
 
 	Semi-persistent laser as an idea for a miniboss attack
 	Super Sentinel as another idea for a mini boss
@@ -185,6 +192,7 @@ void PlayerQuickSetup(Entity* player) {
 //---------------------------------------------------------------------------------
 Entity EnemyEntityArray[3][5];
 int temp_enemy_hitbox[4];  // Used to hold an enemies hitbox when handling said enemy
+int temp_enemy_center[2];  // Used to hold an enemies center when handling said enemy
 
 // Enemy setup stuff
 void EnemyDeaden() {  // Should be called before setting up all the enemies for a stage
@@ -612,9 +620,12 @@ void LoadDifficulty1Miners(int difficulty_1_indexes[4]) {
 	SpawnMiner(Difficulty1Presets[2][difficulty_1_indexes[1]][0], Difficulty1Presets[2][difficulty_1_indexes[1]][1], (float)Difficulty1Presets[2][difficulty_1_indexes[1]][2] / 10, (float)Difficulty1Presets[2][difficulty_1_indexes[1]][3] / 10);
 }
 
-void LoadRandomDifficulty1Enemies(int difficulty_1_indexes[4]) {
+void LoadRandomDifficulty1Enemies() {
 
 	EnemyDeaden();
+
+	int difficulty_1_indexes[4] = {0, 1, 2, 3};
+
 	EnemyResetCounters();
 
 	Shuffle(difficulty_1_indexes, 4);
@@ -639,6 +650,48 @@ void LoadRandomDifficulty1Enemies(int difficulty_1_indexes[4]) {
 	EnemySetupDeathAnimations();
 }
 
+
+int Difficulty2Presets[3][4][4] = {
+//                     ^ Enemy index
+//                        ^ Number of enemies to chose from, here there are 4 enemies, but only 2 will be chosen
+//                           ^ Enemy data [x, y, move_direction or vx, vy] vx and vy are divided by 10
+	{  // Sentinels, x, y, move_direction, NONE
+		{31, 15, 0, 0},
+		{15, 31, 1, 0},
+		{209, 161, 0, 0},
+		{225, 145, 1, 0}
+	},
+	{  // Shredders, x, y, NONE, NONE
+		{15, 15, 0, 0},
+		{15, 162, 0, 0},
+		{226, 15, 0, 0},
+		{226, 162, 0, 0}
+	},
+	{  // Miners, x, y, vx, vy - Middle is 128 x 96
+		{112, 15, 5, -5},
+		{112, 161, -5, 5},
+		{15, 80, -5, 5},
+		{225, 80, 5, -5}
+	}
+};
+
+void LoadRandomDifficulty2Enemies() {}
+
+
+int Difficulty3Enemies[3][4][4];
+void LoadRandomDifficulty3Enemies() {}
+
+
+//---------------------------------------------------------------------------------
+// Map and map movement
+// Upon all enemies being defeated and all enemy bullets decaying, portal to the next sector
+// If the player dies, re-setup the enemies and player
+//---------------------------------------------------------------------------------
+
+int Level = 0;  // The current difficulty level, 0 = no change, 1 = one bullet spawned on death, 2 = three bullets spawned on death, mini bosses for levels 1 and 2, final boss for 3
+int Sector = 0;  // The current sector, seven sectors for each level, in pairs if difficulties 1, 2 and 3 and a final boss
+
+
 //---------------------------------------------------------------------------------
 // Miscellaneous
 //---------------------------------------------------------------------------------
@@ -653,17 +706,87 @@ int ScreenBoarder[4][4] = {
 	{248, 0, 8, 192}
 };
 
-// Portal hitboxes - Screen size is 256 × 192 pixels - Middle is 128 x 96
-int PortalHitboxes[4][4] = {
-	{120, 40, 16, 16},    // Top
-	{120, 136, 16, 16},  // Bottom
-	{72, 88, 16, 16},   // Right
-	{168, 88, 16, 16}  // Left
-};
+
+//---------------------------------------------------------------------------------
+// Combat loops
+// Player portals in
+// Enemies all portal in at the same time
+// Pause, comnat starts
+// Once all enemies are dead and all bullets decayed
+// 		Player portals away
+//		Pause, change background, repeat
+//---------------------------------------------------------------------------------
 
 
 //---------------------------------------------------------------------------------
-void enemy_combat_loop() {
+void level_1_enemy_combat_loop(int bg) {
+//---------------------------------------------------------------------------------
+
+	/* Order of doing things
+	Change the background
+	Setup the player
+	Setup the bullet array
+	Setup the enemies
+
+	LOOP
+	*/
+
+	// Loading new background
+	// dmaCopy(BasicBackgroundBitmap, bgGetGfxPtr(bg), 256*256);
+	// dmaCopy(BasicBackgroundPal, BG_PALETTE, sizeof(BasicBackgroundPal));
+
+
+	// Player setup
+	PlayerQuickSetup(&Player);
+
+	// Bullet array setup
+	BulletInitBulletArray(BulletArray, MAXBULLETCOUNT);
+
+	// Setting up the enemies depending on the sector
+	switch ((int)(Sector / 2)) {
+		case 0:
+			LoadRandomDifficulty1Enemies();
+			break;
+
+		case 1:
+			LoadRandomDifficulty2Enemies();
+			break;
+
+		case 2:
+			LoadRandomDifficulty3Enemies();
+			break;
+	}
+
+	while (1) {
+		// Clear the text
+		consoleClear();
+		// Get key presses
+		scanKeys();
+		int keys = keysHeld();
+		int pressed = keysDown();
+		// Frame number
+		FrameNumber++;
+		FrameNumber %= 60;
+
+		// Player
+
+		// Enemies
+
+		// Bullets
+
+		// Collision
+
+		// Drawing
+
+		// Text display
+
+	}
+
+}
+
+
+//---------------------------------------------------------------------------------
+void level_2_enemy_combat_loop() {
 //---------------------------------------------------------------------------------
 
 	// here
@@ -672,7 +795,7 @@ void enemy_combat_loop() {
 
 
 //---------------------------------------------------------------------------------
-void portal_loop() {
+void level_3_enemy_combat_loop() {
 //---------------------------------------------------------------------------------
 
 	// here
@@ -857,6 +980,47 @@ int main(void) {
 
 		}
 	
+		/* Test spawn bullets on death
+		for (int a = 0; a < 3; a++) {
+			for (int b = 0; b < 5; b++) {
+				if (EnemyEntityArray[a][b].dead && EnemyEntityArray[a][b].counter == 11) {
+					EntityGetCenterArray(&EnemyEntityArray[a][b], temp_enemy_center);
+					float angle = GetAngleFromOriginTo(player_center[0] - temp_enemy_center[0], player_center[1] - temp_enemy_center[1]);
+					BulletSetupInBulletArray(
+						BulletArray, MAXBULLETCOUNT,
+						temp_enemy_center[0], temp_enemy_center[1],
+						3, 3,
+						angle,
+						1,
+						240,
+						1,
+						MINERMINEBULLET
+					);
+					BulletSetupInBulletArray(
+						BulletArray, MAXBULLETCOUNT,
+						temp_enemy_center[0], temp_enemy_center[1],
+						3, 3,
+						angle + PI / 4,
+						1,
+						240,
+						1,
+						MINERMINEBULLET
+					);
+					BulletSetupInBulletArray(
+						BulletArray, MAXBULLETCOUNT,
+						temp_enemy_center[0], temp_enemy_center[1],
+						3, 3,
+						angle - PI / 4,
+						1,
+						240,
+						1,
+						MINERMINEBULLET
+					);
+				}
+			}
+		}
+		*/
+
 		// Kind of 'deleting' old bullets and then updating them if they go outside the screen
 		BulletHandleBulletArray(BulletArray, MAXBULLETCOUNT, PlayableArea);
 		// Spawning in the mines offspring
@@ -973,11 +1137,12 @@ int main(void) {
 				iprintf("%d", EnemyEntityArray[a][b].dead);
 			}
 		}
-
-		iprintf("\n\nIndexes = %d,%d,%d,%d", Difficulty1EnemyIndexes[0], Difficulty1EnemyIndexes[1], Difficulty1EnemyIndexes[2], Difficulty1EnemyIndexes[3]);
-
-		iprintf("\n\n%d,%d,%d,%d", Difficulty1Presets[0][Difficulty1EnemyIndexes[0]][0], Difficulty1Presets[0][Difficulty1EnemyIndexes[0]][1], Difficulty1Presets[0][Difficulty1EnemyIndexes[0]][2], Difficulty1Presets[0][Difficulty1EnemyIndexes[0]][3]);
-		iprintf("\n%d,%d,%d,%d", Difficulty1Presets[0][Difficulty1EnemyIndexes[1]][0], Difficulty1Presets[0][Difficulty1EnemyIndexes[1]][1], Difficulty1Presets[0][Difficulty1EnemyIndexes[1]][2], Difficulty1Presets[0][Difficulty1EnemyIndexes[1]][3]);
+		iprintf("\n");
+		for (int a = 0; a < 3; a++) {
+			for (int b = 0; b < 5; b++) {
+				iprintf("%d,", EnemyEntityArray[a][b].counter);
+			}
+		}
 		
 		// Waiting 
 		swiWaitForVBlank();
