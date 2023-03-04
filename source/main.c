@@ -47,6 +47,44 @@ ToDo:
 #define TILESIZE 256		// The number of pixels in the tiles
 #define SPRITESHEETWIDTH 16 // Number of tiles the sprite sheet is wide
 
+// Bullet constants
+#define PLAYERBULLET 0
+#define SENTINELBULLET 1
+#define MINERMINE 2
+#define MINERMINEBULLET 3
+
+#define LASERBOSSBULLET 4
+#define LASERBULLET 5
+
+// Player constants
+#define PLAYERSTARTX 122
+#define PLAYERSTARTY 90
+#define RESTARTDELAY 60
+
+// Enemy type constants
+#define SENTINELTYPE 1
+#define SHREDDERTYPE 2
+#define MINERTYPE 3
+
+// Enemy constructor constants
+#define SENTINELHEALTH 10
+#define SENTINELBULLETDELAY 60
+#define SENTINELSTARTDELAY 60
+
+#define SHREDDERHEALTH 3
+#define SHREDDERBULLETDELAY 60
+#define SHREDDERSTARTDELAY 60
+#define SHREDDERSPEED 3
+
+#define MINERHEALTH 5
+#define MINERBULLETDELAY 120
+#define MINERSTARTDELAY 60
+#define MINERPLACEMINEDELAY 30
+
+// Boss constructor constants
+#define LASERBOSSHEALTH 200
+#define LASERWEAPONHEALTH 100
+
 
 //---------------------------------------------------------------------------------
 // A series of 2d arrays of pointers to the graphics memory of the sprites
@@ -59,40 +97,36 @@ u16 *ShredderGFXMem[4];
 u16 *MinerGFXMem[8];
 u16 *ExplosionGFXMem[8];
 
-u16 *BulletGFXMem[4][4];
+u16 *BulletGFXMem[10][4];
 
 u16 *PortalGFXMem[16];
+
+u16 *LaserWeaponGFXMem[4];
+u16 *LaserBossGFXMem[4][8];  // 0 Top left, 1 Top right, 2 Bottom left, 3 Bottom right
 
 
 //---------------------------------------------------------------------------------
 // Bullet array and other necessary information
 //---------------------------------------------------------------------------------
-#define PLAYERBULLET 0
-#define SENTINELBULLET 1
-#define MINERMINE 2
-#define MINERMINEBULLET 3
-
+// #region
 Bullet BulletArray[MAXBULLETCOUNT];
 int TempBulletHitbox[4]; // Used to hold a bullets hitbox when handling said bullet
 int TempBulletCenter[2]; // Used to hold a bullets center when handling said bullet
 
 int NumberOfAliveBullets = 0; // I guess we will never know
+// #endregion
 
 
 //---------------------------------------------------------------------------------
 // Player Allocation and handling
 //---------------------------------------------------------------------------------
 // #region
-#define PLAYERSTARTX 122
-#define PLAYERSTARTY 90
-#define RESTARTDELAY 60
-
 int TimeTillRestart = RESTARTDELAY;
 
 Entity Player;
 int PlayerCenter[2];
 int PlayerHitbox[4];
-int PlayerPriority = 0;
+int PlayerPriority = 0;  // The draw priotity of the player
 
 void PlayerMovement(Entity *self, int keys, int HitboxArray[][4], int HitboxLen)
 {
@@ -218,17 +252,12 @@ void PlayerQuickSetup(Entity *player)
 //---------------------------------------------------------------------------------
 // #region
 Entity EnemyEntityArray[8];
-int TempEnemyHitbox[4]; // Used to hold an enemies hitbox when handling said enemy
-int TempEnemyCenter[2]; // Used to hold an enemies center when handling said enemy
-int EnemyPriority = 0;
+int TempEnemyHitbox[4];  // Used to hold an enemies hitbox when handling said enemy
+int TempEnemyCenter[2];  // Used to hold an enemies center when handling said enemy
+int EnemyPriority = 0;  // The draw priotity of the enemies
 
 // Sentinel handling
 // #region
-#define SENTINELHEALTH 10
-#define SENTINELTYPE 1
-#define SENTINELBULLETDELAY 60
-#define SENTINELSTARTDELAY 60
-
 _Bool SentinelMoveDirectionArray[8]; // If false then the sentinel will only move along the x axis, y axis if true
 
 void SentinelMove(Entity *self, _Bool sentinel_move_direction, int player_center[2], int HitboxArray[][4], int HitboxLen)
@@ -386,12 +415,6 @@ void SentinelAnimate(Entity *self, int oam_number, int frame_number, u16 *sentin
 
 // Shredder handling
 // #region
-#define SHREDDERHEALTH 3
-#define SHREDDERTYPE 2
-#define SHREDDERBULLETDELAY 60
-#define SHREDDERSTARTDELAY 60
-#define SHREDDERSPEED 3
-
 float ShredderMovementVectorArray[8][2];
 
 void ShredderMove(Entity *self, float vector[2], int player_center[2], int HitboxArray[][4], int HitboxLen)
@@ -472,12 +495,6 @@ void ShredderAnimate(Entity *self, int oam_number, int frame_number, u16 *shredd
 
 // Miner handling
 // #region
-#define MINERHEALTH 5
-#define MINERTYPE 3
-#define MINERBULLETDELAY 120
-#define MINERSTARTDELAY 60
-#define MINERPLACEMINEDELAY 30
-
 float MinerMovementVectorArray[8][2];
 int MinerPlaceMineDelayArray[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 
@@ -685,13 +702,189 @@ void PostEnemySetup()
 
 
 //---------------------------------------------------------------------------------
+// Laser boss allocation and handling, this uses the EnemyEntityArray
+//---------------------------------------------------------------------------------
+// #region
+char LaserBossAttackChoices[3] = {
+	'B',  // Bullet attack
+	'S',  // Strafing attack
+	'P'   // Pincer attack
+};
+char LaserBossCurrentAttack = 'B';
+
+int LaserBossSegmentCenterOffsets[4][2] = {
+	{8, 8},		// Top left
+	{24, 8},  	// Top right
+	{8, 24},  	// Bottom left
+	{24, 24}  	// Bottom right
+};
+
+int LaserBossPotentialXPos[2] = {24, 200};
+int LaserBossXPosIndex = 0;
+
+int LaserBossPotentialBulletRuns[4] = {2, 3, 4, 5};
+int LaserBossBulletRunsLeft = 4;
+
+int LaserBossSegmentCurrentBulletDelay[4] = {30, 60, 90, 120};
+int LaserBossBulletDelays[3] = {30, 20, 10};  // Which one is chosen depends on health
+int LaserBossBulletDelaysIndex = 0;
+
+void LaserBossBulletAttackMove()
+{
+	int difference = LaserBossPotentialXPos[LaserBossXPosIndex] - EnemyEntityArray[0].x;
+
+	if (difference < 0)
+		EnemyEntityArray[0].x -= 0.5f;
+	else if (difference > 0)
+		EnemyEntityArray[0].x += 0.5f;
+		
+	if (difference == 0)
+	{
+		LaserBossBulletRunsLeft -= 1;
+		LaserBossXPosIndex += 1;
+		LaserBossXPosIndex %= 2;
+	}
+}
+
+void LaserBossBulletAttackFireBullets()
+{
+	if (EnemyEntityArray[0].current_bullet_delay > 0)
+		EnemyEntityArray[0].current_bullet_delay--;
+	else
+	{
+
+		int sum_bullet_delays = 0;
+
+		for (int i = 0; i < 4; i++)
+		{
+			if (LaserBossSegmentCurrentBulletDelay[i] > 0)
+				LaserBossSegmentCurrentBulletDelay[i]--;
+			else
+			{
+				if (!LaserBossSegmentCurrentBulletDelay[i])
+				{
+					float angle = GetAngleFromOriginTo(
+						PlayerCenter[0] - EnemyEntityArray[0].x - LaserBossSegmentCenterOffsets[i][0],
+						PlayerCenter[1] - EnemyEntityArray[0].y - LaserBossSegmentCenterOffsets[i][0]);
+
+					BulletSetupInBulletArray(
+						BulletArray, MAXBULLETCOUNT,
+						EnemyEntityArray[0].x + LaserBossSegmentCenterOffsets[i][0] - 4, EnemyEntityArray[0].y + LaserBossSegmentCenterOffsets[i][1] - 4,
+						8, 8,
+						angle,
+						1,
+						270,
+						1,
+						LASERBOSSBULLET
+					);
+				}
+
+				LaserBossSegmentCurrentBulletDelay[i] = -1;
+			}
+
+			sum_bullet_delays += LaserBossSegmentCurrentBulletDelay[i];
+		}
+
+		if (sum_bullet_delays == -4)
+		{
+			for (int i = 0; i < 4; i++)
+			{
+				LaserBossSegmentCurrentBulletDelay[i] = LaserBossBulletDelays[LaserBossBulletDelaysIndex] * (i + 2);
+			}
+		}
+	}
+}
+
+void LaserBossBulletAttackAnimate(int frame_number)
+{
+	if (frame_number % 6 == 0)
+	{
+		EnemyEntityArray[0].animation_frame_number += 1;
+		EnemyEntityArray[0].animation_frame_number %= 4;
+	}
+
+	// Drawing body
+	for (int a = 0; a < 2; a++)
+	{
+		for (int b = 0; b < 2; b++)
+		{
+			_Bool empty_bullet = 0;
+			/*
+			if (LaserBossSegmentCurrentBulletDelay[b + a * 2] > LaserBossBulletDelays[LaserBossBulletDelaysIndex])
+				empty_bullet = 1;
+			else if (LaserBossSegmentCurrentBulletDelay[b + a * 2] <= 0)
+				empty_bullet = 1;
+			*/
+
+			if (LaserBossSegmentCurrentBulletDelay[0] > LaserBossBulletDelays[LaserBossBulletDelaysIndex] + LaserBossBulletDelays[LaserBossBulletDelaysIndex] * (3 - (b + a * 2)) / 4)
+				empty_bullet = 1;
+			else if (LaserBossSegmentCurrentBulletDelay[b + a * 2] <= 0)
+				empty_bullet = 1;
+
+			oamSet(
+				&oamMain,
+				1 + b + a * 2,
+				EnemyEntityArray[0].x + b * 16, EnemyEntityArray[0].y + a * 16,
+				EnemyPriority,
+				0,
+				SpriteSize_16x16,
+				SpriteColorFormat_256Color,
+				LaserBossGFXMem[b + a * 2][4 * empty_bullet + EnemyEntityArray[0].animation_frame_number],
+				-1,
+				false,
+				false,
+				false,
+				false,
+				false
+			);
+		}
+	}
+
+	// Drawing laser arms
+	for (int i = 0; i < 2; i++)
+	{
+		oamSet(
+			&oamMain,
+			5 + i,
+			EnemyEntityArray[0].x - 16 + 48 * i, EnemyEntityArray[0].y,
+			0,
+			0,
+			SpriteSize_16x32,
+			SpriteColorFormat_256Color,
+			LaserWeaponGFXMem[EnemyEntityArray[0].animation_frame_number],
+			-1,
+			false,
+			false,
+			false,
+			false,
+			false);
+	}
+}
+
+void LaserBossSweepingAttackMove()
+{
+
+}
+
+void LaserBossPincerAttackMove()
+{
+
+}
+
+
+
+// #endregion
+
+
+//---------------------------------------------------------------------------------
 // Map and map movement
 // Upon all enemies being defeated and all enemy bullets decaying, portal to the next sector
 // If the player dies, re-setup the enemies and player
 //---------------------------------------------------------------------------------
-
-int Level = 2;	// The current difficulty level, 0 = no change, 1 = three bullets spawned on death, 2 = +2 enemies for each difficulty, mini bosses for levels 1 and 2, final boss for 3
-int Sector = 5; // The current sector, seven sectors for each level, in pairs if difficulties 1, 2 and 3 and a final boss
+// #region
+int Level = 0;	// The current difficulty level, 0 = no change, 1 = three bullets spawned on death, 2 = +2 enemies for each difficulty, mini bosses for levels 1 and 2, final boss for 3
+int Sector = 0; // The current sector, seven sectors for each level, in pairs if difficulties 1, 2 and 3 and a final boss
+// #endregion
 
 
 //---------------------------------------------------------------------------------
@@ -863,6 +1056,7 @@ void LoadRandomEnemies() {
 //---------------------------------------------------------------------------------
 // Miscellaneous
 //---------------------------------------------------------------------------------
+// #region
 int FrameNumber = 0; // Take a guess
 
 // Main boarder hitboxes
@@ -872,6 +1066,31 @@ int ScreenBoarder[4][4] = {
 	{0, 0, 256, 8},
 	{0, 184, 256, 8},
 	{248, 0, 8, 192}};
+
+void HideEverySprite()
+{
+	for (int i = 0; i < 128; i++)
+	{
+		oamSet(
+			&oamMain,
+			i,
+			0, 0,
+			0,
+			0,
+			SpriteSize_16x16,
+			SpriteColorFormat_256Color,
+			PortalGFXMem[0],
+			-1,
+			false,
+			true,
+			false,
+			false,
+			false);
+	}
+
+}
+// #endregion
+
 
 //---------------------------------------------------------------------------------
 // Easy handling and drawing of the player, enemies and bullets
@@ -990,7 +1209,7 @@ void BulletSpawnMineOffspring()
 						MAXBULLETCOUNT,
 						TempBulletCenter[0] - 1, TempBulletCenter[1] - 1,
 						3, 3,
-						PI / 4 * a,
+						QUARTERPI * a,
 						1,
 						60,
 						1,
@@ -1124,8 +1343,7 @@ void BulletDrawAll()
 
 
 //---------------------------------------------------------------------------------
-/*
-Combat loops
+/* Basic enemy combat loop
 Player portals in
 Enemies all portal in at the same time
 Wait for 1 second
@@ -1154,8 +1372,7 @@ If player dies
 	Start again
 */		
 //---------------------------------------------------------------------------------
-
-void sector_setup() 
+void enemy_sector_setup() 
 {
 
 	PlayerQuickSetup(&Player);
@@ -1166,24 +1383,7 @@ void sector_setup()
 	LoadRandomEnemies();
 
 	// Hiding every sprite
-	for (int i = 0; i < 128; i++)
-	{
-		oamSet(
-			&oamMain,
-			i,
-			0, 0,
-			0,
-			0,
-			SpriteSize_16x16,
-			SpriteColorFormat_256Color,
-			PortalGFXMem[0],
-			-1,
-			false,
-			true,
-			false,
-			false,
-			false);
-	}
+	HideEverySprite();
 
 	int playerSpawnCounter = 32;
 	int enemySpawnCounter = 32;
@@ -1260,120 +1460,8 @@ void sector_setup()
 
 }
 
-
-//---------------------------------------------------------------------------------
-int main(void)
-//---------------------------------------------------------------------------------
+void enemy_combat(void)
 {
-	// Enable the main screen
-	videoSetMode(MODE_5_2D);
-	// Setting and Initalising VRAM Bank A to sprites
-	vramSetBankA(VRAM_A_MAIN_SPRITE);
-	oamInit(&oamMain, SpriteMapping_1D_128, false);
-	// Setting and Initalising VRAM bank B to background slot 0
-	vramSetBankB(VRAM_B_MAIN_BG_0x06000000);
-
-	// Initalise the bottom screen for text
-	consoleDemoInit();
-
-	// Seeding the random number generator
-	time_t t;
-	srand((unsigned)time(&t));
-
-	// Loading the background
-	int bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
-	dmaCopy(BasicBackgroundBitmap, bgGetGfxPtr(bg3), 256 * 256);
-	dmaCopy(BasicBackgroundPal, BG_PALETTE, sizeof(BasicBackgroundPal));
-
-	// Setting the sprite palette
-	dmaCopy(SpriteSheetPal, SPRITE_PALETTE, 512);
-
-	// Sprite Memory Allocation and Loading
-	// #region
-	// Allocating memory for, and loading the player sprites
-	for (int a = 0; a < 8; a++)
-	{
-		PlayerGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * a, PlayerGFXMem[a], 16 * 16);
-	}
-	// Allocating memory for, and loading the sentinal sprites
-	for (int a = 0; a < 2; a++)
-	{
-		for (int b = 0; b < 8; b++)
-		{
-			SentinelGFXMem[a][b] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-			dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * (a + 1) + TILESIZE * b, SentinelGFXMem[a][b], 16 * 16);
-		}
-	}
-	// Allocating memory for, and loading the shredder sprites
-	for (int a = 0; a < 4; a++)
-	{
-		ShredderGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 3 + TILESIZE * a, ShredderGFXMem[a], 16 * 16);
-	}
-	// Allocating memory for, and loading the miner sprites
-	for (int a = 0; a < 8; a++)
-	{
-		MinerGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 4 + TILESIZE * a, MinerGFXMem[a], 16 * 16);
-	}
-
-	// Allocating memory for, and loading the player explosion sprites
-	for (int a = 0; a < 8; a++)
-	{
-		PlayerExplosionGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * 8 + TILESIZE * a, PlayerExplosionGFXMem[a], 16 * 16);
-	}
-	// Allocating memory for, and loading the explosion sprites
-	for (int a = 0; a < 8; a++)
-	{
-		ExplosionGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH + TILESIZE * 8 + TILESIZE * a, ExplosionGFXMem[a], 16 * 16);
-	}
-
-	// Allocating memory for, and loading the player bullets
-	for (int a = 0; a < 4; a++)
-	{
-		BulletGFXMem[0][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 7 + TILESIZE * a, BulletGFXMem[0][a], 16 * 16);
-	}
-	// The above but for the sentinel bullets
-	for (int a = 0; a < 4; a++)
-	{
-		BulletGFXMem[1][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 6 + TILESIZE * a, BulletGFXMem[1][a], 16 * 16);
-	}
-	// The above but for the mines
-	for (int a = 0; a < 4; a++)
-	{
-		BulletGFXMem[2][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 5 + TILESIZE * a, BulletGFXMem[2][a], 16 * 16);
-	}
-	// The above but for the mines bullets
-	for (int a = 0; a < 4; a++)
-	{
-		BulletGFXMem[3][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 5 + TILESIZE * 4 + TILESIZE * a, BulletGFXMem[3][a], 16 * 16);
-	}
-	
-	// Allocating memory for, and loading the portal sprites
-	for (int a = 0; a < 2; a++)
-	{
-		for (int b = 0; b < 8; b++)
-		{
-			PortalGFXMem[a * 8 + b] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
-			dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * (2 + a) + TILESIZE * 8 + TILESIZE * b, PortalGFXMem[a * 8 + b], 16 * 16);
-		}
-	}
-	// #endregion
-
-	RandomiseEnemySpawns();
-
-	// Setup everything for the current sector and level
-	sector_setup();
-	
-	_Bool RunOnce = 0;
-
 	while (1)
 	{
 		// Clear the text
@@ -1384,24 +1472,12 @@ int main(void)
 		int pressed = keysDown();
 		// Frame number
 		FrameNumber++;
-		FrameNumber %= 60;
 
-		// Reset
-		if (keys & KEY_SELECT)
-		{
-			if (RunOnce)
-			{
-				RunOnce = 0;
-				sector_setup();
-				TimeTillRestart = RESTARTDELAY;
-			}
-		}
-		else RunOnce = 1;
-
+		// Essentially respawning the player if they die after a small delay
 		if (Player.dead) {
 			TimeTillRestart--;
 			if (!TimeTillRestart){
-				sector_setup();
+				enemy_sector_setup();
 				TimeTillRestart = RESTARTDELAY;
 			}
 		}
@@ -1438,21 +1514,341 @@ int main(void)
 		iprintf("Player Center [%d, %d]\n", PlayerCenter[0], PlayerCenter[1]);
 		iprintf("Alive Bullets = %d\n", NumberOfAliveBullets);
 		iprintf("Player Dead = %d\n", Player.dead);
-		for (int i = 0; i < 8; i++)
-		{
-			iprintf("%d", EnemyEntityArray[i].dead);
+
+		// Waiting
+		swiWaitForVBlank();
+		// Update the screen
+		oamUpdate(&oamMain);
+		// To exit
+		if (pressed & KEY_START)
+			break;
+	}
+}
+
+
+//---------------------------------------------------------------------------------
+/* LASERS!!!
+Boss info
+	Health???
+	Speed is 0.5
+
+	Attacks
+		Bullet attack
+		Shifting left and right at the top of the screen shooting the four bullets
+			Every 50 frames, then 40, finally 30
+
+		Sweeping attack
+		Going to either the right or left of the screen and firing that laser, moving to the other side
+			If at the left, fire the left laser
+
+		Pincer attack
+		Dispatching the lasers to the sides of the screen
+			The lasers slowly move towards the center of the screen
+			The boss will fire the entire time
+				Starting at firing once every 90 frames, reducing gradually to every default frames...
+*/
+//---------------------------------------------------------------------------------
+void laser_boss(void)
+{
+	while (1)
+	{
+		// Clear the text
+		consoleClear();
+		// Get key presses
+		scanKeys();
+		int keys = keysHeld();
+		int pressed = keysDown();
+		// Frame number
+		FrameNumber++;
+
+		// Essentially respawning the player if they die after a small delay
+		if (Player.dead) {
+			TimeTillRestart--;
+			if (!TimeTillRestart){
+
+				PreEnemySetup();
+				EntitySetup(&EnemyEntityArray[0], 112, 8, 32, 32, 100, -1, 10);
+				PostEnemySetup();
+
+				TimeTillRestart = RESTARTDELAY;
+			}
 		}
-		iprintf("\n");
-		iprintf("Delay = ");
+
+		// Player movement and bullet firing
+		PlayerHandle(keys);
+
+		// Handle the boss here
+		LaserBossBulletAttackMove();
+		LaserBossBulletAttackFireBullets();
+
+		// Bullet handling
+		//BulletSpawnDeathBullets();
+		BulletHandleBulletArray(BulletArray, MAXBULLETCOUNT, PlayableArea);
+		//BulletSpawnMineOffspring();
+
+		// Bullet collision with player and boss
+		BulletCollisionWithPlayerAndEnemies();
+		BulletCountAlive();
+
+		// Player collision with enemies
+		PlayerCheckCollisionAgainstAllEnemies();
+
+		// Drawing and animating the player
+		PlayerAnimate(&Player, FrameNumber, PlayerGFXMem, PlayerExplosionGFXMem);
+
+		// Draw the boss here
+		LaserBossBulletAttackAnimate(FrameNumber);
+
+		// Drawing the bullets
+		BulletDrawAll();
+
+		// Displaying the player position and other stuff
+		iprintf("\nX = %d\nY = %d\n", (int)Player.x, (int)Player.y);
+		iprintf("Player Center [%d, %d]\n", PlayerCenter[0], PlayerCenter[1]);
+		iprintf("Alive Bullets = %d\n", NumberOfAliveBullets);
+		iprintf("Player Dead = %d\n", Player.dead);
+
+		iprintf("\nBoss Top left [%d, %d]\n", (int)EnemyEntityArray[0].x, (int)EnemyEntityArray[0].y);
 		for (int i = 0; i < 4; i++)
 		{
-			iprintf("%d,", EnemyEntityArray[i].current_bullet_delay);
+			iprintf("%d, ", LaserBossSegmentCurrentBulletDelay[i]);
 		}
 		iprintf("\n");
-		iprintf("Miner Delay = ");
+
+		// Waiting
+		swiWaitForVBlank();
+		// Update the screen
+		oamUpdate(&oamMain);
+		// To exit
+		if (pressed & KEY_START)
+			break;
+	}
+}
+
+
+//---------------------------------------------------------------------------------
+int main(void)
+//---------------------------------------------------------------------------------
+{
+	// Enable the main screen
+	videoSetMode(MODE_5_2D);
+	// Setting and Initalising VRAM Bank A to sprites
+	vramSetBankA(VRAM_A_MAIN_SPRITE);
+	oamInit(&oamMain, SpriteMapping_1D_128, false);
+	// Setting and Initalising VRAM bank B to background slot 0
+	vramSetBankB(VRAM_B_MAIN_BG_0x06000000);
+
+	// Initalise the bottom screen for text
+	consoleDemoInit();
+
+	// Seeding the random number generator
+	time_t t;
+	srand((unsigned)time(&t));
+
+	// Loading the background
+	int bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
+	dmaCopy(BasicBackgroundBitmap, bgGetGfxPtr(bg3), 256 * 256);
+	dmaCopy(BasicBackgroundPal, BG_PALETTE, sizeof(BasicBackgroundPal));
+
+	// Setting the sprite palette
+	dmaCopy(SpriteSheetPal, SPRITE_PALETTE, 512);
+
+	// Sprite Memory Allocation and Loading
+	// #region
+
+	// Entity Sprites
+	// #region
+	// Allocating memory for, and loading the player sprites
+	for (int a = 0; a < 8; a++)
+	{
+		PlayerGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * a, PlayerGFXMem[a], 16 * 16);
+	}
+	// Allocating memory for, and loading the sentinal sprites
+	for (int a = 0; a < 2; a++)
+	{
+		for (int b = 0; b < 8; b++)
+		{
+			SentinelGFXMem[a][b] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+			dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * (a + 1) + TILESIZE * b, SentinelGFXMem[a][b], 16 * 16);
+		}
+	}
+	// Allocating memory for, and loading the shredder sprites
+	for (int a = 0; a < 4; a++)
+	{
+		ShredderGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 3 + TILESIZE * a, ShredderGFXMem[a], 16 * 16);
+	}
+	// Allocating memory for, and loading the miner sprites
+	for (int a = 0; a < 8; a++)
+	{
+		MinerGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 4 + TILESIZE * a, MinerGFXMem[a], 16 * 16);
+	}
+	
+	// Allocating memory for, and loading the laser weapon sprites
+	for (int a = 0; a < 4; a++)
+	{
+		LaserWeaponGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x32, SpriteColorFormat_256Color);
+		dmaCopy((u8*)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 4 + TILESIZE * 8 + TILESIZE * a, LaserWeaponGFXMem[a], 16 * 16);
+		dmaCopy((u8*)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 4 + TILESIZE * 8 + TILESIZE * (a + 4), LaserWeaponGFXMem[a] + 16 * 8, 16 * 16);
+	}
+	// Allocating memory for, and loading the laser boss sprites
+	for (int a = 0; a < 4; a++)
+	{
+		for (int b = 0; b < 8; b++)
+		{
+			LaserBossGFXMem[a][b] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+			dmaCopy((u8*)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * (5 + a) + TILESIZE * 8 + TILESIZE * b, LaserBossGFXMem[a][b], 16 * 16);
+		}
+	}
+
+	// Allocating memory for, and loading the player explosion sprites
+	for (int a = 0; a < 8; a++)
+	{
+		PlayerExplosionGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * 8 + TILESIZE * a, PlayerExplosionGFXMem[a], 16 * 16);
+	}
+	// Allocating memory for, and loading the explosion sprites
+	for (int a = 0; a < 8; a++)
+	{
+		ExplosionGFXMem[a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH + TILESIZE * 8 + TILESIZE * a, ExplosionGFXMem[a], 16 * 16);
+	}
+	// #endregion
+
+	// Bullet Sprites
+	// #region
+	// Allocating memory for, and loading the player bullets
+	for (int a = 0; a < 4; a++)
+	{
+		BulletGFXMem[PLAYERBULLET][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 7 + TILESIZE * a, BulletGFXMem[PLAYERBULLET][a], 16 * 16);
+	}
+	// The above but for the sentinel bullets
+	for (int a = 0; a < 4; a++)
+	{
+		BulletGFXMem[SENTINELBULLET][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 6 + TILESIZE * a, BulletGFXMem[SENTINELBULLET][a], 16 * 16);
+	}
+	// The above but for the mines
+	for (int a = 0; a < 4; a++)
+	{
+		BulletGFXMem[MINERMINE][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 5 + TILESIZE * a, BulletGFXMem[MINERMINE][a], 16 * 16);
+	}
+	// The above but for the mines bullets
+	for (int a = 0; a < 4; a++)
+	{
+		BulletGFXMem[MINERMINEBULLET][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 5 + TILESIZE * 4 + TILESIZE * a, BulletGFXMem[MINERMINEBULLET][a], 16 * 16);
+	}
+	// The above but for the laser boss bullets
+	for (int a = 0; a < 4; a++)
+	{
+		BulletGFXMem[LASERBOSSBULLET][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 6 + TILESIZE * 4 + TILESIZE * a, BulletGFXMem[LASERBOSSBULLET][a], 16 * 16);
+	}
+	// #endregion
+
+	// Allocating memory for, and loading the portal sprites
+	for (int a = 0; a < 2; a++)
+	{
+		for (int b = 0; b < 8; b++)
+		{
+			PortalGFXMem[a * 8 + b] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+			dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * (2 + a) + TILESIZE * 8 + TILESIZE * b, PortalGFXMem[a * 8 + b], 16 * 16);
+		}
+	}
+	// #endregion
+
+	RandomiseEnemySpawns();
+
+	// Setup everything for the current sector and level
+	enemy_sector_setup();
+
+	PreEnemySetup();
+	EntitySetup(&EnemyEntityArray[0], 112, 8, 32, 32, 100, -1, 10);
+	
+	_Bool RunOnce = 0;
+
+	while (1)
+	{
+		// Clear the text
+		consoleClear();
+		// Get key presses
+		scanKeys();
+		int keys = keysHeld();
+		int pressed = keysDown();
+		// Frame number
+		FrameNumber++;
+
+		// Reset
+		if (keys & KEY_SELECT)
+		{
+			if (RunOnce)
+			{
+				RunOnce = 0;
+				enemy_sector_setup();
+				TimeTillRestart = RESTARTDELAY;
+			}
+		}
+		else RunOnce = 1;
+
+		if (Player.dead) {
+			TimeTillRestart--;
+			if (!TimeTillRestart){
+				enemy_sector_setup();
+
+				PreEnemySetup();
+				EntitySetup(&EnemyEntityArray[0], 112, 8, 32, 32, 100, -1, 10);
+
+				TimeTillRestart = RESTARTDELAY;
+			}
+		}
+
+		// Player movement and bullet firing
+		PlayerHandle(keys);
+
+		// Handle enemies here
+		EnemyHandleAll(PlayerCenter, ScreenBoarder, 4);
+
+		LaserBossBulletAttackMove();
+		LaserBossBulletAttackFireBullets();
+
+		// Bullet handling
+		BulletSpawnDeathBullets();
+		BulletHandleBulletArray(BulletArray, MAXBULLETCOUNT, PlayableArea);
+		BulletSpawnMineOffspring();
+
+		// Bullet collision with player and enemies
+		BulletCollisionWithPlayerAndEnemies();
+		BulletCountAlive();
+
+		// Player collision with enemies
+		PlayerCheckCollisionAgainstAllEnemies();
+
+		// Drawing and animating the player
+		PlayerAnimate(&Player, FrameNumber, PlayerGFXMem, PlayerExplosionGFXMem);
+
+		// Draw enemies here
+		EnemyDrawAll(FrameNumber);
+
+		// Drawing the bullets
+		BulletDrawAll();
+
+		LaserBossBulletAttackAnimate(FrameNumber);
+
+		// Displaying the player position and other stuff
+		iprintf("\nX = %d\nY = %d\n", (int)Player.x, (int)Player.y);
+		iprintf("Player Center [%d, %d]\n", PlayerCenter[0], PlayerCenter[1]);
+		iprintf("Alive Bullets = %d\n", NumberOfAliveBullets);
+		iprintf("Player Dead = %d\n", Player.dead);
+
+		iprintf("\nBoss Top left [%d, %d]\n", (int)EnemyEntityArray[0].x, (int)EnemyEntityArray[0].y);
 		for (int i = 0; i < 4; i++)
 		{
-			iprintf("%d,", MinerPlaceMineDelayArray[i]);
+			iprintf("%d, ", LaserBossSegmentCurrentBulletDelay[i]);
 		}
 		iprintf("\n");
 
