@@ -40,7 +40,7 @@ ToDo:
 #include "BasicBackground.h"
 
 // Constants
-#define MAXBULLETCOUNT 110
+#define MAXBULLETCOUNT 119
 #define PI 3.14159265359
 #define QUARTERPI 0.78539816339
 #define TILESIZE 256		// The number of pixels in the tiles
@@ -59,6 +59,8 @@ u16 *MinerGFXMem[8];
 u16 *ExplosionGFXMem[8];
 
 u16 *BulletGFXMem[4][4];
+
+u16 *PortalGFXMem[16];
 
 
 //---------------------------------------------------------------------------------
@@ -82,10 +84,14 @@ int NumberOfAliveBullets = 0; // I guess we will never know
 // #region
 #define PLAYERSTARTX 122
 #define PLAYERSTARTY 90
+#define RESTARTDELAY 60
+
+int TimeTillRestart = RESTARTDELAY;
 
 Entity Player;
 int PlayerCenter[2];
 int PlayerHitbox[4];
+int PlayerPriority = 0;
 
 void PlayerMovement(Entity *self, int keys, int HitboxArray[][4], int HitboxLen)
 {
@@ -157,7 +163,7 @@ void PlayerAnimate(Entity *self, int frame_number, u16 *player_gfx_mem[], u16 *p
 			&oamMain,
 			0,
 			self->x, self->y,
-			0,
+			PlayerPriority,
 			0,
 			SpriteSize_16x16,
 			SpriteColorFormat_256Color,
@@ -177,7 +183,7 @@ void PlayerAnimate(Entity *self, int frame_number, u16 *player_gfx_mem[], u16 *p
 			&oamMain,
 			0,
 			self->x, self->y,
-			0,
+			PlayerPriority,
 			0,
 			SpriteSize_16x16,
 			SpriteColorFormat_256Color,
@@ -213,6 +219,7 @@ void PlayerQuickSetup(Entity *player)
 Entity EnemyEntityArray[8];
 int TempEnemyHitbox[4]; // Used to hold an enemies hitbox when handling said enemy
 int TempEnemyCenter[2]; // Used to hold an enemies center when handling said enemy
+int EnemyPriority = 0;
 
 // Sentinel handling
 // #region
@@ -322,7 +329,7 @@ void SentinelAnimate(Entity *self, int oam_number, int frame_number, u16 *sentin
 				&oamMain,
 				oam_number,
 				self->x, self->y,
-				0,
+				EnemyPriority,
 				0,
 				SpriteSize_16x16,
 				SpriteColorFormat_256Color,
@@ -340,7 +347,7 @@ void SentinelAnimate(Entity *self, int oam_number, int frame_number, u16 *sentin
 				&oamMain,
 				oam_number,
 				self->x, self->y,
-				0,
+				EnemyPriority,
 				0,
 				SpriteSize_16x16,
 				SpriteColorFormat_256Color,
@@ -361,7 +368,7 @@ void SentinelAnimate(Entity *self, int oam_number, int frame_number, u16 *sentin
 			&oamMain,
 			oam_number,
 			self->x, self->y,
-			0,
+			EnemyPriority,
 			0,
 			SpriteSize_16x16,
 			SpriteColorFormat_256Color,
@@ -427,7 +434,7 @@ void ShredderAnimate(Entity *self, int oam_number, int frame_number, u16 *shredd
 			&oamMain,
 			oam_number,
 			self->x, self->y,
-			0,
+			EnemyPriority,
 			0,
 			SpriteSize_16x16,
 			SpriteColorFormat_256Color,
@@ -447,7 +454,7 @@ void ShredderAnimate(Entity *self, int oam_number, int frame_number, u16 *shredd
 			&oamMain,
 			oam_number,
 			self->x, self->y,
-			0,
+			EnemyPriority,
 			0,
 			SpriteSize_16x16,
 			SpriteColorFormat_256Color,
@@ -529,7 +536,7 @@ void MinerAnimate(Entity *self, int oam_number, int frame_number, u16 *miner_gfx
 			&oamMain,
 			oam_number,
 			self->x, self->y,
-			0,
+			EnemyPriority,
 			0,
 			SpriteSize_16x16,
 			SpriteColorFormat_256Color,
@@ -549,7 +556,7 @@ void MinerAnimate(Entity *self, int oam_number, int frame_number, u16 *miner_gfx
 			&oamMain,
 			oam_number,
 			self->x, self->y,
-			0,
+			EnemyPriority,
 			0,
 			SpriteSize_16x16,
 			SpriteColorFormat_256Color,
@@ -988,42 +995,6 @@ void BulletSpawnMineOffspring()
 						1,
 						MINERMINEBULLET);
 				}
-
-				if (Level)
-				{
-					BulletGetCenterArray(&BulletArray[i], TempBulletCenter);
-					float angle = GetAngleFromOriginTo(PlayerCenter[0] - TempBulletCenter[0], PlayerCenter[1] - TempBulletCenter[1]);
-					BulletSetupInBulletArray(
-						BulletArray, MAXBULLETCOUNT,
-						TempBulletCenter[0], TempBulletCenter[1],
-						3, 3,
-						angle,
-						1,
-						320,
-						1,
-						MINERMINEBULLET
-					);
-					BulletSetupInBulletArray(
-						BulletArray, MAXBULLETCOUNT,
-						TempBulletCenter[0], TempBulletCenter[1],
-						3, 3,
-						angle + QUARTERPI,
-						1,
-						320,
-						1,
-						MINERMINEBULLET
-					);
-					BulletSetupInBulletArray(
-						BulletArray, MAXBULLETCOUNT,
-						TempBulletCenter[0], TempBulletCenter[1],
-						3, 3,
-						angle - QUARTERPI,
-						1,
-						320,
-						1,
-						MINERMINEBULLET
-					);
-				}
 			}
 		}
 	}
@@ -1132,7 +1103,7 @@ void BulletDrawAll()
 	{
 		oamSet(
 			&oamMain,
-			18 + i,
+			9 + i,
 			BulletArray[i].x,
 			BulletArray[i].y,
 			0,
@@ -1152,112 +1123,118 @@ void BulletDrawAll()
 
 
 //---------------------------------------------------------------------------------
-// Combat loops
-// Player portals in
-// Enemies all portal in at the same time
-// Wait for 1 second
-// Combat starts
-// Once all enemies are dead and all bullets decayed
-// 		Player portals away
-//		Pause, change background, repeat
-// If player dies
-// 		Wait for 1 second
-// 		Reset everything
-//		Start again
+/*
+Combat loops
+Player portals in
+Enemies all portal in at the same time
+Wait for 1 second
+Combat starts
+Once all enemies are dead and all bullets decayed
+	Player portals away
+	Pause, change background, repeat
+If player dies
+	Wait for 1 second
+	Reset everything
+	Start again
+
+-----
+
+Player portals in
+	Movements locked
+Enemies all portal in
+Player movement unlocks
+After a second enemies start moving
+Once all enemies are dead and all bullets decayed
+	Player portals away
+	Pause, change background, repeat
+If player dies
+	Wait for 1 second
+	Reset everything
+	Start again
+*/		
 //---------------------------------------------------------------------------------
 
-//---------------------------------------------------------------------------------
-void level_1_enemy_combat_loop(int bg)
-//---------------------------------------------------------------------------------
+void sector_setup() 
 {
 
-	/* Order of doing things
-	Change the background
-	Setup the player
-	Setup the bullet array
-	Setup the enemies
-
-	LOOP
-	*/
-
-	// Loading new background
-	// dmaCopy(BasicBackgroundBitmap, bgGetGfxPtr(bg), 256*256);
-	// dmaCopy(BasicBackgroundPal, BG_PALETTE, sizeof(BasicBackgroundPal));
-
-	// Player setup
 	PlayerQuickSetup(&Player);
 
-	// Bullet array setup
 	BulletInitBulletArray(BulletArray, MAXBULLETCOUNT);
 
-	// Setting up the enemies depending on the sector
+	LoadRandomEnemies();
 
-	while (1)
+	int playerSpawnCounter = 64;
+	int enemySpawnCounter = 64;
+
+	PlayerPriority = 1;
+	EnemyPriority = 0;
+
+	while(playerSpawnCounter || enemySpawnCounter)
 	{
-		// Clear the text
-		consoleClear();
-		// Get key presses
-		scanKeys();
-		// int keys = keysHeld();
-		// int pressed = keysDown();
 		// Frame number
 		FrameNumber++;
 		FrameNumber %= 60;
 
-		// Player
+		if (playerSpawnCounter) playerSpawnCounter--;
 
-		// Enemies
+		oamSet(
+			&oamMain,
+			9,
+			Player.x - 1, Player.y - 1,
+			0,
+			0,
+			SpriteSize_16x16,
+			SpriteColorFormat_256Color,
+			PortalGFXMem[15 - (int)(playerSpawnCounter/4)],
+			-1,
+			false,
+			!playerSpawnCounter,
+			false,
+			false,
+			false);
 
-		// Bullets
+		if (playerSpawnCounter < 32) PlayerAnimate(&Player, FrameNumber, PlayerGFXMem, PlayerExplosionGFXMem);
 
-		// Collision
+		if (!playerSpawnCounter)
+		{
+			if (enemySpawnCounter) enemySpawnCounter--;
 
-		// Drawing
+			for (int i = 0; i < 8; i++)
+			{
+				if (!EnemyEntityArray[i].dead)
+				{
+					oamSet(
+						&oamMain,
+						10 + i,
+						EnemyEntityArray[i].x, EnemyEntityArray[i].y,
+						0,
+						0,
+						SpriteSize_16x16,
+						SpriteColorFormat_256Color,
+						PortalGFXMem[15 - (int)(enemySpawnCounter/4)],
+						-1,
+						false,
+						!enemySpawnCounter,
+						false,
+						false,
+						false);
+				}
+			}
 
-		// Text display
+			if (enemySpawnCounter < 32) EnemyDrawAll(FrameNumber);
+		}
+
+		// Waiting
+		swiWaitForVBlank();
+		// Update the screen
+		oamUpdate(&oamMain);
+
 	}
+
+	PlayerPriority = 0;
+	EnemyPriority = 0;
+
 }
-
-//---------------------------------------------------------------------------------
-void level_2_enemy_combat_loop()
-//---------------------------------------------------------------------------------
-{
-
-	// here
-}
-
-//---------------------------------------------------------------------------------
-void level_3_enemy_combat_loop()
-//---------------------------------------------------------------------------------
-{
-
-	// here
-}
-
-//---------------------------------------------------------------------------------
-void mini_boss_1_loop()
-//---------------------------------------------------------------------------------
-{
-
-	// here
-}
-
-//---------------------------------------------------------------------------------
-void mini_boss_2_loop()
-//---------------------------------------------------------------------------------
-{
-
-	// here
-}
-
-//---------------------------------------------------------------------------------
-void final_boss_loop()
-//---------------------------------------------------------------------------------
-{
-
-	// here
-}
-
 
 //---------------------------------------------------------------------------------
 int main(void)
@@ -1353,21 +1330,23 @@ int main(void)
 		BulletGFXMem[3][a] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
 		dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * 5 + TILESIZE * 4 + TILESIZE * a, BulletGFXMem[3][a], 16 * 16);
 	}
+	
+	// Allocating memory for, and loading the portal sprites
+	for (int a = 0; a < 2; a++)
+	{
+		for (int b = 0; b < 8; b++)
+		{
+			PortalGFXMem[a * 8 + b] = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color);
+			dmaCopy((u8 *)SpriteSheetTiles + TILESIZE * SPRITESHEETWIDTH * (2 + a) + TILESIZE * 8 + TILESIZE * b, PortalGFXMem[a * 8 + b], 16 * 16);
+		}
+	}
 	// #endregion
 
-	// Setting up the player
-	PlayerQuickSetup(&Player);
+	RandomiseEnemySpawns();
 
-	// Setting up the bullet array
-	BulletInitBulletArray(BulletArray, MAXBULLETCOUNT);
-
-	// Test enemy spawning
-	//RandomiseEnemySpawns();
-	//LoadRandomEnemies();
-	PreEnemySetup();
-	EnemySetupMiner(15, 15, 0.5, 0.5);
-	PostEnemySetup();
-
+	// Setup everything for the current sector and level
+	sector_setup();
+	
 	_Bool RunOnce = 0;
 	_Bool ResetOrStartBool = 0;  // 1 = reset, 0 = start
 	_Bool UpdateEnemiesBool = 0;  // If the enemies should be updated
@@ -1406,8 +1385,7 @@ int main(void)
 				}
 			}
 		}
-		else
-			RunOnce = 1;
+		else RunOnce = 1;
 
 		// Player movement and bullet firing
 		PlayerHandle(keys);
