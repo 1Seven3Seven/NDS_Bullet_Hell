@@ -27,6 +27,7 @@ typedef struct {
 } Entity;
 
 void EntitySetup(Entity* self, int x, int y, int w, int h, int health, int type, int bullet_delay);
+int EntitySetupInEntityArray(Entity entity_array[], int entity_array_len, int x, int y, int w, int h, int health, int type, int bullet_delay);
 void EntityGetRectArray(Entity* self, int rect_array[4]);
 void EntityGetCenterArray(Entity* self, int center_array[2]);
 void EntitySetRight(Entity* self, int right);
@@ -63,7 +64,7 @@ typedef struct {
 void BulletInit(Bullet* self);
 void BulletInitBulletArray(Bullet bullet_array[], int bullet_array_len);
 void BulletSetup(Bullet* self, float x, float y, int w, int h, float angle, float velocity, int lifespan, int damage, int type);
-void BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float x, float y, int w, int h, float angle, float velocity, int lifespan, int damage, int type);
+int BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float x, float y, int w, int h, float angle, float velocity, int lifespan, int damage, int type);
 void BulletGetRectArray(Bullet* self, int rect_array[4]);
 void BulletGetCenterArray(Bullet* self, int center_array[2]);
 void BulletMove(Bullet* self);

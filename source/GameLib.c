@@ -29,6 +29,31 @@ void EntitySetup(Entity* self, int x, int y, int w, int h, int health, int type,
 	self->animation_frame_number = 0;
 }
 
+int EntitySetupInEntityArray(Entity entity_array[], int entity_array_len, int x, int y, int w, int h, int health, int type, int bullet_delay) {
+	_Bool success = 0;
+	int index = 0;
+
+	for (int i = 0; i < entity_array_len; i++) {
+		if (entity_array[i].dead) {
+			EntitySetup(
+				&entity_array[i],
+				x, y,
+				w, h,
+				health,
+				type,
+				bullet_delay
+			);
+			success = 1;
+			index = i;
+
+			break;
+		}
+	}
+
+	if (success) return index;
+	else return -1;
+}
+
 void EntityGetRectArray(Entity* self, int rect_array[4]) {
 	rect_array[0] = self->x;
 	rect_array[1] = self->y;
@@ -139,7 +164,10 @@ void BulletSetup(Bullet* self, float x, float y, int w, int h, float angle, floa
 	self->type = type;
 }
 
-void BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float x, float y, int w, int h, float angle, float velocity, int lifespan, int damage, int type) {
+int BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float x, float y, int w, int h, float angle, float velocity, int lifespan, int damage, int type) {
+	_Bool success = 0;
+	int index = 0;
+
 	for (int i = 0; i < bullet_array_len; i++) {
 		if (!bullet_array[i].alive) {
 			BulletSetup(
@@ -152,9 +180,15 @@ void BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float
 				damage,
 				type
 			);
+			success = 1;
+			index = i;
+
 			break;
 		}
 	}
+
+	if (success) return index;
+	else return -1;
 }
 
 void BulletGetRectArray(Bullet* self, int rect_array[4]) {
