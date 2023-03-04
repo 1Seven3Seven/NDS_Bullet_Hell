@@ -290,7 +290,6 @@ void GetVectorFromAngle(float angle, float vector_array[2]) {
 
 void Shuffle(int array[], int array_length) {  // https://stackoverflow.com/questions/6127503/shuffle-array-in-c
 	if (array_length > 1) {
-
 		for (int i = array_length - 1; i > 0; i--) {
 			int j = rand() % (i + 1);
 
