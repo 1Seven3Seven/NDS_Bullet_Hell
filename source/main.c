@@ -18,6 +18,12 @@
 // NDS
 #include <nds.h>
 
+// None of the following are necessary
+// They are here so vs code actually knows they exist and does not constantly yell at me
+#include <video.h>
+#include <background.h>
+#include <sprite.h>
+
 // Standard libraries
 #include <stdio.h>
 #include <math.h>

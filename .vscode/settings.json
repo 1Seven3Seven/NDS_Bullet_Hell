@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "window.h": "c",
+        "sprite.h": "c",
+        "sound.h": "c",
+        "sassert.h": "c",
+        "rumble.h": "c",
+        "piano.h": "c",
+        "trig_lut.h": "c",
+        "video.h": "c",
+        "nand.h": "c",
+        "videogl.h": "c",
+        "boxtest.h": "c",
+        "background.h": "c"
+    }
+}
