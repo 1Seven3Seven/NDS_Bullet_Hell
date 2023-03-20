@@ -4,18 +4,19 @@
 #include "Constants.h"
 #include "Other.h"
 
+#include "UI.h"
+
 #include "GFX.h"
 
 #include "Bullet.h"
 
 #include "Entity.h"
 #include "Player.h"
-#include "Sentinel.h"
-#include "Shredder.h"
-#include "Miner.h"
 
 #include "Enemies.h"
 
 #include "Game.h"
+
+#include "SuperSentinel.h"
 
 #endif //BULLET_HELL_GAMELIBRARY_H

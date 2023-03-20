@@ -100,3 +100,11 @@ void HideEverySprite() {
         );
     }
 }
+
+unsigned modulo(int value, unsigned m) {
+    int mod = value % (int)m;
+    if (mod < 0) {
+        mod += m;
+    }
+    return mod;
+}

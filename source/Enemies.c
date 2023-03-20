@@ -99,10 +99,17 @@ void EnemiesHandleAll(Entity enemy_array[], int enemy_array_len, Bullet bullet_a
     }
 }
 
-void EnemiesCheckCollisionAgainstPlayer(Entity enemy_array[], int enemy_array_len, Entity *player) {
+int EnemiesCheckCollisionAgainstPlayer(Entity enemy_array[], int enemy_array_len, Entity *player) {
+    // To tell what killed the player
+    int player_collision_type = PLAYER_TYPE;
+
+    if (player->dead) // If the player is dead then there is no point in checking for a collision
+        return player_collision_type;
+
     // Hitboxes
     int player_hitbox[4], enemy_hitbox[4];
     EntityGetHitBox(player, player_hitbox);
+
     // For each enemy
     for (int i = 0; i < enemy_array_len; i++) {
         // If they are not dead
@@ -113,7 +120,11 @@ void EnemiesCheckCollisionAgainstPlayer(Entity enemy_array[], int enemy_array_le
             if (RectangleCollision(player_hitbox, enemy_hitbox)) {
                 // DEATH FOR THE DEATH GOD
                 EntityTakeDamage(player, 1);
+                //
+                player_collision_type = enemy_array[i].type;
             }
         }
     }
+
+    return player_collision_type;
 }

@@ -91,6 +91,6 @@ void GameSectorSetup(Entity *player, Entity enemy_array[], int enemy_array_len, 
 int GameRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bullet bullet_array[],
                     int bullet_array_len, int *frame_number, EnemiesEnemyDataStruct *all_enemy_data,
                     GFXSpritesStruct *all_sprite_gfx, int playable_area[4], int hitbox_array[][4], int hitbox_array_len,
-                    long long int seed, int difficulty);
+                    int difficulty);
 
 #endif // BULLET_HELL_GAME_H

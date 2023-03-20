@@ -1,35 +1,82 @@
-/*
+/* =====================================================================================================================
  * Important
  * ToDo:
+ *  Fix up the super sentinel lasers:                                                                               TICK
+ *      Proper sprites.                                                                                             TICK
+ *      Proper hitboxes.                                                                                            TICK
+ *  Boss fight woo.
+ *      The same one worked on in versions 15 ad 16.                                                                TICK
+ *      BUT BETTER.                                                                                                 TICK
+ *      Strafing firing bullets.                                                                                    TICK
+ *      Bouncing from side to side with LASERS.                                                                     TICK
+ *      Pincer attack.                                                                                              TICK
+ *      Okay, so it is very similar, but this time it will work.                                                    TICK
+ *      Boss entry.                                                                                                 TICK
+ *      Boss exit:
+ *          More explosions YAY.
+ *      Fix the lasers because I broke them:                                                                        TICK
+ *          PAIN.                                                                                                   TICK
+ *          Laser sprites are wrong, idk why.                                                                       TICK
+ *      Exclamation marks BANG just before firing the lasers or...                                                  TICK
+ *      Pilot lasers for the lasers.                                                                                TICK
+ *  Fix ghost bullets when going from 8 enemies to the boss.                                                        TICK
+ *  There seems to be a bug where sometimes the win condition is met when there are only death bullets alive.
+ *  Add an option to the main menu for improvements/next version.
+ *  Scanning sector for extra information.
+ *      Sectors                                                                                                     TICK
+ *      Boss
+ *  Basically spruce up the pause menu.
  *
- * Not important, just ideas
+ * Not important things and ideas
  * ToDo:
- *  Get a basic ui working
- *      Can be either text based or gameplay based, idk yet
- *      I think text based in a similar vein to Duskers would be cool
- *      Or a mixture of both where you use text to select difficulty and gameplay to select tutorial/game
- *  Ahh yes, a tutorial would be cool
- *      Custom background for tutorial, maybe with a station or big ship in the background, something like that
- *      Maybe like you are with a fleet
- *  Level transition
- *  Death screen
- */
+ *  Portal out of the sector / Level transition.
+ *  Loading screen - before the game starts.
+ *      Kinda similar to an old computer booting.
+ *  Ahh yes, a tutorial would be cool.
+ *      Custom background for tutorial.
+ *          Maybe with a station or big ship in the background, something like that.
+ *          Maybe like you are with a fleet.
+ *  Scroll ui interface.
+ *      Mainly for the credits if they get too large.
+ *          I don't know if they will though.
+ *  Scoreboard.
+ *      Different screens for easy, normal, hard.
+ *  Stats.
+ *      Keep track of things like time played and deaths.
+ *      Half implemented already because the check collision functions return the type of the collision.
+ *  Custom seed input.
+ *  Figure out how to layer backgrounds.
+ *      Make the screen boarder the top most layer.
+ *          So other stuff is drawn underneath it.
+ *      Also when the enemies portal in they are drawn behind the background.
+ *          Kinda not visible when not looking for it, but it annoys me.
+ *          SO FIX IT FUTURE ME.
+ *      We have some more freedom then.
+ *      May be something to do with it being BgType_Bmp8.
+ *      Try other stuff and see if it works.
+ *  Disobedience detected.
+ *  Insolence detected.
+ *  If there becomes too much sprite GFX to be loaded all at once then use smart loading where only the necessary
+ *  sprites for the current activity are loaded.
+ *      It is already set up for loading the sprites, just the unloading needs to be done
+ *      ONLY if necessary
+ * ================================================================================================================== */
 
 // NDS
 #include <nds.h>
 
 // None of the following are necessary
 // They are here so vs code actually knows they exist and does not constantly yell at me
-#include <video.h>
-#include <background.h>
-#include <sprite.h>
+#include <nds/arm9/video.h>
+#include <nds/arm9/background.h>
+#include <nds/arm9/sprite.h>
 
 // Standard libraries
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
 #include <time.h> // Needed for the random number seeding - Mr. King
-#include "string.h"
+#include <string.h>
 
 // My stuff
 #include "GameLibrary.h"
@@ -37,20 +84,31 @@
 // Backgrounds
 #include "BasicBackground.h"
 
+// Version
+#define VERSION "Development 18"
+
 //---------------------------------------------------------------------------------
 // Bullets, player and enemies
 //---------------------------------------------------------------------------------
+
+// The array containing all the bullets
 Bullet BulletArray[MAX_BULLET_COUNT];
+// Player
 Entity Player;
+// Array containing the enemies
 Entity EnemyEntityArray[8];
 
 //---------------------------------------------------------------------------------
 // Miscellaneous
 //---------------------------------------------------------------------------------
+
 int FrameNumber = 0; // Take a guess
 
-// Main boarder hitboxes
+// The playable area, equivalent to the screen
+// Bullets are deleted when exiting this
 int PlayableArea[4] = {0, 0, 256, 192};
+// The hitboxes of the boarder of the screen
+// Can be more, but I don't want more
 int ScreenBoarder[4][4] = {
         {0,   0,   8,   192},
         {0,   0,   256, 8},
@@ -58,12 +116,253 @@ int ScreenBoarder[4][4] = {
         {248, 0,   8,   192}
 };
 
-// Seed
-long long int Seed;
+// The Seed
+long long int Seed = 0;
+// The Seed in string form
+// 20 chars long because the max length of a long long int is 20 chars
+char SeedString[21] = "12345678901234567890";
 
-// Difficulty
-int Difficulty = 0;
-int NumEnemies;
+// Numbers that are known to produce bugs
+// Seed = 1668036031; srand((unsigned) Seed); // Two miners spawned in same place with 1 set of enemies
+// Seed = 1668446882; srand((unsigned) Seed); // Two shredders spawned in same place with 2 set of enemies
+
+// The difficulty, duh
+//    E = Easy
+//    N = Normal
+//    H = Hard
+char Difficulty = 'N';
+// The number of enemy groups to spawn in
+int NumEnemyGroups = 1;
+// Death bullets
+int InGameDifficulty = 0;
+
+// Lives
+//      Positive numbers = num lives left
+//      -1 = infinite
+int Lives;
+
+// Returns the number of lives depending on the difficulty
+int GetNumLives() {
+    switch (Difficulty) {
+        case 'E':
+            return -1;
+        case 'N':
+            return 5;
+        case 'H':
+            return 1;
+    }
+
+    return -1;
+}
+
+// The current activity to perform
+//  Menus
+//      M = Main menu
+//      D = Difficulty select
+//      C = Credits
+//      N = Next version details
+//      L = Lose screen
+//      W = Win screen
+//      P = Pause screen
+//  Games
+//      G = Game
+//      R = Resume game
+//  Bosses
+//      S = Super sentinel
+//      0 = Resume super sentinel
+char CurrentActivity = 'M';
+
+// What the current activity should be set to after a pause is resumed
+char ResumeAfterPause;
+
+// region - Print functions to add extra information to the UIs
+
+// Prints the seed at the line number
+void __PrintSeed(int line_num) {
+    UIWriteText(
+            "Seed: ",
+            line_num
+    );
+    UIWriteTextAtOffset(
+            SeedString,
+            line_num,
+            6
+    );
+}
+
+// Prints the difficulty at the line number
+void __PrintDifficulty(int line_num) {
+    UIWriteText(
+            "Difficulty: ",
+            line_num
+    );
+    switch (Difficulty) {
+        case 'E':
+            UIWriteTextAtOffset(
+                    "Easy",
+                    line_num,
+                    12
+            );
+            break;
+        case 'N':
+            UIWriteTextAtOffset(
+                    "Normal",
+                    line_num,
+                    12
+            );
+            break;
+        case 'H':
+            UIWriteTextAtOffset(
+                    "Hard",
+                    line_num,
+                    12
+            );
+            break;
+    }
+}
+
+// Prints the version at the line number, aligned to the right
+void __PrintVersion(int line_num, int char_offset, int right_align) {
+    int len = strlen(VERSION);
+    if (right_align) {
+        int true_offset = UI_NUM_CHARS - len - char_offset;
+        if (true_offset < 9)
+            true_offset = 9;
+        UIWriteTextAtOffset("Version:", line_num, true_offset - 9);
+        UIWriteTextAtOffset(VERSION, line_num, true_offset);
+    } else {
+        UIWriteTextAtOffset("Version:", line_num, char_offset);
+        UIWriteTextAtOffset(VERSION, line_num, char_offset + 9);
+    }
+}
+
+// Print function to display the extra information
+void PrintDifficultyAndSeedFunc(void) {
+    __PrintDifficulty(22);
+    __PrintSeed(23);
+}
+
+// Main Func WOO!!!
+void MainMenuPrintFunc(void) {
+    UIWriteTextAtOffset(
+            "Work In Progress",
+            13,
+            14
+    );
+    UIWriteTextAtOffset(
+            "Not For Distribution",
+            14,
+            12
+    );
+
+    __PrintDifficulty(23);
+}
+
+// Prints the explanations of the difficulties
+// Needs to be rewritten each time the separation is changed on the difficulty interface
+void DifficultySelectPrintFunc(void) {
+    UIWriteTextAtOffset(
+            "Infinite lives",
+            4,
+            8
+    );
+    UIWriteTextAtOffset(
+            "Five lives",
+            7,
+            8
+    );
+    UIWriteTextAtOffset(
+            "One life",
+            10,
+            8
+    );
+}
+
+// Extra information to control the scanning
+
+int StartFrameNum = -1;
+int ScanningToggle = 0;
+int ScanningFinished = 0;
+
+void __SectorScanPrintFunction(void) {
+    if (StartFrameNum == -1)
+        StartFrameNum = FrameNumber;
+
+    if ((FrameNumber - StartFrameNum) % 30 == 0)
+        ScanningToggle = !ScanningToggle;
+
+    if (!ScanningFinished) {
+        if (ScanningToggle)
+            UIWriteTextAtOffset("SCANNING", 7, 1);
+    } else {
+        UIWriteTextAtOffset("SCAN COMPLETE", 7, 1);
+    }
+
+    char temp[UI_NUM_CHARS + 1];
+
+    int time_since_pause = FrameNumber - StartFrameNum;
+    int time_to_display = 60;
+    int line_num = 9;
+
+    if (time_since_pause > time_to_display) {
+        UIWriteTextAtOffset("Hull integrity:", line_num, 3);
+        if (Player.dead) {
+            time_to_display += 60;
+            UIWriteTextAtOffset("  0%", line_num, 25);
+            if (time_since_pause > time_to_display) {
+                UIWriteTextAtOffset("Temporal Reset", line_num + 1, 5);
+                UIWriteTextAtOffset("Recommended", line_num + 2, 5);
+            }
+        } else {
+            UIWriteTextAtOffset("100%", line_num, 25);
+        }
+    }
+
+    line_num += 2;
+    if (Player.dead)
+        line_num += 2;
+    time_to_display += 60;
+
+    if (time_since_pause > time_to_display) {
+        UIWriteTextAtOffset("Enemies Detected:", line_num, 3);
+        int num = 0;
+        for (int i = 0; i < 8; ++i) {
+            if (!EnemyEntityArray[i].dead)
+                num++;
+        }
+        itoa(num, temp, 10);
+        UIWriteTextAtOffset(temp, line_num, 27);
+    }
+
+    line_num += 2;
+    time_to_display += 60;
+
+    if (time_since_pause > time_to_display) {
+        if (Difficulty != 'E') {
+            UIWriteTextAtOffset("Temporal Resets:", line_num, 3);
+            char num[2];
+            itoa(Lives, num, 10);
+            UIWriteTextAtOffset(num, line_num, 27);
+        }
+    }
+
+    time_to_display += 60;
+
+    if (time_since_pause > time_to_display)
+        ScanningFinished = 1;
+}
+
+void __SuperSentinelScanPrintFunction(void) {
+    // Does stuff
+}
+
+// Displays the seed, difficulty and the amount of lives left
+// Also displays some extra information
+void PauseScreenPrintFunc(void) {
+    __SectorScanPrintFunction();
+}
+
+// endregion
 
 //---------------------------------------------------------------------------------
 int main(void)
@@ -80,109 +379,385 @@ int main(void)
     // Initialise the bottom screen for text
     consoleDemoInit();
 
-    // Seeding the random number generator
-    srand((unsigned) time(&Seed));
-    // Seed = 1737; srand((unsigned) t); // Code to prevent randomness
-    // Seed = 1668036031; srand((unsigned) t); // Two miners spawned in same place with 1 set of enemies
-
-    // Loading the background
+    // Loading the backgrounds
     int bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
     dmaCopy(BasicBackgroundBitmap, bgGetGfxPtr(bg3), 256 * 256);
     dmaCopy(BasicBackgroundPal, BG_PALETTE, sizeof(BasicBackgroundPal));
 
+    // int bg2 = bgInit(2, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
+    // dmaCopy(PauseBGBitmap, bgGetGfxPtr(bg2), 256 * 256);
+    // dmaCopy(PauseBGPal, BG_PALETTE, sizeof(PauseBGPal));
+
+    // bgHide(bg2);
+    // bgUpdate();
+
+    // Seeding the random number generator
+    srand((unsigned) time(&Seed));
+
     // Sprite Memory Allocation and Loading
+    GFXInit();
     GFXLoadAllSprites();
 
-    // ========== Game loading screen here ==========
-
-    // ========== Main menu here ==========
-
-    RESTART:
-
-    // Setup
-    GameRandomiseEnemySpawns();
-
-    NumEnemies = Difficulty + 1;
-    if (NumEnemies > 4) {
-        NumEnemies = 4;
-    }
-
-    GameSectorSetup(
-            &Player,
-            EnemyEntityArray, 8,
-            BulletArray, MAX_BULLET_COUNT,
-            &FrameNumber,
-            &EnemiesAllEnemyData,
-            &GFXAllSpriteGFX,
-            NumEnemies
+    // region - Creating the Interfaces
+    UIInterfaceStruct main_menu_interface, difficulty_select_interface, pause_interface, credits_interface,
+            lose_interface, win_interface, unimplemented_interface;
+    UIInitInterface(
+            &main_menu_interface,
+            "Main Menu",
+            5,
+            "Play",
+            "Difficulty Select",
+            "Credits",
+            "Boss",
+            "Next version"
     );
-
-    int result = GameRunGameLoop(
-            &Player,
-            EnemyEntityArray, 8,
-            BulletArray, MAX_BULLET_COUNT,
-            &FrameNumber,
-            &EnemiesAllEnemyData,
-            &GFXAllSpriteGFX,
-            PlayableArea,
-            ScreenBoarder, 4,
-            Seed,
-            Difficulty == 4
+    UIInitInterface(
+            &difficulty_select_interface,
+            "Difficulty Select",
+            3,
+            "Easy",
+            "Normal",
+            "Hard"
     );
+    difficulty_select_interface.Choice = 1; // Default normal
+    difficulty_select_interface.Separation = 2;
+    UIInitInterface(
+            &credits_interface,
+            "Credits",
+            12,
+            "Developer:",
+            "    Seven",
+            "",
+            "Art:",
+            "    Max",
+            "    Seven",
+            "",
+            "Advice/Testing:",
+            "    Max",
+            "    Nicole",
+            "",
+            "Return to Main Menu"
+    );
+    credits_interface.Choice = credits_interface.NumUIOptions - 1;
+    UIInitInterface(
+            &pause_interface,
+            "Temporal Disturbance Detected",
+            2,
+            "Resume",
+            "Abort"
+    );
+    UIInitInterface(
+            &lose_interface,
+            "Temporal Reset Failed",
+            1,
+            "Return to Main Menu"
+    );
+    UIInitInterface(
+            &win_interface,
+            "Completed",
+            1,
+            "Return to Main Menu"
+    );
+    UIInitInterface(
+            &unimplemented_interface,
+            "Unimplemented Interface",
+            1,
+            "Return to Main Menu"
+    );
+    // endregion
 
-    if (Difficulty < 5 && result == 1) {
-        Difficulty++;
-        goto RESTART;
-    }
+    // The current choice from the interface
+    int ui_choice;
+    // The result from the game
+    int game_result;
 
-    int keys, pressed;
-
-    // Finished
     while (1) {
-        // Clear the text
-        consoleClear();
-        // Get key presses
-        scanKeys();
-        keys = keysHeld();
-        pressed = keysDown();
-        // Frame number
-        FrameNumber++;
+        switch (CurrentActivity) {
+            case 'M': // region - Handle the main menu
+                HideEverySprite();
 
-        // Displaying result
-        iprintf("Result: ");
-        switch (result) {
-            case 1:
-                iprintf("You win\n");
+                // Reseeding the random number generator
+                Seed = rand() % 100000000;
+                srand((unsigned) Seed);
+                itoa(Seed, SeedString, 10);
+                GameRandomiseEnemySpawns();
+
+                // Resetting gameplay variables
+                NumEnemyGroups = 1;
+                InGameDifficulty = 0;
+                Lives = GetNumLives();
+
+                ui_choice = UIHandleInterfaceAtOffsetWithFunction(
+                        &main_menu_interface,
+                        &FrameNumber,
+                        1,
+                        1,
+                        &MainMenuPrintFunc // PrintDifficulty
+                );
+
+                switch (ui_choice) {
+                    case 0: // Play
+                        CurrentActivity = 'G';
+                        break;
+                    case 1: // Difficulty select
+                        CurrentActivity = 'D';
+                        break;
+                    case 2: // Credits
+                        CurrentActivity = 'C';
+                        break;
+                    case 3: // Boss
+                        CurrentActivity = 'S';
+                        break;
+                    case 4:
+                        CurrentActivity = 'N';
+                        break;
+                }
+
+                main_menu_interface.Choice = 0;
+
+                break;
+                // endregion
+
+            case 'D': // region - Handle the difficulty select
+                ui_choice = UIHandleInterfaceAtOffsetWithFunction(
+                        &difficulty_select_interface,
+                        &FrameNumber,
+                        1,
+                        1,
+                        &DifficultySelectPrintFunc
+                );
+
+                switch (ui_choice) {
+                    case 0: // Easy
+                        Difficulty = 'E';
+                        Lives = -1;
+                        break;
+                    case 1: // Medium
+                        Difficulty = 'N';
+                        Lives = 5;
+                        break;
+                    case 2: // Hard
+                        Difficulty = 'H';
+                        Lives = 1;
+                        break;
+                }
+
+                CurrentActivity = 'M';
+
+                break;
+                // endregion
+
+            case 'C': // region - Credits screen
+                ui_choice = UIHandleInterfaceAtOffset(
+                        &credits_interface,
+                        &FrameNumber,
+                        1,
+                        1
+                );
+
+                if (ui_choice == credits_interface.NumUIOptions - 1)
+                    CurrentActivity = 'M';
+                break;
+                // endregion
+
+            case 'G': // region - Handle the game
+            case 'R': // Resume the game
+                // If starting anew run the setup
+                if (CurrentActivity == 'G')
+                    GameSectorSetup(
+                            &Player,
+                            EnemyEntityArray, 8,
+                            BulletArray, MAX_BULLET_COUNT,
+                            &FrameNumber,
+                            &EnemiesAllEnemyData, &GFXAllSpriteGFX,
+                            NumEnemyGroups
+                    );
+
+                // If no setup was run then resumed
+                // Changing activity back to game
+                CurrentActivity = 'G';
+
+                game_result = GameRunGameLoop(
+                        &Player,
+                        EnemyEntityArray, 8,
+                        BulletArray, MAX_BULLET_COUNT,
+                        &FrameNumber,
+                        &EnemiesAllEnemyData, &GFXAllSpriteGFX,
+                        PlayableArea,
+                        ScreenBoarder, 4,
+                        InGameDifficulty
+                );
+
+                switch (game_result) {
+                    case -1: // Pause
+                        CurrentActivity = 'P';
+                        ResumeAfterPause = 'R';
+                        break;
+
+                    case 0: // Player dies
+                        // To prevent endless run after death
+                        CurrentActivity = 'G';
+
+                        // Reduce life considering difficulty
+                        if (Difficulty == 'N' || Difficulty == 'H')
+                            Lives--;
+
+                        // If all lives lost
+                        if (Lives == 0)
+                            CurrentActivity = 'L';
+
+                        break;
+
+                    case 1: // region - Player wins
+                        // Checking for increase difficulty or win
+                        if (NumEnemyGroups < 4) { // Add more enemies
+                            NumEnemyGroups++;
+                            GameRandomiseEnemySpawns();
+                        } else if (NumEnemyGroups == 4 && InGameDifficulty != 1) { // Add death bullets
+                            InGameDifficulty = 1;
+                            GameRandomiseEnemySpawns();
+                        } else { // Summon the boss
+                            CurrentActivity = 'S';
+                        }
+
+                        // Reset the number of lives
+                        Lives = GetNumLives();
+
+                        break;
+                        // endregion
+                }
+
+                break;
+                // endregion
+
+            case 'P': // region - Pause screen
+                ui_choice = UIHandleInterfaceAtOffsetWithFunction(
+                        &pause_interface,
+                        &FrameNumber,
+                        1,
+                        1,
+                        &PauseScreenPrintFunc
+                );
+
+                // Reset this to reset the scanning
+                StartFrameNum = -1;
+                ScanningToggle = 0;
+                ScanningFinished = 0;
+
+                switch (ui_choice) {
+                    case 0: // Resume
+                        CurrentActivity = ResumeAfterPause;
+                        break;
+
+                    case 1: // Main menu
+                        CurrentActivity = 'M';
+                        break;
+                }
+
+                pause_interface.Choice = 0;
+
                 break;
 
-            case 0:
-                iprintf("You lose\n");
-                break;
+                // endregion
 
-            case -1:
-                iprintf("Inconclusive\n");
+            case 'L': // region - Lose screen
+                ui_choice = UIHandleInterfaceAtOffsetWithFunction(
+                        &lose_interface,
+                        &FrameNumber,
+                        1,
+                        1,
+                        PrintDifficultyAndSeedFunc
+                );
+                CurrentActivity = 'M';
                 break;
+                // endregion
+
+            case 'W': // region - Win screen
+                ui_choice = UIHandleInterfaceAtOffsetWithFunction(
+                        &win_interface,
+                        &FrameNumber,
+                        1,
+                        1,
+                        PrintDifficultyAndSeedFunc
+                );
+                CurrentActivity = 'M';
+                break;
+                // endregion
+
+            case 'S': // region - Super Sentinel battle
+            case '0': // Resume from pause
+                if (CurrentActivity == 'S')
+                    SSSetupForGameLoop(
+                            &Player,
+                            EnemyEntityArray, 8,
+                            BulletArray, MAX_BULLET_COUNT,
+                            &FrameNumber,
+                            &GFXAllSpriteGFX,
+                            bg3
+                    );
+
+                // Back to normal
+                CurrentActivity = 'S';
+
+                game_result = SSRunGameLoop(
+                        &Player,
+                        EnemyEntityArray, 8,
+                        BulletArray, MAX_BULLET_COUNT,
+                        &FrameNumber,
+                        &GFXAllSpriteGFX,
+                        PlayableArea,
+                        ScreenBoarder, 4
+                );
+
+                switch (game_result) {
+                    case -1: // Pause
+                        CurrentActivity = 'P';
+                        ResumeAfterPause = '0';
+                        break;
+
+                    case 0: // Player dies
+                        // To prevent endless run after death
+                        CurrentActivity = 'S';
+
+                        // Reduce life considering difficulty
+                        if (Difficulty == 'N' || Difficulty == 'H')
+                            Lives--;
+
+                        // If all lives lost
+                        if (Lives == 0)
+                            CurrentActivity = 'L';
+
+                        break;
+
+                    case 1: // region - Player wins
+                        CurrentActivity = 'W'; // WIN SCREEN YAY
+
+                        break;
+                        // endregion
+                }
+
+                break;
+                // endregion
+
+            default: // region - For currently unimplemented interfaces
+                UIHandleInterfaceAtOffset(
+                        &unimplemented_interface,
+                        &FrameNumber,
+                        1,
+                        1
+                );
+
+                CurrentActivity = 'M';
+
+                break;
+                // endregion
         }
-        iprintf(
-                "Difficulty reached: %d\n",
-                Difficulty + 1
-        );
-
-        // Exit condition
-        iprintf("\nReload rom to play again\n");
-        iprintf("\nAll done\nPress start and select at the\nsame time to exit\n");
-
-        // Waiting
-        swiWaitForVBlank();
-        // Update the screen
-        oamUpdate(&oamMain);
-        // To exit
-        if (pressed & KEY_START && pressed & KEY_SELECT)
-            break;
     }
 
     return 0;
 }
 
-// Notes
-// Screen size is 256 × 192 pixels (4:3 aspect ratio)
+/* Notes
+ * Screen size is 256 × 192 pixels (4:3 aspect ratio)
+ * Screen is 32 char wide and 24 lines tall
+ */

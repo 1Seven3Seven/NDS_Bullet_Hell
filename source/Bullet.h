@@ -61,6 +61,10 @@ void BulletSetup(Bullet *self, float x, float y, int w, int h, float angle, floa
 int BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float x, float y, int w, int h, float angle,
                              float velocity, int lifespan, int damage, int type);
 
+// Does the same as BulletSetupInBulletArray but starts from the end of the array
+int BulletSetupInBulletArrayReversed(Bullet bullet_array[], int bullet_array_len, float x, float y, int w, int h,
+                                     float angle, float velocity, int lifespan, int damage, int type);
+
 /*
  *  Retrieving information
  */
@@ -88,9 +92,13 @@ void BulletUpdate(Bullet *self);
 // Deletes any bullets that are outside the boundary rectangle
 void BulletHandleBulletArray(Bullet bullet_array[], int bullet_array_len, int boundary_rectangle[4]);
 
-// Checks for any collision between the bullets in the array with both enemies and the player
-void BulletArrayCollisionWithPlayerAndEnemies(Bullet bullet_array[], int bullet_array_len, Entity enemy_array[],
-                                              int enemy_array_len, Entity *player);
+// Checks for any collision between the bullets in the array with both enemies and the player.
+//      Player bullets, id 0, only collide with enemies
+//      Enemy bullets, id > 0, only collide with the players
+//      Wild bullets, id < 0, have no collision
+// If a bullet collides with the player, the type of the bullet is returned, 0 is returned if not
+int BulletArrayCollisionWithPlayerAndEnemies(Bullet bullet_array[], int bullet_array_len, Entity enemy_array[],
+                                             int enemy_array_len, Entity *player);
 
 // Spawns bullets upon the enemies deaths
 void BulletSpawnDeathBullets(Bullet bullet_array[], int bullet_array_len, Entity enemy_array[], int enemy_array_len,
@@ -104,6 +112,7 @@ void BulletSpawnDeathBullets(Bullet bullet_array[], int bullet_array_len, Entity
 void BulletDraw(Bullet *self, int id_offset, u16 *bullet_gfx_mem[][FRAMES_PER_BULLET]);
 
 // Draws all bullets in the array to the screen
-void BulletDrawArray(Bullet bullet_array[], int bullet_array_len, u16 *bullet_gfx_mem[][FRAMES_PER_BULLET]);
+void BulletDrawArray(Bullet bullet_array[], int bullet_array_len, u16 *bullet_gfx_mem[][FRAMES_PER_BULLET],
+                     u16 *wild_bullet_gfx_mem[][FRAMES_PER_BULLET]);
 
 #endif // BULLET_HELL_BULLET_H

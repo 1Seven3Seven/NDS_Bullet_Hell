@@ -19,10 +19,11 @@ void PlayerSetup(Entity *self) {
     self->counter = 16;
 }
 
-void PlayerAnimate(Entity *self, int priority, int frame_number, u16 *player_gfx_mem[], u16 *player_explosion_gfx_mem[]) {
+void
+PlayerAnimate(Entity *self, int priority, int frame_number, u16 *player_gfx_mem[], u16 *player_explosion_gfx_mem[]) {
     if (!self->dead) {
         // Increment frame number if necessary
-        if (!(frame_number % 4)) {
+        if (!(frame_number % 6)) {
             self->animation_frame_number++;
             self->animation_frame_number %= 4;
         }

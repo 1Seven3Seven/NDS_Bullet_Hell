@@ -5,6 +5,7 @@
 
 void EntityInit(Entity *self) {
     self->dead = 1;
+    self->counter = 0;
 }
 
 void EntityInitEntityArray(Entity entity_array[], int entity_array_len) {

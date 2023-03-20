@@ -11,6 +11,7 @@
         "nand.h": "c",
         "videogl.h": "c",
         "boxtest.h": "c",
-        "background.h": "c"
+        "background.h": "c",
+        "bullet.h": "c"
     }
 }

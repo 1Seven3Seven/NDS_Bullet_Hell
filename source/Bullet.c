@@ -11,7 +11,7 @@ void BulletInit(Bullet *self) {
     self->to_die = 0;
     self->alive = 0;
 
-    self->type = -1;
+    self->type = UNDEFINED_BULLET;
 }
 
 void BulletInitBulletArray(Bullet bullet_array[], int bullet_array_len) {
@@ -47,6 +47,31 @@ int BulletSetupInBulletArray(Bullet bullet_array[], int bullet_array_len, float 
     int index = -1;
 
     for (int i = 0; i < bullet_array_len; i++) {
+        if (!bullet_array[i].alive) {
+            BulletSetup(
+                    &bullet_array[i],
+                    x, y,
+                    w, h,
+                    angle, velocity,
+                    lifespan,
+                    damage,
+                    type
+            );
+
+            index = i;
+
+            break;
+        }
+    }
+
+    return index;
+}
+
+int BulletSetupInBulletArrayReversed(Bullet bullet_array[], int bullet_array_len, float x, float y, int w, int h,
+                                     float angle, float velocity, int lifespan, int damage, int type) {
+    int index = -1;
+
+    for (int i = bullet_array_len - 1; i >= 0; i--) {
         if (!bullet_array[i].alive) {
             BulletSetup(
                     &bullet_array[i],
@@ -127,11 +152,13 @@ void BulletHandleBulletArray(Bullet bullet_array[], int bullet_array_len, int bo
     }
 }
 
-void BulletArrayCollisionWithPlayerAndEnemies(Bullet bullet_array[], int bullet_array_len, Entity enemy_array[],
-                                              int enemy_array_len, Entity *player) {
+int BulletArrayCollisionWithPlayerAndEnemies(Bullet bullet_array[], int bullet_array_len, Entity enemy_array[],
+                                             int enemy_array_len, Entity *player) {
     int player_hitbox[4], enemy_hitbox[4], bullet_hitbox[4];
 
     PlayerGetHitBox(player, player_hitbox);
+
+    int player_collision_type = PLAYER_BULLET;
 
     // For each bullet
     for (int bullet_index = 0; bullet_index < bullet_array_len; bullet_index++) {
@@ -156,7 +183,7 @@ void BulletArrayCollisionWithPlayerAndEnemies(Bullet bullet_array[], int bullet_
                         }
                     }
                 }
-            } else { // If the bullet is not a player bullet
+            } else if (bullet_array[bullet_index].type > 0) { // If the bullet is an enemy bullet
                 // If the player isn't dead
                 if (!player->dead) {
                     // If there is a collision
@@ -165,11 +192,15 @@ void BulletArrayCollisionWithPlayerAndEnemies(Bullet bullet_array[], int bullet_
                         EntityTakeDamage(player, bullet_array[bullet_index].damage);
                         // Bullet now dies
                         bullet_array[bullet_index].to_die = 1;
+                        // The type of the bullet that collided with the player
+                        player_collision_type = bullet_array[bullet_index].type;
                     }
                 }
             }
         }
     }
+
+    return player_collision_type;
 }
 
 void BulletSpawnDeathBullets(Bullet bullet_array[], int bullet_array_len, Entity enemy_array[], int enemy_array_len,
@@ -197,7 +228,7 @@ void BulletSpawnDeathBullets(Bullet bullet_array[], int bullet_array_len, Entity
                     1,
                     320,
                     1,
-                    MINER_MINE_BULLET
+                    DEATH_BULLET
             );
             BulletSetupInBulletArray(
                     bullet_array, bullet_array_len,
@@ -207,7 +238,7 @@ void BulletSpawnDeathBullets(Bullet bullet_array[], int bullet_array_len, Entity
                     1,
                     320,
                     1,
-                    MINER_MINE_BULLET
+                    DEATH_BULLET
             );
             BulletSetupInBulletArray(
                     bullet_array, bullet_array_len,
@@ -217,7 +248,7 @@ void BulletSpawnDeathBullets(Bullet bullet_array[], int bullet_array_len, Entity
                     1,
                     320,
                     1,
-                    MINER_MINE_BULLET
+                    DEATH_BULLET
             );
         }
     }
@@ -232,7 +263,7 @@ void BulletDraw(Bullet *self, int id_offset, u16 *bullet_gfx_mem[][FRAMES_PER_BU
             0,
             SpriteSize_16x16,
             SpriteColorFormat_256Color,
-            bullet_gfx_mem[self->type][3 - self->lifespan / 6 % 4],
+            bullet_gfx_mem[IndexForBulletType(self->type)][3 - self->lifespan / 6 % 4],
             -1,
             false,
             !self->alive,
@@ -242,8 +273,12 @@ void BulletDraw(Bullet *self, int id_offset, u16 *bullet_gfx_mem[][FRAMES_PER_BU
     );
 }
 
-void BulletDrawArray(Bullet bullet_array[], int bullet_array_len, u16 *bullet_gfx_mem[][FRAMES_PER_BULLET]) {
+void BulletDrawArray(Bullet bullet_array[], int bullet_array_len, u16 *bullet_gfx_mem[][FRAMES_PER_BULLET],
+                     u16 *wild_bullet_gfx_mem[][FRAMES_PER_BULLET]) {
     for (int i = 0; i < bullet_array_len; i++) {
-        BulletDraw(&bullet_array[i], i, bullet_gfx_mem);
+        if (bullet_array[i].type >= 0)
+            BulletDraw(&bullet_array[i], i, bullet_gfx_mem);
+        else
+            BulletDraw(&bullet_array[i], i, wild_bullet_gfx_mem);
     }
 }

@@ -7,6 +7,8 @@
 #include "Constants.h"
 #include "Other.h"
 
+#include "UI.h"
+
 #include "GFX.h"
 
 #include "Bullet.h"
@@ -53,9 +55,9 @@ const int GameEnemySpawnData[3][8][4] = {
 };
 
 int GameEnemySpawnIndexes[3][8] = {
-        {0, 1, 3, 4, 5, 6, 7},
-        {0, 1, 3, 4, 5, 6, 7},
-        {0, 1, 3, 4, 5, 6, 7}
+        {0, 1, 2, 3, 4, 5, 6, 7},
+        {0, 1, 2, 3, 4, 5, 6, 7},
+        {0, 1, 2, 3, 4, 5, 6, 7}
 };
 
 int GameEnemiesToSpawn[10] = {
@@ -175,6 +177,8 @@ void GameSectorSetup(Entity *player, Entity enemy_array[], int enemy_array_len, 
 
     // Loop
     while (player_spawn_counter || enemy_spawn_counter) {
+        // Clear the text
+        consoleClear();
         // Frame increment
         (*frame_number)++;
 
@@ -248,6 +252,17 @@ void GameSectorSetup(Entity *player, Entity enemy_array[], int enemy_array_len, 
             }
         }
 
+        // Lore, kinda
+        UIResetDisplayBuffer();
+
+        UIWriteTextAtOffset(
+                "Warping in",
+                1,
+                1
+        );
+
+        UIPrintDisplayBuffer();
+
         // Waiting
         swiWaitForVBlank();
         // Update the screen
@@ -258,9 +273,9 @@ void GameSectorSetup(Entity *player, Entity enemy_array[], int enemy_array_len, 
 int GameRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bullet bullet_array[],
                     int bullet_array_len, int *frame_number, EnemiesEnemyDataStruct *all_enemy_data,
                     GFXSpritesStruct *all_sprite_gfx, int playable_area[4], int hitbox_array[][4], int hitbox_array_len,
-                    long long int seed, int difficulty) {
+                    int difficulty) {
     // Keys
-    int keys, pressed;
+    int keys;
 
     // Data
     int player_center[2];
@@ -278,7 +293,6 @@ int GameRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, B
         // Get key presses
         scanKeys();
         keys = keysHeld();
-        pressed = keysDown();
         // Frame number
         (*frame_number)++;
 
@@ -347,9 +361,9 @@ int GameRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, B
                 &GFXAllSpriteGFX
         );
 
-        BulletDrawArray(bullet_array, bullet_array_len, GFXAllSpriteGFX.BulletGFXMem);
+        BulletDrawArray(bullet_array, bullet_array_len, GFXAllSpriteGFX.BulletGFXMem, GFXAllSpriteGFX.WildBulletGFXMem);
 
-        // Checking for end condition
+        // region - Checking for end condition
         // If end condition is met, wait 60 frames before exiting
         // Player death is checked first
 
@@ -390,95 +404,27 @@ int GameRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, B
                 break;
             }
         }
+        // endregion
 
-        // region - other
+        // region - Showing information to the user
 
-        // Displaying the seed
-        iprintf(
-                "Seed: %lld\n\n",
-                seed
-        );
+        UIResetDisplayBuffer();
 
-        // Displaying stuff
-        char enemy_string[9];
-        enemy_string[8] = '\0';
-        for (int i = 0; i < enemy_array_len; i++) {
-            enemy_string[i] = '1';
-            if (enemy_array[i].dead) {
-                enemy_string[i] = '0';
-            }
-        }
-        iprintf(
-                "Enemy lives:    %s\n",
-                enemy_string
-        );
+        if (!player->dead)
+            UIWriteTextAtOffset(
+                    "Engaging in Combat",
+                    1,
+                    1
+            );
+        else
+            UIWriteTextAtOffset(
+                    "Initiating Temporal Reset",
+                    1,
+                    1
+            );
 
-        for (int i = 0; i < enemy_array_len; i++) {
-            enemy_string[i] = '-';
-            if (!enemy_array[i].dead) {
-                enemy_string[i] = '0' + enemy_array[i].type;
-            }
-        }
-        iprintf(
-                "Enemy types:    %s\n",
-                enemy_string
-        );
+        UIPrintDisplayBuffer();
 
-        for (int i = 0; i < enemy_array_len; i++) {
-            enemy_string[i] = '-';
-            if (!enemy_array[i].dead && enemy_array[i].type == SENTINEL_TYPE) {
-                enemy_string[i] = 'h';
-                if (EnemiesAllEnemyData.SentinelMoveDirections[i]) {
-                    enemy_string[i] = 'v';
-                }
-            }
-        }
-        iprintf(
-                "Sentinel axes:  %s\n",
-                enemy_string
-        );
-
-        for (int i = 0; i < enemy_array_len; i++) {
-            enemy_string[i] = '-';
-            if (!enemy_array[i].dead && enemy_array[i].type == SHREDDER_TYPE) {
-                enemy_string[i] = '0';
-                if (enemy_array[i].current_bullet_delay) {
-                    enemy_string[i] = '0' + (int) (enemy_array[i].current_bullet_delay / 10) + 1;
-                }
-            }
-        }
-        iprintf(
-                "Shredder times: %s\n",
-                enemy_string
-        );
-
-        for (int i = 0; i < enemy_array_len; i++) {
-            enemy_string[i] = '-';
-            if (!enemy_array[i].dead && enemy_array[i].type == MINER_TYPE) {
-                enemy_string[i] = '0';
-                if (enemy_array[i].current_bullet_delay) {
-                    enemy_string[i] = '0' + (int) (enemy_array[i].current_bullet_delay / 10) + 1;
-                }
-            }
-        }
-        iprintf(
-                "Miner delays:   %s\n",
-                enemy_string
-        );
-
-        iprintf(
-                "\nAlive bullets %d:\n",
-                BulletGetNumberAliveBulletsInBulletArray(bullet_array, bullet_array_len)
-        );
-        char bullet_string[bullet_array_len + 1];
-        bullet_string[bullet_array_len] = '\0';
-        for (int i = 0; i < bullet_array_len; i++) {
-            if (bullet_array[i].alive)
-                bullet_string[i] = '1';
-            else
-                bullet_string[i] = '0';
-        }
-        iprintf("%s\n", bullet_string);
         // endregion
 
         // Waiting
@@ -486,7 +432,7 @@ int GameRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, B
         // Update the screen
         oamUpdate(&oamMain);
         // To exit
-        if (pressed & KEY_START)
+        if (keys & KEY_SELECT)
             return -1;
     }
 

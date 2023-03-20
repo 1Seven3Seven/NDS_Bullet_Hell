@@ -31,4 +31,8 @@ void ShuffleIntArray(int array[], int array_len);
 // Hides every sprite
 void HideEverySprite();
 
+// Modulo always positive
+// From "https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c"
+unsigned modulo(int value, unsigned m);
+
 #endif // BULLET_HELL_OTHER_H

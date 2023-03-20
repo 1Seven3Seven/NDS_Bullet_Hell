@@ -9,6 +9,11 @@
 #include "Bullet.h"
 #include "Entity.h"
 
+// All the enemy stuff
+#include "Sentinel.h"
+#include "Shredder.h"
+#include "Miner.h"
+
 // Please don't use this
 // There is an initialised one already floating around called EnemiesAllEnemyData
 typedef struct {
@@ -27,13 +32,17 @@ typedef struct {
 // Do not edit
 extern EnemiesEnemyDataStruct EnemiesAllEnemyData;
 
+//
 void EnemiesDrawAll(Entity enemy_array[], int enemy_array_len, int priority, int frame_number,
                     EnemiesEnemyDataStruct *all_enemy_data, GFXSpritesStruct *all_sprite_gfx);
 
+//
 void EnemiesHandleAll(Entity enemy_array[], int enemy_array_len, Bullet bullet_array[], int bullet_array_len,
                       int player_center[2], EnemiesEnemyDataStruct *all_enemy_data, int hitbox_array[][4],
                       int hitbox_array_len);
 
-void EnemiesCheckCollisionAgainstPlayer(Entity enemy_array[], int enemy_array_len, Entity *player);
+// Checks for collisions between the enemies and the player
+// If there is a collision then the type of the enemy is returned, otherwise the type of the player is returned
+int EnemiesCheckCollisionAgainstPlayer(Entity enemy_array[], int enemy_array_len, Entity *player);
 
 #endif // BULLET_HELL_ENEMIES_H
