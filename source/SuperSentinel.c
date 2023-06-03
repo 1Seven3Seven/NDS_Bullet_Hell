@@ -1,6 +1,7 @@
 #include "SuperSentinel.h"
 
 #include <nds.h>
+#include <nds/arm9/sprite.h>
 
 #include <math.h>
 #include <stdlib.h>
@@ -895,4 +896,10 @@ int SSRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
     }
 
     return 1;
+}
+
+void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bullet bullet_array[],
+                  int bullet_array_len, int *frame_number, GFXSpritesStruct *all_sprite_gfx) {
+    // int boss_death_counter = 180;
+    ;
 }

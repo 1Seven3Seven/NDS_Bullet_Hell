@@ -733,6 +733,15 @@ int main(void)
                     case 1: // region - Player wins
                         CurrentActivity = 'W'; // WIN SCREEN YAY
 
+                        // Run the death animation
+                        SSRunEndLoop(
+                            &Player,
+                            EnemyEntityArray, 8,
+                            BulletArray, MAX_BULLET_COUNT,
+                            &FrameNumber,
+                            &GFXAllSpriteGFX
+                        );
+
                         break;
                         // endregion
                 }
