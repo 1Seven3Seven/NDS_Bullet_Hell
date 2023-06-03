@@ -14,6 +14,7 @@
  *      Boss entry.                                                                                                 TICK
  *      Boss exit:
  *          More explosions YAY.
+ *          Spinny roundy parts
  *      Fix the lasers because I broke them:                                                                        TICK
  *          PAIN.                                                                                                   TICK
  *          Laser sprites are wrong, idk why.                                                                       TICK
