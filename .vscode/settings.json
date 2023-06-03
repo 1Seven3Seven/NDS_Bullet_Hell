@@ -12,6 +12,8 @@
         "videogl.h": "c",
         "boxtest.h": "c",
         "background.h": "c",
-        "bullet.h": "c"
+        "bullet.h": "c",
+        "constants.h": "c",
+        "game.h": "c"
     }
 }
