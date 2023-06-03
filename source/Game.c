@@ -1,6 +1,7 @@
 #include "Game.h"
 
 #include <nds.h>
+#include <nds/arm9/sprite.h>
 
 #include <stdio.h>
 

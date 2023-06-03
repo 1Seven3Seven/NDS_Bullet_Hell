@@ -1,6 +1,7 @@
 #include "Player.h"
 
 #include <nds.h>
+#include <nds/arm9/sprite.h>
 
 #include "Constants.h"
 #include "Other.h"
