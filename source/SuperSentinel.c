@@ -899,7 +899,431 @@ int SSRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
 }
 
 void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bullet bullet_array[],
-                  int bullet_array_len, int *frame_number, GFXSpritesStruct *all_sprite_gfx) {
-    // int boss_death_counter = 180;
-    ;
+                  int bullet_array_len, int *frame_number, GFXSpritesStruct *all_sprite_gfx)
+{
+    // Despawn all bullets
+    // Lazers shake then three explosions before they explode
+    // Then the middle section falls appart
+
+    // Setting up rotation matrices
+    for (int i = 0; i < 32; i++)
+    {
+        oamRotateScale(
+            &oamMain,
+            i,
+            32767.f / 32 * i,
+            256, 256);
+    }
+
+    // Setup of other values
+    float vectors[4][2];
+    int angles[4];
+    float positions[4][2];
+    int bullets_fired[4] = {0};
+
+    // Creating angles n vectors n stuff
+    for (int i = 0; i < 4; i++)
+    {
+        angles[i] = rand() % 180 + 180; // Angle pointing down
+        // Muh vector
+        float angle_in_radians = angles[i] / 180.f * 3.14f;
+        vectors[i][0] = cos(angle_in_radians);
+        vectors[i][1] = -sin(angle_in_radians);
+
+        // Getting the position
+        int x = i % 2;
+        int y = i > 1;
+        positions[i][0] = enemy_array[0].x + x * 16 - 8;
+        positions[i][1] = enemy_array[0].y + y * 16 - 8;
+
+        // Making sure the right sprite is used
+        if (SSSuperSentinelInformation.BulletsFired >= i + 1)
+            bullets_fired[i] = 1;
+    }
+
+    // Shakey shake shake
+    int shakes[6] = {-1, -1, 0, 0, 1, 1};
+    int shakes_index = 0;
+    ShuffleIntArray(shakes, 6);
+
+    // Hiding the old lazers as the new lazers have a different id
+    oamSetHidden(
+        &oamMain,
+        5,
+        true);
+    oamSetHidden(
+        &oamMain,
+        6,
+        true);
+
+    // Exploding the lazers
+    // Skakey explosive time
+    int lazer_death_counter = 120; // 64 + 16 + 14 * 2 + (12 cause round number and I want some delay)
+    // 64 frames of shake
+    // Then the explosions
+    while (lazer_death_counter > 0)
+    {
+        // Clear the text
+        consoleClear();
+        // Frame number
+        (*frame_number)++;
+
+        // Drawing the lazers
+        if (lazer_death_counter > 13)
+        {
+            oamSet(
+                &oamMain,
+                20,
+                enemy_array[1].x + shakes[shakes_index], enemy_array[1].y + shakes[(shakes_index + 1) % 6],
+                0,
+                0,
+                SpriteSize_16x32,
+                SpriteColorFormat_256Color,
+                all_sprite_gfx->SSLaserWeaponGFXMem[enemy_array[0].animation_frame_number],
+                -1,
+                false,
+                false,
+                false,
+                false,
+                false);
+            oamSet(
+                &oamMain,
+                21,
+                enemy_array[2].x + shakes[(shakes_index + 2) % 6], enemy_array[2].y + shakes[(shakes_index + 3) % 6],
+                0,
+                0,
+                SpriteSize_16x32,
+                SpriteColorFormat_256Color,
+                all_sprite_gfx->SSLaserWeaponGFXMem[enemy_array[0].animation_frame_number],
+                -1,
+                false,
+                false,
+                false,
+                false,
+                false);
+
+            // Index changing
+            if (lazer_death_counter % 6 == 1)
+            {
+                shakes_index++;
+                shakes_index = shakes_index % 6;
+            }
+        }
+
+        // EXPLOOOOOOSION!!!
+        // Three explosions on the lazer body
+        // Height is 32, middle one has its center at 16 and the other two 8 above and below
+        if (lazer_death_counter < 56)
+        {
+            int frame = 55 - lazer_death_counter;
+            if (frame < 16)
+            {
+                oamSet(
+                    &oamMain,
+                    12,
+                    enemy_array[1].x, enemy_array[1].y - 2,
+                    0,
+                    0,
+                    SpriteSize_16x16,
+                    SpriteColorFormat_256Color,
+                    all_sprite_gfx->SSExplosionGFXMem[frame / 2],
+                    -1,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false);
+                oamSet(
+                    &oamMain,
+                    15,
+                    enemy_array[2].x, enemy_array[2].y - 2,
+                    0,
+                    0,
+                    SpriteSize_16x16,
+                    SpriteColorFormat_256Color,
+                    all_sprite_gfx->SSExplosionGFXMem[frame / 2],
+                    -1,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false);
+            }
+            else if (frame == 16)
+            {
+                oamSetHidden(
+                    &oamMain,
+                    12,
+                    true);
+                oamSetHidden(
+                    &oamMain,
+                    15,
+                    true);
+            }
+        }
+        if (lazer_death_counter < 42)
+        {
+            int frame = 41 - lazer_death_counter;
+            if (frame < 16)
+            {
+                oamSet(
+                    &oamMain,
+                    11,
+                    enemy_array[1].x, enemy_array[1].y + 8,
+                    0,
+                    0,
+                    SpriteSize_16x16,
+                    SpriteColorFormat_256Color,
+                    all_sprite_gfx->SSExplosionGFXMem[frame / 2],
+                    -1,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false);
+                oamSet(
+                    &oamMain,
+                    14,
+                    enemy_array[2].x, enemy_array[2].y + 8,
+                    0,
+                    0,
+                    SpriteSize_16x16,
+                    SpriteColorFormat_256Color,
+                    all_sprite_gfx->SSExplosionGFXMem[frame / 2],
+                    -1,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false);
+            }
+            else if (frame == 16)
+            {
+                oamSetHidden(
+                    &oamMain,
+                    11,
+                    true);
+                oamSetHidden(
+                    &oamMain,
+                    14,
+                    true);
+            }
+        }
+        if (lazer_death_counter < 28)
+        {
+            int frame = 27 - lazer_death_counter;
+            if (frame < 16)
+            {
+                oamSet(
+                    &oamMain,
+                    10,
+                    enemy_array[1].x, enemy_array[1].y + 18,
+                    0,
+                    0,
+                    SpriteSize_16x16,
+                    SpriteColorFormat_256Color,
+                    all_sprite_gfx->SSExplosionGFXMem[frame / 2],
+                    -1,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false);
+                oamSet(
+                    &oamMain,
+                    13,
+                    enemy_array[2].x, enemy_array[2].y + 18,
+                    0,
+                    0,
+                    SpriteSize_16x16,
+                    SpriteColorFormat_256Color,
+                    all_sprite_gfx->SSExplosionGFXMem[frame / 2],
+                    -1,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false);
+            }
+            else if (frame == 16)
+            {
+                oamSetHidden(
+                    &oamMain,
+                    10,
+                    true);
+                oamSetHidden(
+                    &oamMain,
+                    13,
+                    true);
+            }
+        }
+
+        // Hiding the lazers
+        if (lazer_death_counter == 13)
+        {
+            oamSetHidden(
+                &oamMain,
+                20,
+                true);
+            oamSetHidden(
+                &oamMain,
+                21,
+                true);
+        }
+
+        lazer_death_counter--;
+
+        // UI wooo
+        UIResetDisplayBuffer();
+
+        ; // Pretend this actually prints stuff
+
+        UIPrintDisplayBuffer();
+
+        // Waiting
+        swiWaitForVBlank();
+        // Update the screen
+        oamUpdate(&oamMain);
+    }
+
+    // Hiding the old body id for the same reason as the lazers
+    for (int i = 0; i < 4; i++)
+    {
+        oamSetHidden(
+            &oamMain,
+            1 + i,
+            true);
+    }
+
+    // Splitting the boss up
+    int body_split_counter = 255;
+    while (body_split_counter > 0)
+    {
+        // Clear the text
+        consoleClear();
+        // Frame number
+        (*frame_number)++;
+
+        // Drawing the body
+        for (int i = 0; i < 4; i++)
+        {
+            oamSet(
+                &oamMain,
+                20 + i,
+                positions[i][0], positions[i][1],
+                0,
+                0,
+                SpriteSize_16x16,
+                SpriteColorFormat_256Color,
+                all_sprite_gfx->SSBodyGFXMem[i][4 * bullets_fired[i] + enemy_array[0].animation_frame_number],
+                body_split_counter / 8,
+                true,
+                false,
+                false,
+                false,
+                false);
+        }
+
+        // Moving the body and lazers
+        body_split_counter--;
+        if (body_split_counter % 8 == 1)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                positions[i][0] += vectors[i][0];
+                positions[i][1] += vectors[i][1];
+            }
+        }
+
+        // UI wooo
+        UIResetDisplayBuffer();
+
+        ; // Pretend this actually prints stuff
+
+        UIPrintDisplayBuffer();
+
+        // Waiting
+        swiWaitForVBlank();
+        // Update the screen
+        oamUpdate(&oamMain);
+    }
+
+    // Last 16 frames of exploding the body
+    for (int explosion_index = 0; explosion_index < 16; explosion_index++)
+    {
+        // Clear the text
+        consoleClear();
+        // Frame number
+        (*frame_number)++;
+
+        // Explosion time
+        for (int i = 0; i < 4; i++)
+        {
+            oamSet(
+                &oamMain,
+                10 + i,
+                positions[i][0] + 8, positions[i][1] + 8, // As these positions are for the sized doubled versions
+                0,
+                -1,
+                SpriteSize_16x16,
+                SpriteColorFormat_256Color,
+                all_sprite_gfx->SSExplosionGFXMem[explosion_index / 2],
+                -1,
+                false,
+                false,
+                false,
+                false,
+                false);
+        }
+
+        // Hide the body parts
+        if (explosion_index == 11)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                oamSetAffineIndex(
+                    &oamMain,
+                    20 + i,
+                    -1,
+                    false);
+                oamSetHidden(
+                    &oamMain,
+                    20 + i,
+                    true);
+            }
+        }
+
+        // UI wooo
+        UIResetDisplayBuffer();
+
+        ; // Pretend this actually prints stuff
+
+        UIPrintDisplayBuffer();
+
+        // Waiting
+        swiWaitForVBlank();
+        // Update the screen
+        oamUpdate(&oamMain);
+    }
+
+    // Finally we hide the explosions
+    // Clear the text
+    consoleClear();
+    // Frame number
+    (*frame_number)++;
+    for (int i = 0; i < 4; i++)
+    {
+        oamSetHidden(
+            &oamMain,
+            10 + i,
+            true);
+    }
+    // UI wooo
+    UIResetDisplayBuffer();
+    ; // Pretend this actually prints stuff
+    UIPrintDisplayBuffer();
+    // Waiting
+    swiWaitForVBlank();
+    // Update the screen
+    oamUpdate(&oamMain);
 }
