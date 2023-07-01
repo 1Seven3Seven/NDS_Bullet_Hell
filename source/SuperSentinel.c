@@ -901,7 +901,15 @@ int SSRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
 void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bullet bullet_array[],
                   int bullet_array_len, int *frame_number, GFXSpritesStruct *all_sprite_gfx)
 {
-    // Despawn all bullets
+    // Hide everything not being used, aka player and boss sprites 0-6, aka just the bullets
+    for (int i = 7; i < 128; i++) {
+        oamSetHidden(
+            &oamMain,
+            i,
+            true
+        );
+    }
+
     // Lazers shake then three explosions before they explode
     // Then the middle section falls appart
 
@@ -1003,7 +1011,7 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
                 false);
 
             // Index changing
-            if (lazer_death_counter % 6 == 1)
+            if (lazer_death_counter % 4 == 1)
             {
                 shakes_index++;
                 shakes_index = shakes_index % 6;
