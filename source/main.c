@@ -12,14 +12,17 @@
  *      Pincer attack.                                                                                              TICK
  *      Okay, so it is very similar, but this time it will work.                                                    TICK
  *      Boss entry.                                                                                                 TICK
- *      Boss exit:
- *          More explosions YAY.
- *          Spinny roundy parts
+ *      Boss exit:                                                                                                  TICK
+ *          More explosions YAY.                                                                                    TICK
+ *          Spinny roundy parts                                                                                     TICK
  *      Fix the lasers because I broke them:                                                                        TICK
  *          PAIN.                                                                                                   TICK
  *          Laser sprites are wrong, idk why.                                                                       TICK
  *      Exclamation marks BANG just before firing the lasers or...                                                  TICK
  *      Pilot lasers for the lasers.                                                                                TICK
+ *      Fix up the boss fight text.
+ *      The lazers sometimes remain for too long when transitioning to the last phase.
+ *          They may not be despawned correctly or not at all.
  *  Fix ghost bullets when going from 8 enemies to the boss.                                                        TICK
  *  There seems to be a bug where sometimes the win condition is met when there are only death bullets alive.
  *  Add an option to the main menu for improvements/next version.
