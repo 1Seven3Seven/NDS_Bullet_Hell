@@ -97,6 +97,7 @@
 #define SS_BODY_PARTS 4                     // The number of segments/parts the body of the super sentinel has
 #define SS_BODY_ANIMATION_FRAMES 8
 #define SS_LASER_ANIMATION_FRAMES 4
+#define SS_EXPLOSION_ANIMATION_FRAMES 8
 
 
 // Returned by move functions to determine what was happening when collisions were detected

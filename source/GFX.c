@@ -1,6 +1,8 @@
 #include "GFX.h"
 
 #include <nds.h>
+#include <nds/arm9/sprite.h>
+
 #include "SpriteSheet.h"
 
 #include "Constants.h"
@@ -209,6 +211,27 @@ void GFXLoadEnemyExplosion() {
     }
 
     GFXAllSpriteGFX.EnemyExplosionGFXMemLoaded = 1;
+}
+
+void GFXLoadSSExplosion()
+{
+    if (GFXAllSpriteGFX.SSExplosionGFXMemLoaded)
+        return;
+
+    for (int a = 0; a < 8; a++) {
+        GFXAllSpriteGFX.SSExplosionGFXMem[a] = oamAllocateGfx(
+                &oamMain,
+                SpriteSize_16x16,
+                SpriteColorFormat_256Color
+        );
+        dmaCopy(
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH + TILE_SIZE * 8 + TILE_SIZE * a,
+                GFXAllSpriteGFX.SSExplosionGFXMem[a],
+                16 * 16
+        );
+    }
+
+    GFXAllSpriteGFX.SSExplosionGFXMemLoaded = 1;
 }
 
 void GFXLoadPlayerBullets() {
@@ -445,6 +468,7 @@ void GFXLoadAllSprites() {
 
     GFXLoadPlayerExplosion();
     GFXLoadEnemyExplosion();
+    GFXLoadSSExplosion();
 
     // endregion
 

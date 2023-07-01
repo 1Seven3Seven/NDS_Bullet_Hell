@@ -32,6 +32,8 @@ typedef struct {
     u16 *PlayerExplosionGFXMem[PLAYER_EXPLOSION_ANIMATION_FRAMES];
     int EnemyExplosionGFXMemLoaded;
     u16 *EnemyExplosionGFXMem[ENEMY_EXPLOSION_ANIMATION_FRAMES];
+    int SSExplosionGFXMemLoaded;
+    u16 *SSExplosionGFXMem[SS_EXPLOSION_ANIMATION_FRAMES];
 
     // Bullet Sprites
 
@@ -79,6 +81,9 @@ void GFXLoadPlayerExplosion();
 
 //
 void GFXLoadEnemyExplosion();
+
+//
+void GFXLoadSSExplosion();
 
 //
 void GFXLoadPlayerBullets();
