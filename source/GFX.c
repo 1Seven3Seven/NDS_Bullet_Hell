@@ -225,7 +225,7 @@ void GFXLoadSSExplosion()
                 SpriteColorFormat_256Color
         );
         dmaCopy(
-                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH + TILE_SIZE * 8 + TILE_SIZE * a,
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 9 + TILE_SIZE * 8 + TILE_SIZE * a,
                 GFXAllSpriteGFX.SSExplosionGFXMem[a],
                 16 * 16
         );
