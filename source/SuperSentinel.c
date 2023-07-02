@@ -928,6 +928,10 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
     int angles[4];
     float positions[4][2];
     int bullets_fired[4] = {0};
+    int rotation_directions[6] = {0, 0, 0, 1, 1, 1}; // At least 1 will be in a different direction
+
+    // To make some of the rotations in different directions
+    ShuffleIntArray(rotation_directions, 6);
 
     // Creating angles n vectors n stuff
     for (int i = 0; i < 4; i++)
@@ -1224,7 +1228,7 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
                 SpriteSize_16x16,
                 SpriteColorFormat_256Color,
                 all_sprite_gfx->SSBodyGFXMem[i][4 * bullets_fired[i] + enemy_array[0].animation_frame_number],
-                body_split_counter / 8,
+                (rotation_directions[i]) ? body_split_counter / 8 : 31 - body_split_counter / 8,
                 true,
                 false,
                 false,
