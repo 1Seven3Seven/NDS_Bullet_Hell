@@ -409,6 +409,10 @@ void SSFireSalvo(Entity enemy_array[], int player_center[2], Bullet bullet_array
 
 void SSFireLaser(Entity enemy_array[], Bullet bullet_array[], int bullet_array_len) {
     if (!SSSuperSentinelInformation.FireLaser) { // Don't fire the laser
+        // De init the lazers just in case
+        // Mainly because sometimes they are left on for too long
+        LaserDeInitLaserStruct(&SSSuperSentinelInformation.Lasers[0], bullet_array);
+        LaserDeInitLaserStruct(&SSSuperSentinelInformation.Lasers[1], bullet_array);
         return;
     }
 
