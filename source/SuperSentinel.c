@@ -409,7 +409,7 @@ void SSFireSalvo(Entity enemy_array[], int player_center[2], Bullet bullet_array
 
 void SSFireLaser(Entity enemy_array[], Bullet bullet_array[], int bullet_array_len) {
     if (!SSSuperSentinelInformation.FireLaser) { // Don't fire the laser
-        // De init the lazers just in case
+        // De init the lasers just in case
         // Mainly because sometimes they are left on for too long
         LaserDeInitLaserStruct(&SSSuperSentinelInformation.Lasers[0], bullet_array);
         LaserDeInitLaserStruct(&SSSuperSentinelInformation.Lasers[1], bullet_array);
@@ -914,7 +914,7 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
         );
     }
 
-    // Lazers shake then three explosions before they explode
+    // Lasers shake then three explosions before they explode
     // Then the middle section falls appart
 
     // Setting up rotation matrices
@@ -962,7 +962,7 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
     int shakes_index = 0;
     ShuffleIntArray(shakes, 6);
 
-    // Hiding the old lazers as the new lazers have a different id
+    // Hiding the old lasers as the new lasers have a different id
     oamSetHidden(
         &oamMain,
         5,
@@ -972,20 +972,20 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
         6,
         true);
 
-    // Exploding the lazers
+    // Exploding the lasers
     // Skakey explosive time
-    int lazer_death_counter = 120; // 64 + 16 + 14 * 2 + (12 cause round number and I want some delay)
+    int laser_death_counter = 120; // 64 + 16 + 14 * 2 + (12 cause round number and I want some delay)
     // 64 frames of shake
     // Then the explosions
-    while (lazer_death_counter > 0)
+    while (laser_death_counter > 0)
     {
         // Clear the text
         consoleClear();
         // Frame number
         (*frame_number)++;
 
-        // Drawing the lazers
-        if (lazer_death_counter > 13)
+        // Drawing the lasers
+        if (laser_death_counter > 13)
         {
             oamSet(
                 &oamMain,
@@ -1019,7 +1019,7 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
                 false);
 
             // Index changing
-            if (lazer_death_counter % 4 == 1)
+            if (laser_death_counter % 4 == 1)
             {
                 shakes_index++;
                 shakes_index = shakes_index % 6;
@@ -1027,11 +1027,11 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
         }
 
         // EXPLOOOOOOSION!!!
-        // Three explosions on the lazer body
+        // Three explosions on the laser body
         // Height is 32, middle one has its center at 16 and the other two 8 above and below
-        if (lazer_death_counter < 56)
+        if (laser_death_counter < 56)
         {
-            int frame = 55 - lazer_death_counter;
+            int frame = 55 - laser_death_counter;
             if (frame < 16)
             {
                 oamSet(
@@ -1077,9 +1077,9 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
                     true);
             }
         }
-        if (lazer_death_counter < 42)
+        if (laser_death_counter < 42)
         {
-            int frame = 41 - lazer_death_counter;
+            int frame = 41 - laser_death_counter;
             if (frame < 16)
             {
                 oamSet(
@@ -1125,9 +1125,9 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
                     true);
             }
         }
-        if (lazer_death_counter < 28)
+        if (laser_death_counter < 28)
         {
-            int frame = 27 - lazer_death_counter;
+            int frame = 27 - laser_death_counter;
             if (frame < 16)
             {
                 oamSet(
@@ -1174,8 +1174,8 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
             }
         }
 
-        // Hiding the lazers
-        if (lazer_death_counter == 13)
+        // Hiding the lasers
+        if (laser_death_counter == 13)
         {
             oamSetHidden(
                 &oamMain,
@@ -1187,7 +1187,7 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
                 true);
         }
 
-        lazer_death_counter--;
+        laser_death_counter--;
 
         // UI wooo
         UIResetDisplayBuffer();
@@ -1202,7 +1202,7 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
         oamUpdate(&oamMain);
     }
 
-    // Hiding the old body id for the same reason as the lazers
+    // Hiding the old body id for the same reason as the lasers
     for (int i = 0; i < 4; i++)
     {
         oamSetHidden(
@@ -1240,7 +1240,7 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
                 false);
         }
 
-        // Moving the body and lazers
+        // Moving the body and lasers
         body_split_counter--;
         if (body_split_counter % 8 == 1)
         {
