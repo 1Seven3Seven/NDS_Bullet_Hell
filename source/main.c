@@ -428,17 +428,18 @@ int main(void)
     UIInitInterface(
             &credits_interface,
             "Credits",
-            12,
+            13,
             "Developer:",
             "    Seven",
             "",
             "Art:",
-            "    Max",
+            "    Bax",
             "    Seven",
             "",
             "Advice/Testing:",
-            "    Max",
+            "    Bax",
             "    Nicole",
+            "    Dennis",
             "",
             "Return to Main Menu"
     );
