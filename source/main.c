@@ -69,6 +69,11 @@
  *      Could be an interesting idea to play around with.
  *  Slap a bunch of the scanning function code into smaller helper functions to make the functions easier to write
  *   and read.
+ *  Two ideas for new interface types:
+ *      Text interface, just a wall of text, auto fits the text to the given area.
+ *      Scroll interface, when there are too many options to fit on the screen at once you can scroll?
+ *          Maybe just use sub interfaces, but ehh.
+ *          Potentially the text interface could scroll instead.
  * ================================================================================================================== */
 
 // NDS
