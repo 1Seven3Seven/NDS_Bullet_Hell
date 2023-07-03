@@ -423,7 +423,7 @@ void __SuperSentinelScanPrintFunction(void) {
         UIWriteTextAtOffset("Disobedience Detected", line_num, 3);
     } else if (super_sentinel_health > SS_FINAL_HEALTH) {
         UIWriteTextAtOffset("Insolence Detected", line_num, 3);
-    } else if (super_sentinel_health > 10) {
+    } else if (super_sentinel_health > SS_CRITICAL_HEALTH) {
         UIWriteTextAtOffset("Anomaly Detected", line_num, 3);  // Better string needed
     } else {
         UIWriteTextAtOffset("Reporting Anomaly", line_num, 3);

@@ -711,6 +711,15 @@ int SSRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
     // True when the player has won
     int win_condition = 0;
 
+    // Scanning information
+    char *super_sentinel_states[4] = {
+        "Optimal",
+        "Damaged",
+        "Vulnerable",
+        "Critical"
+    };
+    int super_sentinel_health;
+
     while (1) {
         // Clear the text
         consoleClear();
@@ -849,42 +858,25 @@ int SSRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
 
         UIResetDisplayBuffer();
 
-        char temp[UI_NUM_CHARS + 1];
+        if (!player->dead) {
+            UIWriteTextAtOffset("Engaging in Combat", 1, 1);
 
-        UIWriteText("Total Health:", 1);
-        itoa(SSGetHealth(enemy_array), temp, 10);
-        UIWriteTextAtOffset(temp, 1, 14);
+            UIWriteTextAtOffset("Enemy State: ", 3, 1);
 
-        UIWriteText("Segments health:", 3);
-        itoa(enemy_array[0].health, temp, 10);
-        UIWriteTextAtOffset(temp, 4, 1);
-        itoa(enemy_array[1].health, temp, 10);
-        UIWriteTextAtOffset(temp, 4, 6);
-        itoa(enemy_array[2].health, temp, 10);
-        UIWriteTextAtOffset(temp, 4, 11);
+            super_sentinel_health = SSGetHealth(enemy_array);
 
-        itoa(SSSuperSentinelInformation.FireLaser, temp, 10);
-        UIWriteText("Fire laser?", 6);
-        UIWriteTextAtOffset(temp, 6, 12);
-
-        itoa(SSSuperSentinelInformation.FireLaserDelay, temp, 10);
-        UIWriteText("Delay", 7);
-        UIWriteTextAtOffset(temp, 7, 6);
-
-        itoa(SSSuperSentinelInformation.MoveLasers, temp, 10);
-        UIWriteText("Move Lasers?", 9);
-        UIWriteTextAtOffset(temp, 9, 13);
-
-        itoa(BulletGetNumberAliveBulletsInBulletArray(bullet_array, bullet_array_len), temp, 10);
-        UIWriteText("Num Bullets:", 11);
-        UIWriteTextAtOffset(temp, 11, 13);
-
-        itoa(bullet_collision_type, temp, 10);
-        UIWriteText("Bullet Collision Type:", 13);
-        UIWriteTextAtOffset(temp, 13, 23);
-        itoa(enemy_collision_type, temp, 10);
-        UIWriteText("Enemy Collision Type:", 15);
-        UIWriteTextAtOffset(temp, 15, 23);
+            if (super_sentinel_health > SS_LASER_HEALTH) {
+                UIWriteTextAtOffset(super_sentinel_states[0], 3, 14);
+            } else if (super_sentinel_health > SS_FINAL_HEALTH) {
+                UIWriteTextAtOffset(super_sentinel_states[1], 3, 14);
+            } else if (super_sentinel_health > SS_CRITICAL_HEALTH) {
+                UIWriteTextAtOffset(super_sentinel_states[2], 3, 14);
+            } else {
+                UIWriteTextAtOffset(super_sentinel_states[3], 3, 14);
+            }
+        } else {
+            UIWriteTextAtOffset("Initiating Temporal Reset", 1, 1);
+        }
 
         UIPrintDisplayBuffer();
 

@@ -71,17 +71,18 @@
 
 #define ENEMY_START_DELAY 59 // I would love this to be 60, but it messes with the animations of the sentinel
 
-#define SS_HEALTH 300       // Super sentinel health
-#define SS_START_X 112      // The x coord of the start position of the main body
-#define SS_START_Y -32      // The y coord of the start position of the main body (starts off the screen)
-#define SS_BULLET_DELAY 40  // The delay between firing salvos of bullets
-#define SS_SALVO_DELAY 20   // The delay between firing bullets in a salvo
-#define SS_MAX_LEFT_X 24    // The maximum left the main body can travel
-#define SS_MAX_RIGHT_X 200  // The maximum right the main body can travel
-#define SS_LASER_DELAY 30   // The delay to fire the lasers, to make some attack patterns more fair
-#define SS_LASER_HEALTH 200 // The health to get below to activate the laser
-#define SS_FINAL_HEALTH 100 // The health to get below to activate the final attack pattern
-#define SS_CENTER_X 112     // The x coord of the main body to be set when centered
+#define SS_HEALTH 300         // Super sentinel health
+#define SS_START_X 112        // The x coord of the start position of the main body
+#define SS_START_Y -32        // The y coord of the start position of the main body (starts off the screen)
+#define SS_BULLET_DELAY 40    // The delay between firing salvos of bullets
+#define SS_SALVO_DELAY 20     // The delay between firing bullets in a salvo
+#define SS_MAX_LEFT_X 24      // The maximum left the main body can travel
+#define SS_MAX_RIGHT_X 200    // The maximum right the main body can travel
+#define SS_LASER_DELAY 30     // The delay to fire the lasers, to make some attack patterns more fair
+#define SS_LASER_HEALTH 200   // The health to get below to activate the laser
+#define SS_FINAL_HEALTH 100   // The health to get below to activate the final attack pattern
+#define SS_CRITICAL_HEALTH 10 // Does not effect the fight but effects text displayed
+#define SS_CENTER_X 112       // The x coord of the main body to be set when centered
 
 // Enemy animation information
 
