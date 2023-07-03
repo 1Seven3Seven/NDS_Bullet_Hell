@@ -328,6 +328,18 @@ void __SectorScanPrintFunction(void) {
     time_to_display += 60;
 
     if (time_since_pause > time_to_display) {
+        if (Difficulty != 'E') {
+            UIWriteTextAtOffset("Temporal Resets:", line_num, 3);
+            char num[2];
+            itoa(Lives, num, 10);
+            UIWriteTextAtOffset(num, line_num, 27);
+        }
+    }
+
+    line_num += 2;
+    time_to_display += 60;
+
+    if (time_since_pause > time_to_display) {
         UIWriteTextAtOffset("Enemies Detected:", line_num, 3);
         int num = 0;
         for (int i = 0; i < 8; ++i) {
@@ -336,18 +348,6 @@ void __SectorScanPrintFunction(void) {
         }
         itoa(num, temp, 10);
         UIWriteTextAtOffset(temp, line_num, 27);
-    }
-
-    line_num += 2;
-    time_to_display += 60;
-
-    if (time_since_pause > time_to_display) {
-        if (Difficulty != 'E') {
-            UIWriteTextAtOffset("Temporal Resets:", line_num, 3);
-            char num[2];
-            itoa(Lives, num, 10);
-            UIWriteTextAtOffset(num, line_num, 27);
-        }
     }
 
     time_to_display += 60;
