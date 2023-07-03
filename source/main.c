@@ -26,10 +26,11 @@
  *  Fix ghost bullets when going from 8 enemies to the boss.                                                        TICK
  *  There seems to be a bug where sometimes the win condition is met when there are only death bullets alive.
  *  Add an option to the main menu for improvements/next version.
- *  Scanning sector for extra information.
+ *  Scanning sector for extra information.                                                                          TICK
  *      Sectors                                                                                                     TICK
  *      Boss                                                                                                        TICK
  *  Basically spruce up the pause menu.                                                                             TICK
+ *  Last stage is a bit too difficult when compared to the boss, maybe leave it as a challenge?
  *
  * Not important things and ideas
  * ToDo:
