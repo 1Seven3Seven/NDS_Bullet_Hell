@@ -21,8 +21,8 @@
  *      Exclamation marks BANG just before firing the lasers or...                                                  TICK
  *      Pilot lasers for the lasers.                                                                                TICK
  *      Fix up the boss fight text.
- *      The lazers sometimes remain for too long when transitioning to the last phase.
- *          They may not be despawned correctly or not at all.
+ *      The lazers sometimes remain for too long when transitioning to the last phase.                              TICK
+ *          They may not be despawned correctly or not at all.                                                      TICK
  *  Fix ghost bullets when going from 8 enemies to the boss.                                                        TICK
  *  There seems to be a bug where sometimes the win condition is met when there are only death bullets alive.
  *  Add an option to the main menu for improvements/next version.
@@ -58,8 +58,6 @@
  *      We have some more freedom then.
  *      May be something to do with it being BgType_Bmp8.
  *      Try other stuff and see if it works.
- *  Disobedience detected.
- *  Insolence detected.
  *  If there becomes too much sprite GFX to be loaded all at once then use smart loading where only the necessary
  *  sprites for the current activity are loaded.
  *      It is already set up for loading the sprites, just the unloading needs to be done
