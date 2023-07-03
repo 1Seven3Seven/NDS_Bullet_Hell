@@ -729,9 +729,6 @@ int SSRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
         // Frame number
         (*frame_number)++;
 
-        if (keys & KEY_START)
-            enemy_array[0].health--;
-
         // Boss fire laser
         // This is done first to avoid potential unwanted behaviour when spawning bullets before being overwritten
         SSFireLaser(
