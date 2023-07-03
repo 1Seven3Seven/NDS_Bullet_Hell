@@ -33,6 +33,7 @@
  *  Last stage is a bit too difficult when compared to the boss, maybe leave it as a challenge?                     TICK
  *  Maybe come up with a way to make the normal enemy text screen a little more interesting
  *  Potentially add a way to see the bosses health directly, maybe in the scan function?
+ *  Have some extra text printed to the screen during the boss death
  *
  * Not important things and ideas
  * ToDo:
