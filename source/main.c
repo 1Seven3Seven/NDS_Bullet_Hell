@@ -588,7 +588,8 @@ int main(void)
 
     // #region - Creating the Interfaces
     UIInterfaceStruct main_menu_interface, difficulty_select_interface, pause_interface, credits_interface,
-        lose_interface, main_win_interface, challenge_win_interface, boss_win_interface, unimplemented_interface;
+        lose_interface, main_win_interface, challenge_win_interface, boss_win_interface, next_version_interface,
+        unimplemented_interface;
     UIInterfaceStruct *win_interface_to_use = &unimplemented_interface; // Just in case it is not set to not crash things
     UIInitInterface(
             &main_menu_interface,
@@ -666,6 +667,13 @@ int main(void)
             "Boss Defeated",
             1,
             "Return to Main Menu"
+    );
+    UIInitInterface(
+        &next_version_interface,
+        "Next Version",
+        2,
+        "Too lazy right now to put",
+        "stuff here"
     );
     UIInitInterface(
             &unimplemented_interface,
@@ -1035,6 +1043,11 @@ int main(void)
                 }
 
                 break;
+            // #endregion
+
+            // #region - Next Version Details
+            case 'N':
+                ;
             // #endregion
 
             // #region - For currently unimplemented interfaces
