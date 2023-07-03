@@ -62,9 +62,11 @@
  *      May be something to do with it being BgType_Bmp8.
  *      Try other stuff and see if it works.
  *  If there becomes too much sprite GFX to be loaded all at once then use smart loading where only the necessary
- *  sprites for the current activity are loaded.
- *      It is already set up for loading the sprites, just the unloading needs to be done
- *      ONLY if necessary
+ *   sprites for the current activity are loaded.
+ *      It is already set up for loading the sprites, just the unloading needs to be done.
+ *      ONLY if necessary.
+ *  Dad suggested the idea of the player being able to take multiple hits.
+ *      Could be an interesting idea to play around with.
  * ================================================================================================================== */
 
 // NDS
