@@ -523,6 +523,12 @@ int main(void)
             "Boss Quick Start",
             "Challenge"
     );
+    main_menu_interface.Separation = 1;
+    // I should not really do this as it comes with the repercussion that any function that interacts with this will be
+    //  given the incorrect number of ui options.
+    // I am doing it to hide the boss and challenge options until you beat the game normally.
+    // This should not cause any problems with how I use the struct and because I do not un-initilise them.
+    main_menu_interface.NumUIOptions = 4;
     UIInitInterface(
             &difficulty_select_interface,
             "Difficulty Select",
@@ -867,6 +873,7 @@ int main(void)
                         // Choosing the win interface to use
                         if (NumEnemyGroups == 4) {
                             win_interface_to_use = &main_win_interface;
+                            main_menu_interface.NumUIOptions = 6;
                         } else {
                             win_interface_to_use = &boss_win_interface;
                         }
