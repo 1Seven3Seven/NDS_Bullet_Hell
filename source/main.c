@@ -583,7 +583,8 @@ int main(void)
 
     while (1) {
         switch (CurrentActivity) {
-            case 'M': // region - Handle the main menu
+            // #region - Handle the main menu
+            case 'M':
                 HideEverySprite();
 
                 // Reseeding the random number generator
@@ -626,9 +627,10 @@ int main(void)
                 main_menu_interface.Choice = 0;
 
                 break;
-                // endregion
+            // #endregion
 
-            case 'D': // region - Handle the difficulty select
+            // #region - Handle the difficulty select
+            case 'D':
                 ui_choice = UIHandleInterfaceAtOffsetWithFunction(
                         &difficulty_select_interface,
                         &FrameNumber,
@@ -655,9 +657,10 @@ int main(void)
                 CurrentActivity = 'M';
 
                 break;
-                // endregion
+            // #endregion
 
-            case 'C': // region - Credits screen
+            // #region - Credits screen
+            case 'C':
                 ui_choice = UIHandleInterfaceAtOffset(
                         &credits_interface,
                         &FrameNumber,
@@ -668,9 +671,10 @@ int main(void)
                 if (ui_choice == credits_interface.NumUIOptions - 1)
                     CurrentActivity = 'M';
                 break;
-                // endregion
+            // #endregion
 
-            case 'G': // region - Handle the game
+            // #region - Handling sector gameplay
+            case 'G': // Start a new game
             case 'R': // Resume the game
                 // If starting anew run the setup
                 if (CurrentActivity == 'G')
@@ -738,9 +742,10 @@ int main(void)
                 }
 
                 break;
-                // endregion
+            // #endregion
 
-            case 'P': // region - Pause screen
+            // #region - Pause screen
+            case 'P':
                 ui_choice = UIHandleInterfaceAtOffsetWithFunction(
                         &pause_interface,
                         &FrameNumber,
@@ -768,9 +773,10 @@ int main(void)
 
                 break;
 
-                // endregion
+            // #endregion
 
-            case 'L': // region - Lose screen
+            // #region - Lose screen
+            case 'L':
                 ui_choice = UIHandleInterfaceAtOffsetWithFunction(
                         &lose_interface,
                         &FrameNumber,
@@ -780,9 +786,10 @@ int main(void)
                 );
                 CurrentActivity = 'M';
                 break;
-                // endregion
+            // #endregion
 
-            case 'W': // region - Win screen
+            // #region - Win screen
+            case 'W':
                 ui_choice = UIHandleInterfaceAtOffsetWithFunction(
                         &win_interface,
                         &FrameNumber,
@@ -792,9 +799,10 @@ int main(void)
                 );
                 CurrentActivity = 'M';
                 break;
-                // endregion
+            // #endregion
 
-            case 'S': // region - Super Sentinel battle
+            // #region - Super Sentinel battle
+            case 'S': // Start the super sentinel battle
             case '0': // Resume from pause
                 if (CurrentActivity == 'S')
                     SSSetupForGameLoop(
@@ -856,9 +864,10 @@ int main(void)
                 }
 
                 break;
-                // endregion
+            // #endregion
 
-            default: // region - For currently unimplemented interfaces
+            // #region - For currently unimplemented interfaces
+            default:
                 UIHandleInterfaceAtOffset(
                         &unimplemented_interface,
                         &FrameNumber,
@@ -869,7 +878,7 @@ int main(void)
                 CurrentActivity = 'M';
 
                 break;
-                // endregion
+            // #endregion
         }
     }
 
