@@ -4,7 +4,7 @@
  *  Fix up the super sentinel lasers:                                                                               TICK
  *      Proper sprites.                                                                                             TICK
  *      Proper hitboxes.                                                                                            TICK
- *  Boss fight woo.
+ *  Boss fight woo.                                                                                                 TICK
  *      The same one worked on in versions 15 ad 16.                                                                TICK
  *      BUT BETTER.                                                                                                 TICK
  *      Strafing firing bullets.                                                                                    TICK
@@ -20,7 +20,7 @@
  *          Laser sprites are wrong, idk why.                                                                       TICK
  *      Exclamation marks BANG just before firing the lasers or...                                                  TICK
  *      Pilot lasers for the lasers.                                                                                TICK
- *      Fix up the boss fight text.
+ *      Fix up the boss fight text.                                                                                 TICK
  *      The lazers sometimes remain for too long when transitioning to the last phase.                              TICK
  *          They may not be despawned correctly or not at all.                                                      TICK
  *  Fix ghost bullets when going from 8 enemies to the boss.                                                        TICK
@@ -31,6 +31,7 @@
  *      Boss                                                                                                        TICK
  *  Basically spruce up the pause menu.                                                                             TICK
  *  Last stage is a bit too difficult when compared to the boss, maybe leave it as a challenge?
+ *  Maybe come up with a way to make the normal enemy text screen a little more interesting
  *
  * Not important things and ideas
  * ToDo:
