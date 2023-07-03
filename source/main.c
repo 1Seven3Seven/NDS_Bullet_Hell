@@ -354,14 +354,119 @@ void __SectorScanPrintFunction(void) {
         ScanningFinished = 1;
 }
 
+int SuperSentinelStartIndexes[26] = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12,
+                                     13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25};
+
 void __SuperSentinelScanPrintFunction(void) {
-    // Does stuff
+    if (StartFrameNum == -1) {
+        StartFrameNum = FrameNumber;
+        ShuffleIntArray(SuperSentinelStartIndexes, 26);
+    }
+
+    if ((FrameNumber - StartFrameNum) % 30 == 0) ScanningToggle = !ScanningToggle;
+
+    if (!ScanningFinished) {
+        if (ScanningToggle) UIWriteTextAtOffset("SCANNING", 7, 1);
+    } else {
+        UIWriteTextAtOffset("SCAN COMPLETE", 7, 1);
+    }
+
+    // char temp[UI_NUM_CHARS + 1];
+
+    int time_since_pause = FrameNumber - StartFrameNum;
+    int time_to_display = 60;
+    int line_num = 9;
+
+    if (time_since_pause <= time_to_display) return;
+
+    UIWriteTextAtOffset("Hull integrity:", line_num, 3);
+    if (Player.dead) {
+        time_to_display += 60;
+        UIWriteTextAtOffset("  0%", line_num, 25);
+        if (time_since_pause > time_to_display) {
+            UIWriteTextAtOffset("Temporal Reset", line_num + 1, 5);
+            UIWriteTextAtOffset("Recommended", line_num + 2, 5);
+        }
+    } else {
+        UIWriteTextAtOffset("100%", line_num, 25);
+    }
+
+    line_num += 2;
+    if (Player.dead) line_num += 2;
+    time_to_display += 60;
+
+    if (time_since_pause <= time_to_display) return;
+
+    if (Difficulty != 'E') {
+        UIWriteTextAtOffset("Temporal Resets:", line_num, 3);
+        char num[2];
+        itoa(Lives, num, 10);
+        UIWriteTextAtOffset(num, line_num, 27);
+    }
+
+    line_num += 2;
+    time_to_display += 60;
+
+    if (time_since_pause <= time_to_display) return;
+
+    UIWriteTextAtOffset("Enemies Detected:       1", line_num, 3);
+
+    line_num += 2;
+    time_to_display += 60;
+
+    if (time_since_pause <= time_to_display) return;
+
+    const int super_sentinel_health = SSGetHealth(EnemyEntityArray);
+
+    if (super_sentinel_health > SS_LASER_HEALTH) {
+        UIWriteTextAtOffset("Disobedience Detected", line_num, 3);
+    } else if (super_sentinel_health > SS_FINAL_HEALTH) {
+        UIWriteTextAtOffset("Insolence Detected", line_num, 3);
+    } else if (super_sentinel_health > 10) {
+        UIWriteTextAtOffset("Anomaly Detected", line_num, 3);  // Better string needed
+    } else {
+        UIWriteTextAtOffset("Reporting Anomaly", line_num, 3);
+    }
+
+    time_to_display += 30;
+
+    for (int j = 0; j < 6; j++) {
+        if (time_since_pause <= time_to_display + 23 * j) break;
+
+        if (j == 5) {
+            UIWriteTextAtOffset("                          ", line_num, 3);
+            break;
+        }
+
+        int loopLimit = (!j) ? 6 : 5;
+
+        for (int i = 0; i < loopLimit; i++) {
+            int offset = SuperSentinelStartIndexes[(bool)j * 6 + (bool)j * (j - 1) * 5 + i];
+            UIWriteTextAtOffset("-", line_num, 3 + offset);
+        }
+    }
+
+    // This happens independently to the previous for loop
+    time_to_display += 30;
+
+    if (time_since_pause > time_to_display) ScanningFinished = 1;
 }
 
 // Displays the seed, difficulty and the amount of lives left
 // Also displays some extra information
 void PauseScreenPrintFunc(void) {
+    switch (ResumeAfterPause) {
+        case 'R':
     __SectorScanPrintFunction();
+            break;
+
+        case '0':
+            __SuperSentinelScanPrintFunction();
+            break;
+
+        default:
+            UIWriteTextAtOffset("Something broke", 3, 3);
+    }
 }
 
 // endregion
