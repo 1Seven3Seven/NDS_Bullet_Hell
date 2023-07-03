@@ -722,7 +722,7 @@ int main(void)
 
                         break;
 
-                    case 1: // region - Player wins
+                    case 1: // Player wins
                         // Checking for increase difficulty or win
                         if (NumEnemyGroups < 4) { // Add more enemies
                             NumEnemyGroups++;
@@ -738,7 +738,6 @@ int main(void)
                         Lives = GetNumLives();
 
                         break;
-                        // endregion
                 }
 
                 break;
