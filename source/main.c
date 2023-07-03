@@ -174,6 +174,9 @@ int GetNumLives() {
 //  Bosses
 //      S = Super sentinel
 //      0 = Resume super sentinel
+//  Challenge round
+//      Y = Challenge
+//      Z = Resume challenge
 char CurrentActivity = 'M';
 
 // What the current activity should be set to after a pause is resumed
@@ -514,12 +517,13 @@ int main(void)
     UIInitInterface(
             &main_menu_interface,
             "Main Menu",
-            5,
+            6,
             "Play",
             "Difficulty Select",
             "Credits",
+            "Next version",
             "Boss",
-            "Next version"
+            "Challenge"
     );
     UIInitInterface(
             &difficulty_select_interface,
@@ -565,7 +569,13 @@ int main(void)
     );
     UIInitInterface(
             &main_win_interface,
-            "Completed",
+            "Main Game Completed Well Done",
+            1,
+            "Return to Main Menu"
+    );
+    UIInitInterface(
+            &challenge_win_interface,
+            "Challenge Completed Well Done",
             1,
             "Return to Main Menu"
     );
@@ -617,11 +627,15 @@ int main(void)
                     case 2: // Credits
                         CurrentActivity = 'C';
                         break;
-                    case 3: // Boss
+                    case 3: // Next version information
+                        CurrentActivity = 'N';
+                        break;
+                    case 4: // Boss
                         CurrentActivity = 'S';
                         break;
-                    case 4:
-                        CurrentActivity = 'N';
+                    case 5: // Challenge
+                        CurrentActivity = 'Y';
+                        NumEnemyGroups = 4;
                         break;
                 }
 
@@ -864,6 +878,74 @@ int main(void)
 
                         break;
                         // endregion
+                }
+
+                break;
+            // #endregion
+
+            // #region - Challenge battle
+            case 'Y': // New challenge attempt
+            case 'Z': // Resume challenge attempt
+                if (CurrentActivity == 'Y') {
+                    GameSectorSetup(
+                        &Player,
+                        EnemyEntityArray, 8,
+                        BulletArray, MAX_BULLET_COUNT,
+                        &FrameNumber,
+                        &EnemiesAllEnemyData, &GFXAllSpriteGFX,
+                        NumEnemyGroups
+                    );
+                }
+
+                // Back to normal if resume
+                CurrentActivity = 'Y';
+
+                game_result = GameRunGameLoop(
+                    &Player,
+                    EnemyEntityArray, 8,
+                    BulletArray, MAX_BULLET_COUNT,
+                    &FrameNumber,
+                    &EnemiesAllEnemyData, &GFXAllSpriteGFX,
+                    PlayableArea,
+                    ScreenBoarder, 4,
+                    InGameDifficulty
+                );
+
+                // Processing game result
+                switch (game_result) {
+                case -1:  // Pause
+                    CurrentActivity = 'P';
+                    ResumeAfterPause = 'Z';
+                    break;
+
+                case 0:  // Player dies
+                    // To prevent endless run after death
+                    CurrentActivity = 'Y';
+
+                    // Reduce life considering difficulty
+                    if (Difficulty == 'N' || Difficulty == 'H') Lives--;
+
+                    // If all lives lost
+                    if (Lives == 0) CurrentActivity = 'L';
+
+                    break;
+
+                case 1:  // Player wins
+                    // Checking for increase difficulty or win
+                    if (!InGameDifficulty) {
+                        InGameDifficulty = 1;
+                        GameRandomiseEnemySpawns();
+                    } else {
+                        // Choosing the win interface to use
+                        win_interface_to_use = &challenge_win_interface;
+                        // We won yay
+                        CurrentActivity = 'W';
+                    }
+
+                    // Reset the number of lives
+                    Lives = GetNumLives();
+
+                    break;
                 }
 
                 break;
