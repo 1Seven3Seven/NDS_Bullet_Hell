@@ -457,7 +457,7 @@ void __SuperSentinelScanPrintFunction(void) {
 void PauseScreenPrintFunc(void) {
     switch (ResumeAfterPause) {
         case 'R':
-    __SectorScanPrintFunction();
+            __SectorScanPrintFunction();
             break;
 
         case '0':
