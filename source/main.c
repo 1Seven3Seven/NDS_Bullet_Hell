@@ -251,12 +251,12 @@ void PrintDifficultyAndSeedFunc(void) {
 void MainMenuPrintFunc(void) {
     UIWriteTextAtOffset(
             "Work In Progress",
-            13,
+            15,
             14
     );
     UIWriteTextAtOffset(
             "Not For Distribution",
-            14,
+            16,
             12
     );
 
