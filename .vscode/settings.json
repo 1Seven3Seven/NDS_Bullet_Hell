@@ -14,6 +14,7 @@
         "background.h": "c",
         "bullet.h": "c",
         "constants.h": "c",
-        "game.h": "c"
+        "game.h": "c",
+        "nds.h": "c"
     }
 }
