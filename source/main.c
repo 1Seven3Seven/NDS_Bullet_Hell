@@ -67,6 +67,8 @@
  *      ONLY if necessary.
  *  Dad suggested the idea of the player being able to take multiple hits.
  *      Could be an interesting idea to play around with.
+ *  Slap a bunch of the scanning function code into smaller helper functions to make the functions easier to write
+ *   and read.
  * ================================================================================================================== */
 
 // NDS
