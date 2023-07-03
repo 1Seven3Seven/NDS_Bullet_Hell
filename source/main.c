@@ -693,8 +693,10 @@ int main(void)
                         1
                 );
 
-                if (ui_choice == credits_interface.NumUIOptions - 1)
-                    CurrentActivity = 'M';
+                if (ui_choice == 5) main_menu_interface.NumUIOptions = 6;
+
+                if (ui_choice == credits_interface.NumUIOptions - 1) CurrentActivity = 'M';
+
                 break;
             // #endregion
 
