@@ -520,7 +520,7 @@ int main(void)
             "Difficulty Select",
             "Credits",
             "Next version",
-            "Boss",
+            "Boss Quick Start",
             "Challenge"
     );
     UIInitInterface(
