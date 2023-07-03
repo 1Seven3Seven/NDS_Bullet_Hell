@@ -507,9 +507,10 @@ int main(void)
     GFXInit();
     GFXLoadAllSprites();
 
-    // region - Creating the Interfaces
+    // #region - Creating the Interfaces
     UIInterfaceStruct main_menu_interface, difficulty_select_interface, pause_interface, credits_interface,
-            lose_interface, win_interface, unimplemented_interface;
+        lose_interface, main_win_interface, challenge_win_interface, unimplemented_interface;
+    UIInterfaceStruct *win_interface_to_use = NULL;
     UIInitInterface(
             &main_menu_interface,
             "Main Menu",
@@ -563,7 +564,7 @@ int main(void)
             "Return to Main Menu"
     );
     UIInitInterface(
-            &win_interface,
+            &main_win_interface,
             "Completed",
             1,
             "Return to Main Menu"
@@ -574,7 +575,7 @@ int main(void)
             1,
             "Return to Main Menu"
     );
-    // endregion
+    // #endregion
 
     // The current choice from the interface
     int ui_choice;
@@ -790,7 +791,7 @@ int main(void)
             // #region - Win screen
             case 'W':
                 ui_choice = UIHandleInterfaceAtOffsetWithFunction(
-                        &win_interface,
+                        &main_win_interface,
                         &FrameNumber,
                         1,
                         1,
