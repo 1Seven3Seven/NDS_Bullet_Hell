@@ -455,17 +455,89 @@ void __SuperSentinelScanPrintFunction(void) {
     if (time_since_pause > time_to_display) ScanningFinished = 1;
 }
 
+void __ChallegeScanPrintFunction(void) {
+    if (StartFrameNum == -1) StartFrameNum = FrameNumber;
+
+    if ((FrameNumber - StartFrameNum) % 30 == 0) ScanningToggle = !ScanningToggle;
+
+    if (!ScanningFinished) {
+        if (ScanningToggle) UIWriteTextAtOffset("SCANNING", 7, 1);
+    } else {
+        UIWriteTextAtOffset("SCAN COMPLETE", 7, 1);
+    }
+
+    char temp[UI_NUM_CHARS + 1];
+
+    int time_since_pause = FrameNumber - StartFrameNum;
+    int time_to_display = 60;
+    int line_num = 9;
+
+    if (time_since_pause <= time_to_display) return;
+
+    UIWriteTextAtOffset("Hull integrity:", line_num, 3);
+    if (Player.dead) {
+        time_to_display += 60;
+        UIWriteTextAtOffset("  0%", line_num, 25);
+        if (time_since_pause > time_to_display) {
+            UIWriteTextAtOffset("Temporal Reset", line_num + 1, 5);
+            UIWriteTextAtOffset("Recommended", line_num + 2, 5);
+        }
+    } else {
+        UIWriteTextAtOffset("100%", line_num, 25);
+    }
+
+    line_num += 2;
+    if (Player.dead) line_num += 2;
+    time_to_display += 60;
+
+    if (time_since_pause <= time_to_display) return;
+
+    if (Difficulty != 'E') {
+        UIWriteTextAtOffset("Temporal Resets:", line_num, 3);
+        char num[2];
+        itoa(Lives, num, 10);
+        UIWriteTextAtOffset(num, line_num, 27);
+    }
+
+    line_num += 2;
+    time_to_display += 60;
+
+    if (time_since_pause <= time_to_display) return;
+
+    UIWriteTextAtOffset("Enemies Detected:", line_num, 3);
+    int num = 0;
+    for (int i = 0; i < 8; ++i) {
+        if (!EnemyEntityArray[i].dead) num++;
+    }
+    itoa(num, temp, 10);
+    UIWriteTextAtOffset(temp, line_num, 27);
+
+    line_num += 2;
+    time_to_display += 60;
+
+    if (time_since_pause <= time_to_display) return;
+
+    UIWriteTextAtOffset("Explosive Enemy Finale?", line_num, 3);
+
+    time_to_display += 60;
+
+    if (time_since_pause > time_to_display) ScanningFinished = 1;
+}
+
 // Displays the seed, difficulty and the amount of lives left
 // Also displays some extra information
 void PauseScreenPrintFunc(void) {
     switch (ResumeAfterPause) {
-        case 'R': // Resume normal game
-        case 'Z': // Resume challenge game
+        case 'R':  // Resume normal game
             __SectorScanPrintFunction();
             break;
 
-        case '0': // Resume boss fight
+        case '0':  // Resume boss fight
             __SuperSentinelScanPrintFunction();
+            break;
+
+        case 'Z':  // Resume challenge game
+            __ChallegeScanPrintFunction();
             break;
 
         default:
