@@ -459,16 +459,17 @@ void __SuperSentinelScanPrintFunction(void) {
 // Also displays some extra information
 void PauseScreenPrintFunc(void) {
     switch (ResumeAfterPause) {
-        case 'R':
+        case 'R': // Resume normal game
+        case 'Z': // Resume challenge game
             __SectorScanPrintFunction();
             break;
 
-        case '0':
+        case '0': // Resume boss fight
             __SuperSentinelScanPrintFunction();
             break;
 
         default:
-            UIWriteTextAtOffset("Something broke", 3, 3);
+            UIWriteTextAtOffset("Something broke", 10, 3);
     }
 }
 
