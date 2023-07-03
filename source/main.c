@@ -28,8 +28,8 @@
  *  Add an option to the main menu for improvements/next version.
  *  Scanning sector for extra information.
  *      Sectors                                                                                                     TICK
- *      Boss
- *  Basically spruce up the pause menu.
+ *      Boss                                                                                                        TICK
+ *  Basically spruce up the pause menu.                                                                             TICK
  *
  * Not important things and ideas
  * ToDo:
