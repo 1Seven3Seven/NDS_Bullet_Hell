@@ -510,7 +510,7 @@ int main(void)
     // #region - Creating the Interfaces
     UIInterfaceStruct main_menu_interface, difficulty_select_interface, pause_interface, credits_interface,
         lose_interface, main_win_interface, challenge_win_interface, unimplemented_interface;
-    UIInterfaceStruct *win_interface_to_use = NULL;
+    UIInterfaceStruct *win_interface_to_use = &unimplemented_interface; // Just in case it is not set to not crash things
     UIInitInterface(
             &main_menu_interface,
             "Main Menu",
@@ -791,7 +791,7 @@ int main(void)
             // #region - Win screen
             case 'W':
                 ui_choice = UIHandleInterfaceAtOffsetWithFunction(
-                        &main_win_interface,
+                        win_interface_to_use,
                         &FrameNumber,
                         1,
                         1,
@@ -849,6 +849,9 @@ int main(void)
 
                     case 1: // region - Player wins
                         CurrentActivity = 'W'; // WIN SCREEN YAY
+
+                        // Choosing the win interface to use
+                        win_interface_to_use = &main_win_interface;
 
                         // Run the death animation
                         SSRunEndLoop(
