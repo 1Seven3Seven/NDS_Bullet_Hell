@@ -137,8 +137,6 @@ char SeedString[21] = "12345678901234567890";
 char Difficulty = 'N';
 // The number of enemy groups to spawn in
 int NumEnemyGroups = 1;
-// Death bullets
-int InGameDifficulty = 0;
 
 // Lives
 //      Positive numbers = num lives left
@@ -512,7 +510,7 @@ int main(void)
 
     // #region - Creating the Interfaces
     UIInterfaceStruct main_menu_interface, difficulty_select_interface, pause_interface, credits_interface,
-        lose_interface, main_win_interface, challenge_win_interface, unimplemented_interface;
+        lose_interface, main_win_interface, challenge_win_interface, boss_win_interface, unimplemented_interface;
     UIInterfaceStruct *win_interface_to_use = &unimplemented_interface; // Just in case it is not set to not crash things
     UIInitInterface(
             &main_menu_interface,
@@ -580,6 +578,12 @@ int main(void)
             "Return to Main Menu"
     );
     UIInitInterface(
+            &boss_win_interface,
+            "Boss Defeated",
+            1,
+            "Return to Main Menu"
+    );
+    UIInitInterface(
             &unimplemented_interface,
             "Unimplemented Interface",
             1,
@@ -606,7 +610,6 @@ int main(void)
 
                 // Resetting gameplay variables
                 NumEnemyGroups = 1;
-                InGameDifficulty = 0;
                 Lives = GetNumLives();
 
                 ui_choice = UIHandleInterfaceAtOffsetWithFunction(
@@ -714,7 +717,7 @@ int main(void)
                         &EnemiesAllEnemyData, &GFXAllSpriteGFX,
                         PlayableArea,
                         ScreenBoarder, 4,
-                        InGameDifficulty
+                        0
                 );
 
                 switch (game_result) {
@@ -741,9 +744,6 @@ int main(void)
                         // Checking for increase difficulty or win
                         if (NumEnemyGroups < 4) { // Add more enemies
                             NumEnemyGroups++;
-                            GameRandomiseEnemySpawns();
-                        } else if (NumEnemyGroups == 4 && InGameDifficulty != 1) { // Add death bullets
-                            InGameDifficulty = 1;
                             GameRandomiseEnemySpawns();
                         } else { // Summon the boss
                             CurrentActivity = 'S';
@@ -865,7 +865,11 @@ int main(void)
                         CurrentActivity = 'W'; // WIN SCREEN YAY
 
                         // Choosing the win interface to use
-                        win_interface_to_use = &main_win_interface;
+                        if (NumEnemyGroups == 4) {
+                            win_interface_to_use = &main_win_interface;
+                        } else {
+                            win_interface_to_use = &boss_win_interface;
+                        }
 
                         // Run the death animation
                         SSRunEndLoop(
@@ -893,7 +897,7 @@ int main(void)
                         BulletArray, MAX_BULLET_COUNT,
                         &FrameNumber,
                         &EnemiesAllEnemyData, &GFXAllSpriteGFX,
-                        NumEnemyGroups
+                        4
                     );
                 }
 
@@ -908,7 +912,7 @@ int main(void)
                     &EnemiesAllEnemyData, &GFXAllSpriteGFX,
                     PlayableArea,
                     ScreenBoarder, 4,
-                    InGameDifficulty
+                    1
                 );
 
                 // Processing game result
@@ -931,16 +935,11 @@ int main(void)
                     break;
 
                 case 1:  // Player wins
-                    // Checking for increase difficulty or win
-                    if (!InGameDifficulty) {
-                        InGameDifficulty = 1;
-                        GameRandomiseEnemySpawns();
-                    } else {
-                        // Choosing the win interface to use
-                        win_interface_to_use = &challenge_win_interface;
-                        // We won yay
-                        CurrentActivity = 'W';
-                    }
+                    // Choosing the win interface to use
+                    win_interface_to_use = &challenge_win_interface;
+
+                    // We won yay
+                    CurrentActivity = 'W';
 
                     // Reset the number of lives
                     Lives = GetNumLives();
