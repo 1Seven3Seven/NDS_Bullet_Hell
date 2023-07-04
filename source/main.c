@@ -32,7 +32,7 @@
  *  Basically spruce up the pause menu.                                                                             TICK
  *  Last stage is a bit too difficult when compared to the boss, maybe leave it as a challenge?                     TICK
  *  Maybe come up with a way to make the normal enemy text screen a little more interesting
- *  Potentially add a way to see the bosses health directly, maybe in the scan function?
+ *  Potentially add a way to see the bosses health directly, maybe in the scan function?                            TICK
  *  Have some extra text printed to the screen during the boss death
  *
  * Not important things and ideas
@@ -439,9 +439,9 @@ void __SuperSentinelScanPrintFunction(void) {
     if (super_sentinel_health > SS_LASER_HEALTH) {
         UIWriteTextAtOffset("Disobedience Detected", line_num, 3);
     } else if (super_sentinel_health > SS_FINAL_HEALTH) {
-        UIWriteTextAtOffset("Insolence Detected", line_num, 3);
+        UIWriteTextAtOffset("Defiance Detected", line_num, 3);
     } else if (super_sentinel_health > SS_CRITICAL_HEALTH) {
-        UIWriteTextAtOffset("Anomaly Detected", line_num, 3);  // Better string needed
+        UIWriteTextAtOffset("Insolence Detected", line_num, 3);
     } else {
         UIWriteTextAtOffset("Reporting Anomaly", line_num, 3);
     }
