@@ -1178,13 +1178,6 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
 
         laser_death_counter--;
 
-        // UI wooo
-        UIResetDisplayBuffer();
-
-        ; // Pretend this actually prints stuff
-
-        UIPrintDisplayBuffer();
-
         // Waiting
         swiWaitForVBlank();
         // Update the screen
@@ -1240,13 +1233,6 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
             }
         }
 
-        // UI wooo
-        UIResetDisplayBuffer();
-
-        ; // Pretend this actually prints stuff
-
-        UIPrintDisplayBuffer();
-
         // Waiting
         swiWaitForVBlank();
         // Update the screen
@@ -1298,13 +1284,6 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
             }
         }
 
-        // UI wooo
-        UIResetDisplayBuffer();
-
-        ; // Pretend this actually prints stuff
-
-        UIPrintDisplayBuffer();
-
         // Waiting
         swiWaitForVBlank();
         // Update the screen
@@ -1323,10 +1302,6 @@ void SSRunEndLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bul
             10 + i,
             true);
     }
-    // UI wooo
-    UIResetDisplayBuffer();
-    ; // Pretend this actually prints stuff
-    UIPrintDisplayBuffer();
     // Waiting
     swiWaitForVBlank();
     // Update the screen
