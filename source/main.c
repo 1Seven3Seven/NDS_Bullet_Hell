@@ -423,7 +423,11 @@ void __SuperSentinelScanPrintFunction(void) {
 
     if (time_since_pause <= time_to_display) return;
 
-    UIWriteTextAtOffset("Enemies Detected:       1", line_num, 3);
+    char temp[4];
+    itoa(SSGetHealth(EnemyEntityArray), temp, 10);
+
+    UIWriteTextAtOffset("Enemies Detected:", line_num, 3);
+    UIWriteTextAtOffset(temp, line_num, 28 - strlen(temp));
 
     line_num += 2;
     time_to_display += 60;
