@@ -683,7 +683,7 @@ int main(void)
         "Next Version Ideas",
         13,
         "More boss enemies.",
-        "  At least 2 more."
+        "  At least 2 more.",
         "Saving progress.",
         "Sound effects.",
         "Keeping track of stats.",
