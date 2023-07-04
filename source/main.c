@@ -606,7 +606,7 @@ int main(void)
             "Play",
             "Difficulty Select",
             "Credits",
-            "Next version",
+            "Next version Ideas",
             "Boss Quick Start",
             "Challenge"
     );
@@ -678,11 +678,23 @@ int main(void)
     );
     UIInitInterface(
         &next_version_interface,
-        "Next Version",
-        2,
-        "Too lazy right now to put",
-        "stuff here"
+        "Next Version Ideas",
+        13,
+        "More boss enemies.",
+        "  At least 2 more."
+        "Saving progress.",
+        "Sound effects.",
+        "Keeping track of stats.",
+        "Aka a scoreboard of:",
+        "  Enemy kills.",
+        "  Player deaths.",
+        "A tutorial could be cool.",
+        "Custom seed input.",
+        "Tankier player?",
+        "",
+        "Return to Main Menu"
     );
+    next_version_interface.Choice = next_version_interface.NumUIOptions - 1;
     UIInitInterface(
             &unimplemented_interface,
             "Unimplemented Interface",
@@ -1055,7 +1067,16 @@ int main(void)
 
             // #region - Next Version Details
             case 'N':
-                ;
+                ui_choice = UIHandleInterfaceAtOffset(
+                    &next_version_interface,
+                    &FrameNumber,
+                    1,
+                    1
+                );
+
+                if (ui_choice == next_version_interface.NumUIOptions - 1) CurrentActivity = 'M';
+
+                break;
             // #endregion
 
             // #region - For currently unimplemented interfaces
