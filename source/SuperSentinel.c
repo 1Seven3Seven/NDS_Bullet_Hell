@@ -641,7 +641,7 @@ void SSSetupForGameLoop(Entity *player, Entity enemy_array[], int enemy_array_le
 
         // Drawing the player when the portal is halfway done
         if (player_spawn_counter < 16) {
-            PlayerAnimate(player, 1, *frame_number, all_sprite_gfx->PlayerGFXMem, all_sprite_gfx->PortalGFXMem);
+            PlayerAnimate(player, (bool)player_spawn_counter, *frame_number, all_sprite_gfx->PlayerGFXMem, all_sprite_gfx->PortalGFXMem);
         }
 
         // If the player is finished
