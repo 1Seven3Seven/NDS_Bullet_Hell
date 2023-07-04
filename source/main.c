@@ -24,14 +24,12 @@
  *      The lazers sometimes remain for too long when transitioning to the last phase.                              TICK
  *          They may not be despawned correctly or not at all.                                                      TICK
  *  Fix ghost bullets when going from 8 enemies to the boss.                                                        TICK
- *  There seems to be a bug where sometimes the win condition is met when there are only death bullets alive.
  *  Add an option to the main menu for improvements/next version.
  *  Scanning sector for extra information.                                                                          TICK
  *      Sectors                                                                                                     TICK
  *      Boss                                                                                                        TICK
  *  Basically spruce up the pause menu.                                                                             TICK
  *  Last stage is a bit too difficult when compared to the boss, maybe leave it as a challenge?                     TICK
- *  Maybe come up with a way to make the normal enemy text screen a little more interesting
  *  Potentially add a way to see the bosses health directly, maybe in the scan function?                            TICK
  *
  * Not important things and ideas
@@ -74,6 +72,7 @@
  *      Scroll interface, when there are too many options to fit on the screen at once you can scroll?
  *          Maybe just use sub interfaces, but ehh.
  *          Potentially the text interface could scroll instead.
+ *  Maybe come up with a way to make the normal enemy text screen a little more interesting
  * ================================================================================================================== */
 
 // NDS
