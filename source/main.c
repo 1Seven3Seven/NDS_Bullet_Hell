@@ -74,7 +74,8 @@
  *      Scroll interface, when there are too many options to fit on the screen at once you can scroll?
  *          Maybe just use sub interfaces, but ehh.
  *          Potentially the text interface could scroll instead.
- *  Maybe come up with a way to make the normal enemy text screen a little more interesting
+ *  Maybe come up with a way to make the normal enemy text screen a little more interesting.
+ *  Continue to challenge from beating the boss the first time.
  * ================================================================================================================== */
 
 // NDS
