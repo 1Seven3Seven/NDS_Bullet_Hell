@@ -278,17 +278,17 @@ void MainMenuPrintFunc(void) {
 // Needs to be rewritten each time the separation is changed on the difficulty interface
 void DifficultySelectPrintFunc(void) {
     UIWriteTextAtOffset(
-            "Infinite lives",
+            "Infinite attempts",
             4,
             8
     );
     UIWriteTextAtOffset(
-            "Five lives",
+            "Five attempts",
             7,
             8
     );
     UIWriteTextAtOffset(
-            "One life",
+            "One attempt",
             10,
             8
     );
@@ -343,8 +343,11 @@ void __SectorScanPrintFunction(void) {
         if (Difficulty != 'E') {
             UIWriteTextAtOffset("Temporal Resets:", line_num, 3);
             char num[2];
-            itoa(Lives, num, 10);
+            itoa(Lives - 1, num, 10);
             UIWriteTextAtOffset(num, line_num, 27);
+        } else {
+            line_num -= 2;
+            time_to_display -= 60;
         }
     }
 
@@ -414,8 +417,11 @@ void __SuperSentinelScanPrintFunction(void) {
     if (Difficulty != 'E') {
         UIWriteTextAtOffset("Temporal Resets:", line_num, 3);
         char num[2];
-        itoa(Lives, num, 10);
+        itoa(Lives - 1, num, 10);
         UIWriteTextAtOffset(num, line_num, 27);
+    } else {
+        line_num -= 2;
+        time_to_display -= 60;
     }
 
     line_num += 2;
@@ -510,8 +516,11 @@ void __ChallegeScanPrintFunction(void) {
     if (Difficulty != 'E') {
         UIWriteTextAtOffset("Temporal Resets:", line_num, 3);
         char num[2];
-        itoa(Lives, num, 10);
+        itoa(Lives - 1, num, 10);
         UIWriteTextAtOffset(num, line_num, 27);
+    } else {
+        line_num -= 2;
+        time_to_display -= 60;
     }
 
     line_num += 2;
