@@ -32,7 +32,7 @@
  *  Last stage is a bit too difficult when compared to the boss, maybe leave it as a challenge?                     TICK
  *  Potentially add a way to see the bosses health directly, maybe in the scan function?                            TICK
  *  Title screen/background.
- *  Different boss background.
+ *  Different boss background.                                                                                      TICK
  *
  * Not important things and ideas
  * ToDo:
