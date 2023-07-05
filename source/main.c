@@ -99,6 +99,8 @@
 
 // Backgrounds
 #include "BasicBackground.h"
+#include "BossBackground.h"
+#include "TitleBackground.h"
 
 // Version
 #define VERSION "Development 18"
@@ -589,8 +591,8 @@ int main(void)
 
     // Loading the backgrounds
     int bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
-    dmaCopy(BasicBackgroundBitmap, bgGetGfxPtr(bg3), 256 * 256);
-    dmaCopy(BasicBackgroundPal, BG_PALETTE, sizeof(BasicBackgroundPal));
+    // dmaCopy(TitleBackgroundBitmap, bgGetGfxPtr(bg3), TitleBackgroundBitmapLen);
+    // dmaCopy(TitleBackgroundPal, BG_PALETTE, TitleBackgroundPalLen);
 
     // int bg2 = bgInit(2, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
     // dmaCopy(PauseBGBitmap, bgGetGfxPtr(bg2), 256 * 256);
@@ -724,6 +726,11 @@ int main(void)
         switch (CurrentActivity) {
             // #region - Handle the main menu
             case 'M':
+                // Back to our title screen
+                dmaCopy(TitleBackgroundBitmap, bgGetGfxPtr(bg3), TitleBackgroundBitmapLen);
+                dmaCopy(TitleBackgroundPal, BG_PALETTE, TitleBackgroundPalLen);
+
+                // Hide everything
                 HideEverySprite();
 
                 // Reseeding the random number generator
@@ -821,15 +828,20 @@ int main(void)
             case 'G': // Start a new game
             case 'R': // Resume the game
                 // If starting anew run the setup
-                if (CurrentActivity == 'G')
+                if (CurrentActivity == 'G') {
+                    // Set the correct background
+                    dmaCopy(BasicBackgroundBitmap, bgGetGfxPtr(bg3), BasicBackgroundBitmapLen);
+                    dmaCopy(BasicBackgroundPal, BG_PALETTE, BasicBackgroundPalLen);
+
                     GameSectorSetup(
-                            &Player,
-                            EnemyEntityArray, 8,
-                            BulletArray, MAX_BULLET_COUNT,
-                            &FrameNumber,
-                            &EnemiesAllEnemyData, &GFXAllSpriteGFX,
-                            NumEnemyGroups
-                    );
+                        &Player,
+                        EnemyEntityArray, 8,
+                        BulletArray, MAX_BULLET_COUNT,
+                        &FrameNumber,
+                        &EnemiesAllEnemyData, &GFXAllSpriteGFX,
+                        NumEnemyGroups
+                        );
+                }
 
                 // If no setup was run then resumed
                 // Changing activity back to game
@@ -944,7 +956,11 @@ int main(void)
             // #region - Super Sentinel battle
             case 'S': // Start the super sentinel battle
             case '0': // Resume from pause
-                if (CurrentActivity == 'S')
+                if (CurrentActivity == 'S'){
+                    // Set the correct background
+                    dmaCopy(BossBackgroundBitmap, bgGetGfxPtr(bg3), BossBackgroundBitmapLen);
+                    dmaCopy(BossBackgroundPal, BG_PALETTE, BossBackgroundPalLen);
+
                     SSSetupForGameLoop(
                             &Player,
                             EnemyEntityArray, 8,
@@ -953,6 +969,7 @@ int main(void)
                             &GFXAllSpriteGFX,
                             bg3
                     );
+                }
 
                 // Back to normal
                 CurrentActivity = 'S';
@@ -1018,6 +1035,10 @@ int main(void)
             case 'Y': // New challenge attempt
             case 'Z': // Resume challenge attempt
                 if (CurrentActivity == 'Y') {
+                    // Set the correct background
+                    dmaCopy(BasicBackgroundBitmap, bgGetGfxPtr(bg3), BasicBackgroundBitmapLen);
+                    dmaCopy(BasicBackgroundPal, BG_PALETTE, BasicBackgroundPalLen);
+
                     GameSectorSetup(
                         &Player,
                         EnemyEntityArray, 8,
