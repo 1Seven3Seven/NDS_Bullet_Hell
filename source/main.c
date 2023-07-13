@@ -263,17 +263,6 @@ void PrintDifficultyAndSeedFunc(void) {
 
 // Main Func WOO!!!
 void MainMenuPrintFunc(void) {
-    UIWriteTextAtOffset(
-            "Work In Progress",
-            15,
-            14
-    );
-    UIWriteTextAtOffset(
-            "Not For Distribution",
-            16,
-            12
-    );
-
     __PrintDifficulty(23);
 }
 
