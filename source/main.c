@@ -98,7 +98,7 @@
 #include "GameLibrary.h"
 
 // Backgrounds
-#include "BasicBackground.h"
+#include "BattleBackground.h"
 #include "BossBackground.h"
 #include "TitleBackground.h"
 
@@ -830,8 +830,8 @@ int main(void)
                 // If starting anew run the setup
                 if (CurrentActivity == 'G') {
                     // Set the correct background
-                    dmaCopy(BasicBackgroundBitmap, bgGetGfxPtr(bg3), BasicBackgroundBitmapLen);
-                    dmaCopy(BasicBackgroundPal, BG_PALETTE, BasicBackgroundPalLen);
+                    dmaCopy(BattleBackgroundBitmap, bgGetGfxPtr(bg3), BattleBackgroundBitmapLen);
+                    dmaCopy(BattleBackgroundPal, BG_PALETTE, BattleBackgroundPalLen);
 
                     GameSectorSetup(
                         &Player,
@@ -1036,8 +1036,8 @@ int main(void)
             case 'Z': // Resume challenge attempt
                 if (CurrentActivity == 'Y') {
                     // Set the correct background
-                    dmaCopy(BasicBackgroundBitmap, bgGetGfxPtr(bg3), BasicBackgroundBitmapLen);
-                    dmaCopy(BasicBackgroundPal, BG_PALETTE, BasicBackgroundPalLen);
+                    dmaCopy(BattleBackgroundBitmap, bgGetGfxPtr(bg3), BattleBackgroundBitmapLen);
+                    dmaCopy(BattleBackgroundPal, BG_PALETTE, BattleBackgroundPalLen);
 
                     GameSectorSetup(
                         &Player,
