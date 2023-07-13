@@ -591,15 +591,6 @@ int main(void)
 
     // Loading the backgrounds
     int bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
-    // dmaCopy(TitleBackgroundBitmap, bgGetGfxPtr(bg3), TitleBackgroundBitmapLen);
-    // dmaCopy(TitleBackgroundPal, BG_PALETTE, TitleBackgroundPalLen);
-
-    // int bg2 = bgInit(2, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
-    // dmaCopy(PauseBGBitmap, bgGetGfxPtr(bg2), 256 * 256);
-    // dmaCopy(PauseBGPal, BG_PALETTE, sizeof(PauseBGPal));
-
-    // bgHide(bg2);
-    // bgUpdate();
 
     // Seeding the random number generator
     srand((unsigned) time(&Seed));

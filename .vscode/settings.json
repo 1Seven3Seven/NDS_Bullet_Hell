@@ -17,6 +17,7 @@
         "game.h": "c",
         "nds.h": "c",
         "basicbackground.h": "c",
-        "battlebackground.h": "c"
+        "battlebackground.h": "c",
+        "title.h": "c"
     }
 }
