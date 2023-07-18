@@ -212,7 +212,7 @@ void __PrintSeed(int line_num) {
 // Prints the difficulty at the line number
 void __PrintDifficulty(int line_num) {
     UIWriteText(
-            "Difficulty: ",
+            "Difficulty:",
             line_num
     );
     switch (Difficulty) {
@@ -247,11 +247,11 @@ void __PrintVersion(int line_num, int char_offset, int right_align) {
         int true_offset = UI_NUM_CHARS - len - char_offset;
         if (true_offset < 9)
             true_offset = 9;
-        UIWriteTextAtOffset("Version:", line_num, true_offset - 9);
+        UIWriteTextAtOffset("Version:", line_num, true_offset - 12);
         UIWriteTextAtOffset(VERSION, line_num, true_offset);
     } else {
         UIWriteTextAtOffset("Version:", line_num, char_offset);
-        UIWriteTextAtOffset(VERSION, line_num, char_offset + 9);
+        UIWriteTextAtOffset(VERSION, line_num, char_offset + 12);
     }
 }
 
@@ -263,6 +263,7 @@ void PrintDifficultyAndSeedFunc(void) {
 
 // Main Func WOO!!!
 void MainMenuPrintFunc(void) {
+    __PrintVersion(22, 0, false);
     __PrintDifficulty(23);
 }
 
