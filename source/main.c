@@ -31,7 +31,7 @@
  *  Basically spruce up the pause menu.                                                                             TICK
  *  Last stage is a bit too difficult when compared to the boss, maybe leave it as a challenge?                     TICK
  *  Potentially add a way to see the bosses health directly, maybe in the scan function?                            TICK
- *  Title screen/background.
+ *  Title screen/background.                                                                                        TICK
  *  Different boss background.                                                                                      TICK
  *
  * Not important things and ideas
@@ -103,7 +103,7 @@
 #include "TitleBackground.h"
 
 // Version
-#define VERSION "Development 18"
+#define VERSION "Version 1 Dev 19"
 
 //---------------------------------------------------------------------------------
 // Bullets, player and enemies
