@@ -1,3 +1,4 @@
 build/
 NDS_Bullet_Hell.elf
 NDS_Bullet_Hell.nds
+*.DS_STORE
