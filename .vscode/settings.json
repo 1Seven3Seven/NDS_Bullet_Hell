@@ -18,6 +18,14 @@
         "nds.h": "c",
         "basicbackground.h": "c",
         "battlebackground.h": "c",
-        "title.h": "c"
+        "title.h": "c",
+        "math.h": "c",
+        "stdlib.h": "c",
+        "gamelibrary.h": "c",
+        "gfx.h": "c",
+        "string.h": "c",
+        "spritesheet.h": "c",
+        "dynamicarray.h": "c",
+        "linkedlist.h": "c"
     }
 }
