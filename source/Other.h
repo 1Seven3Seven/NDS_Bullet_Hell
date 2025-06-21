@@ -1,38 +1,38 @@
 #ifndef BULLET_HELL_OTHER_H
 #define BULLET_HELL_OTHER_H
 
-// Check for a collision between the two given rectangles
+/// Check for a collision between the two given rectangles.
 int RectangleCollision(int rect1[4], int rect2[4]);
 
-// Get the x value of the left of the rectangle
+/// Get the x value for the left of the rectangle.
 int RectangleGetLeft(int rect[4]);
 
-// Get the x value of the right of the rectangle
+/// Get the x value for the right of the rectangle.
 int RectangleGetRight(int rect[4]);
 
-// Get the y value of the top of the rectangle
+/// Get the y value for the top of the rectangle.
 int RectangleGetTop(int rect[4]);
 
-// Get the y value of the bottom of the rectangle
+/// Get the y value for the bottom of the rectangle.
 int RectangleGetBottom(int rect[4]);
 
-// Returns the angle from the positive horizontal to a line drawn to this point
+/// Returns the angle from the positive horizontal to a line drawn to this point.
 float GetAngleFromOriginTo(float x, float y);
 
-// Creates a unit vector from the given angle and places it in the vector array
+/// Creates a unit vector from the given angle and places it in the vector array.
 void GetUnitVectorFromAngle(float angle, float vector_array[2]);
 
-// Finds the vector from (x1, y1) to (x2, y2), makes it be of length magnitude and places it in the vector array
+/// Finds the vector from (x1, y1) to (x2, y2), makes it be of length magnitude and places it in the vector array.
 void GetVectorFromTo(float x1, float y1, float x2, float y2, float magnitude, float vector_array[2]);
 
-// Shuffles the given array of ints
+/// Shuffles the given array of ints.
 void ShuffleIntArray(int array[], int array_len);
 
-// Hides every sprite
+/// Hides every sprite.
 void HideEverySprite();
 
-// Modulo always positive
-// From "https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c"
+/// Modulo always positive.
+/// From "https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c"
 unsigned modulo(int value, unsigned m);
 
-#endif // BULLET_HELL_OTHER_H
+#endif
