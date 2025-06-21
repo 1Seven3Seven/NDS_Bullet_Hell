@@ -1,10 +1,13 @@
-#ifndef BULLET_HELL_GAMELIBRARY_H
-#define BULLET_HELL_GAMELIBRARY_H
+#ifndef BULLET_HELL_GAME_LIBRARY_H
+#define BULLET_HELL_GAME_LIBRARY_H
 
 #include "Constants.h"
 #include "Other.h"
 
 #include "UI.h"
+#include "UIHelperPrintFunctions.h"
+#include "UISectorScanFunctions.h"
+#include "UIInterfaceDefinitions.h"
 
 #include "GFX.h"
 
@@ -19,4 +22,4 @@
 
 #include "SuperSentinel.h"
 
-#endif //BULLET_HELL_GAMELIBRARY_H
+#endif

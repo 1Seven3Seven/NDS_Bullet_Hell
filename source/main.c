@@ -1,20 +1,14 @@
 // NDS
 #include <nds.h>
 
-// None of the following are necessary
-// They are here so vs code actually knows they exist and does not constantly yell at me
-#include <nds/arm9/video.h>
-#include <nds/arm9/background.h>
-#include <nds/arm9/sprite.h>
-
 // Standard libraries
 #include <stdio.h>
-#include <math.h>
 #include <stdlib.h>
 #include <time.h> // Needed for the random number seeding - Mr. King
-#include <string.h>
+#include <stdbool.h>
 
 // My stuff
+#include "GameState.h"
 #include "GameLibrary.h"
 
 // Backgrounds
@@ -22,472 +16,37 @@
 #include "BossBackground.h"
 #include "TitleBackground.h"
 
-// Version
-#define VERSION "Version 1 Dev 19"
-
-//---------------------------------------------------------------------------------
-// Bullets, player and enemies
-//---------------------------------------------------------------------------------
-
-// The array containing all the bullets
-Bullet BulletArray[MAX_BULLET_COUNT];
-// Player
-Entity Player;
-// Array containing the enemies
-Entity EnemyEntityArray[8];
-
-//---------------------------------------------------------------------------------
-// Miscellaneous
-//---------------------------------------------------------------------------------
-
-int FrameNumber = 0; // Take a guess
-
-// The playable area, equivalent to the screen
-// Bullets are deleted when exiting this
-int PlayableArea[4] = {0, 0, 256, 192};
-// The hitboxes of the boarder of the screen
-// Can be more, but I don't want more
-int ScreenBoarder[4][4] = {
-        {0,   0,   8,   192},
-        {0,   0,   256, 8},
-        {0,   184, 256, 8},
-        {248, 0,   8,   192}
-};
-
-// The Seed
-long long int Seed = 0;
-// The Seed in string form
-// 20 chars long because the max length of a long long int is 20 chars
-char SeedString[21] = "12345678901234567890";
-
-// Numbers that are known to produce bugs
-// Seed = 1668036031; srand((unsigned) Seed); // Two miners spawned in same place with 1 set of enemies
-// Seed = 1668446882; srand((unsigned) Seed); // Two shredders spawned in same place with 2 set of enemies
-
-// The difficulty, duh
-//    E = Easy
-//    N = Normal
-//    H = Hard
-char Difficulty = 'N';
-// The number of enemy groups to spawn in
-int NumEnemyGroups = 1;
-
-// Lives
-//      Positive numbers = num lives left
-//      -1 = infinite
-int Lives;
-
 // Returns the number of lives depending on the difficulty
-int GetNumLives() {
-    switch (Difficulty) {
+int GetNumLives()
+{
+    switch (GameState.Difficulty)
+    {
         case 'E':
             return -1;
         case 'N':
             return 5;
         case 'H':
             return 1;
-    }
-
-    return -1;
-}
-
-// The current activity to perform
-//  Menus
-//      M = Main menu
-//      D = Difficulty select
-//      C = Credits
-//      N = Next version details
-//      L = Lose screen
-//      W = Win screen
-//      P = Pause screen
-//  Games
-//      G = Game
-//      R = Resume game
-//  Bosses
-//      S = Super sentinel
-//      0 = Resume super sentinel
-//  Challenge round
-//      Y = Challenge
-//      Z = Resume challenge
-char CurrentActivity = 'M';
-
-// What the current activity should be set to after a pause is resumed
-char ResumeAfterPause;
-
-// region - Print functions to add extra information to the UIs
-
-// Prints the seed at the line number
-void __PrintSeed(int line_num) {
-    UIWriteText(
-            "Seed: ",
-            line_num
-    );
-    UIWriteTextAtOffset(
-            SeedString,
-            line_num,
-            6
-    );
-}
-
-// Prints the difficulty at the line number
-void __PrintDifficulty(int line_num) {
-    UIWriteText(
-            "Difficulty:",
-            line_num
-    );
-    switch (Difficulty) {
-        case 'E':
-            UIWriteTextAtOffset(
-                    "Easy",
-                    line_num,
-                    12
-            );
-            break;
-        case 'N':
-            UIWriteTextAtOffset(
-                    "Normal",
-                    line_num,
-                    12
-            );
-            break;
-        case 'H':
-            UIWriteTextAtOffset(
-                    "Hard",
-                    line_num,
-                    12
-            );
-            break;
-    }
-}
-
-// Prints the version at the line number, aligned to the right
-void __PrintVersion(int line_num, int char_offset, int right_align) {
-    int len = strlen(VERSION);
-    if (right_align) {
-        int true_offset = UI_NUM_CHARS - len - char_offset;
-        if (true_offset < 9)
-            true_offset = 9;
-        UIWriteTextAtOffset("Version:", line_num, true_offset - 12);
-        UIWriteTextAtOffset(VERSION, line_num, true_offset);
-    } else {
-        UIWriteTextAtOffset("Version:", line_num, char_offset);
-        UIWriteTextAtOffset(VERSION, line_num, char_offset + 12);
-    }
-}
-
-// Print function to display the extra information
-void PrintDifficultyAndSeedFunc(void) {
-    __PrintDifficulty(22);
-    __PrintSeed(23);
-}
-
-// Main Func WOO!!!
-void MainMenuPrintFunc(void) {
-    __PrintVersion(22, 0, false);
-    __PrintDifficulty(23);
-}
-
-// Prints the explanations of the difficulties
-// Needs to be rewritten each time the separation is changed on the difficulty interface
-void DifficultySelectPrintFunc(void) {
-    UIWriteTextAtOffset(
-            "Infinite attempts",
-            4,
-            8
-    );
-    UIWriteTextAtOffset(
-            "Five attempts",
-            7,
-            8
-    );
-    UIWriteTextAtOffset(
-            "One attempt",
-            10,
-            8
-    );
-}
-
-// Extra information to control the scanning
-
-int StartFrameNum = -1;
-int ScanningToggle = 0;
-int ScanningFinished = 0;
-
-void __SectorScanPrintFunction(void) {
-    if (StartFrameNum == -1)
-        StartFrameNum = FrameNumber;
-
-    if ((FrameNumber - StartFrameNum) % 30 == 0)
-        ScanningToggle = !ScanningToggle;
-
-    if (!ScanningFinished) {
-        if (ScanningToggle)
-            UIWriteTextAtOffset("SCANNING", 7, 1);
-    } else {
-        UIWriteTextAtOffset("SCAN COMPLETE", 7, 1);
-    }
-
-    char temp[UI_NUM_CHARS + 1];
-
-    int time_since_pause = FrameNumber - StartFrameNum;
-    int time_to_display = 60;
-    int line_num = 9;
-
-    if (time_since_pause > time_to_display) {
-        UIWriteTextAtOffset("Hull integrity:", line_num, 3);
-        if (Player.dead) {
-            time_to_display += 60;
-            UIWriteTextAtOffset("  0%", line_num, 25);
-            if (time_since_pause > time_to_display) {
-                UIWriteTextAtOffset("Temporal Reset", line_num + 1, 5);
-                UIWriteTextAtOffset("Recommended", line_num + 2, 5);
-            }
-        } else {
-            UIWriteTextAtOffset("100%", line_num, 25);
-        }
-    }
-
-    line_num += 2;
-    if (Player.dead)
-        line_num += 2;
-    time_to_display += 60;
-
-    if (time_since_pause > time_to_display) {
-        if (Difficulty != 'E') {
-            UIWriteTextAtOffset("Temporal Resets:", line_num, 3);
-            char num[2];
-            itoa(Lives - 1, num, 10);
-            UIWriteTextAtOffset(num, line_num, 27);
-        } else {
-            line_num -= 2;
-            time_to_display -= 60;
-        }
-    }
-
-    line_num += 2;
-    time_to_display += 60;
-
-    if (time_since_pause > time_to_display) {
-        UIWriteTextAtOffset("Enemies Detected:", line_num, 3);
-        int num = 0;
-        for (int i = 0; i < 8; ++i) {
-            if (!EnemyEntityArray[i].dead)
-                num++;
-        }
-        itoa(num, temp, 10);
-        UIWriteTextAtOffset(temp, line_num, 27);
-    }
-
-    time_to_display += 60;
-
-    if (time_since_pause > time_to_display)
-        ScanningFinished = 1;
-}
-
-int SuperSentinelStartIndexes[26] = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12,
-                                     13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25};
-
-void __SuperSentinelScanPrintFunction(void) {
-    if (StartFrameNum == -1) {
-        StartFrameNum = FrameNumber;
-        ShuffleIntArray(SuperSentinelStartIndexes, 26);
-    }
-
-    if ((FrameNumber - StartFrameNum) % 30 == 0) ScanningToggle = !ScanningToggle;
-
-    if (!ScanningFinished) {
-        if (ScanningToggle) UIWriteTextAtOffset("SCANNING", 7, 1);
-    } else {
-        UIWriteTextAtOffset("SCAN COMPLETE", 7, 1);
-    }
-
-    // char temp[UI_NUM_CHARS + 1];
-
-    int time_since_pause = FrameNumber - StartFrameNum;
-    int time_to_display = 60;
-    int line_num = 9;
-
-    if (time_since_pause <= time_to_display) return;
-
-    UIWriteTextAtOffset("Hull integrity:", line_num, 3);
-    if (Player.dead) {
-        time_to_display += 60;
-        UIWriteTextAtOffset("  0%", line_num, 25);
-        if (time_since_pause > time_to_display) {
-            UIWriteTextAtOffset("Temporal Reset", line_num + 1, 5);
-            UIWriteTextAtOffset("Recommended", line_num + 2, 5);
-        }
-    } else {
-        UIWriteTextAtOffset("100%", line_num, 25);
-    }
-
-    line_num += 2;
-    if (Player.dead) line_num += 2;
-    time_to_display += 60;
-
-    if (time_since_pause <= time_to_display) return;
-
-    if (Difficulty != 'E') {
-        UIWriteTextAtOffset("Temporal Resets:", line_num, 3);
-        char num[2];
-        itoa(Lives - 1, num, 10);
-        UIWriteTextAtOffset(num, line_num, 27);
-    } else {
-        line_num -= 2;
-        time_to_display -= 60;
-    }
-
-    line_num += 2;
-    time_to_display += 60;
-
-    if (time_since_pause <= time_to_display) return;
-
-    char temp[4];
-    itoa(SSGetHealth(EnemyEntityArray), temp, 10);
-
-    UIWriteTextAtOffset("Enemies Detected:", line_num, 3);
-    UIWriteTextAtOffset(temp, line_num, 28 - strlen(temp));
-
-    line_num += 2;
-    time_to_display += 60;
-
-    if (time_since_pause <= time_to_display) return;
-
-    const int super_sentinel_health = SSGetHealth(EnemyEntityArray);
-
-    if (super_sentinel_health > SS_LASER_HEALTH) {
-        UIWriteTextAtOffset("Disobedience Detected", line_num, 3);
-    } else if (super_sentinel_health > SS_FINAL_HEALTH) {
-        UIWriteTextAtOffset("Defiance Detected", line_num, 3);
-    } else if (super_sentinel_health > SS_CRITICAL_HEALTH) {
-        UIWriteTextAtOffset("Insolence Detected", line_num, 3);
-    } else {
-        UIWriteTextAtOffset("Reporting Anomaly", line_num, 3);
-    }
-
-    time_to_display += 30;
-
-    for (int j = 0; j < 6; j++) {
-        if (time_since_pause <= time_to_display + 23 * j) break;
-
-        if (j == 5) {
-            UIWriteTextAtOffset("                          ", line_num, 3);
-            break;
-        }
-
-        int loopLimit = (!j) ? 6 : 5;
-
-        for (int i = 0; i < loopLimit; i++) {
-            int offset = SuperSentinelStartIndexes[(bool)j * 6 + (bool)j * (j - 1) * 5 + i];
-            UIWriteTextAtOffset("-", line_num, 3 + offset);
-        }
-    }
-
-    // This happens independently to the previous for loop
-    time_to_display += 30;
-
-    if (time_since_pause > time_to_display) ScanningFinished = 1;
-}
-
-void __ChallegeScanPrintFunction(void) {
-    if (StartFrameNum == -1) StartFrameNum = FrameNumber;
-
-    if ((FrameNumber - StartFrameNum) % 30 == 0) ScanningToggle = !ScanningToggle;
-
-    if (!ScanningFinished) {
-        if (ScanningToggle) UIWriteTextAtOffset("SCANNING", 7, 1);
-    } else {
-        UIWriteTextAtOffset("SCAN COMPLETE", 7, 1);
-    }
-
-    char temp[UI_NUM_CHARS + 1];
-
-    int time_since_pause = FrameNumber - StartFrameNum;
-    int time_to_display = 60;
-    int line_num = 9;
-
-    if (time_since_pause <= time_to_display) return;
-
-    UIWriteTextAtOffset("Hull integrity:", line_num, 3);
-    if (Player.dead) {
-        time_to_display += 60;
-        UIWriteTextAtOffset("  0%", line_num, 25);
-        if (time_since_pause > time_to_display) {
-            UIWriteTextAtOffset("Temporal Reset", line_num + 1, 5);
-            UIWriteTextAtOffset("Recommended", line_num + 2, 5);
-        }
-    } else {
-        UIWriteTextAtOffset("100%", line_num, 25);
-    }
-
-    line_num += 2;
-    if (Player.dead) line_num += 2;
-    time_to_display += 60;
-
-    if (time_since_pause <= time_to_display) return;
-
-    if (Difficulty != 'E') {
-        UIWriteTextAtOffset("Temporal Resets:", line_num, 3);
-        char num[2];
-        itoa(Lives - 1, num, 10);
-        UIWriteTextAtOffset(num, line_num, 27);
-    } else {
-        line_num -= 2;
-        time_to_display -= 60;
-    }
-
-    line_num += 2;
-    time_to_display += 60;
-
-    if (time_since_pause <= time_to_display) return;
-
-    UIWriteTextAtOffset("Enemies Detected:", line_num, 3);
-    int num = 0;
-    for (int i = 0; i < 8; ++i) {
-        if (!EnemyEntityArray[i].dead) num++;
-    }
-    itoa(num, temp, 10);
-    UIWriteTextAtOffset(temp, line_num, 27);
-
-    line_num += 2;
-    time_to_display += 60;
-
-    if (time_since_pause <= time_to_display) return;
-
-    UIWriteTextAtOffset("Explosive Enemy Finale?", line_num, 3);
-
-    time_to_display += 60;
-
-    if (time_since_pause > time_to_display) ScanningFinished = 1;
-}
-
-// Displays the seed, difficulty and the amount of lives left
-// Also displays some extra information
-void PauseScreenPrintFunc(void) {
-    switch (ResumeAfterPause) {
-        case 'R':  // Resume normal game
-            __SectorScanPrintFunction();
-            break;
-
-        case '0':  // Resume boss fight
-            __SuperSentinelScanPrintFunction();
-            break;
-
-        case 'Z':  // Resume challenge game
-            __ChallegeScanPrintFunction();
-            break;
-
         default:
-            UIWriteTextAtOffset("Something broke", 10, 3);
+            return -1;
     }
 }
 
-// endregion
+void SeedRNG()
+{
+    GameState.Seed = rand() % 100000000;
+    srand((unsigned) GameState.Seed);
+    itoa(GameState.Seed, GameState.SeedString, 10);
+}
 
 //---------------------------------------------------------------------------------
 int main(void)
 //---------------------------------------------------------------------------------
 {
+    //
+    // Generic NDS stuff
+    //
+
     // Enable the main screen
     videoSetMode(MODE_5_2D);
     // Setting and Initialising VRAM Bank A to sprites
@@ -503,130 +62,60 @@ int main(void)
     int bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
 
     // Seeding the random number generator
-    srand((unsigned) time(&Seed));
+    srand((unsigned) time(&GameState.Seed));
 
+    //
     // Sprite Memory Allocation and Loading
+    //
+
     GFXInit();
     GFXLoadAllSprites();
 
-    // #region - Creating the Interfaces
-    UIInterfaceStruct main_menu_interface, difficulty_select_interface, pause_interface, credits_interface,
-        lose_interface, main_win_interface, challenge_win_interface, boss_win_interface, next_version_interface,
-        unimplemented_interface;
-    UIInterfaceStruct *win_interface_to_use = &unimplemented_interface; // Just in case it is not set to not crash things
-    UIInitInterface(
-            &main_menu_interface,
-            "Main Menu",
-            6,
-            "Play",
-            "Difficulty Select",
-            "Credits",
-            "Next version Ideas",
-            "Boss Quick Start",
-            "Challenge"
-    );
-    main_menu_interface.Separation = 1;
-    // I should not really do this as it comes with the repercussion that any function that interacts with this will be
-    //  given the incorrect number of ui options.
-    // I am doing it to hide the boss and challenge options until you beat the game normally.
-    // This should not cause any problems with how I use the struct and because I do not un-initilise them.
-    main_menu_interface.NumUIOptions = 4;
-    UIInitInterface(
-            &difficulty_select_interface,
-            "Difficulty Select",
-            3,
-            "Easy",
-            "Normal",
-            "Hard"
-    );
-    difficulty_select_interface.Choice = 1; // Default normal
-    difficulty_select_interface.Separation = 2;
-    UIInitInterface(
-            &credits_interface,
-            "Credits",
-            13,
-            "Developer:",
-            "    Seven",
-            "",
-            "Art:",
-            "    Bax",
-            "    Seven",
-            "",
-            "Advice/Testing:",
-            "    Bax",
-            "    Nicole",
-            "    Dennis",
-            "",
-            "Return to Main Menu"
-    );
-    credits_interface.Choice = credits_interface.NumUIOptions - 1;
-    UIInitInterface(
-            &pause_interface,
-            "Temporal Disturbance Detected",
-            2,
-            "Resume",
-            "Abort"
-    );
-    UIInitInterface(
-            &lose_interface,
-            "Temporal Reset Failed",
-            1,
-            "Return to Main Menu"
-    );
-    UIInitInterface(
-            &main_win_interface,
-            "Main Game Completed Well Done",
-            1,
-            "Return to Main Menu"
-    );
-    UIInitInterface(
-            &challenge_win_interface,
-            "Challenge Completed Well Done",
-            1,
-            "Return to Main Menu"
-    );
-    UIInitInterface(
-            &boss_win_interface,
-            "Boss Defeated",
-            1,
-            "Return to Main Menu"
-    );
-    UIInitInterface(
-        &next_version_interface,
-        "Next Version Ideas",
-        13,
-        "More boss enemies.",
-        "  At least 2 more.",
-        "Saving progress.",
-        "Sound effects.",
-        "Keeping track of stats.",
-        "Aka a scoreboard of:",
-        "  Enemy kills.",
-        "  Player deaths.",
-        "A tutorial could be cool.",
-        "Custom seed input.",
-        "Tankier player?",
-        "",
-        "Return to Main Menu"
-    );
-    next_version_interface.Choice = next_version_interface.NumUIOptions - 1;
-    UIInitInterface(
-            &unimplemented_interface,
-            "Unimplemented Interface",
-            1,
-            "Return to Main Menu"
-    );
-    // #endregion
+    //
+    // Creating the Interfaces
+    //
+
+    UIInterfaceStruct main_menu_interface = UIIDCreateMainMenuInterface();
+    UIInterfaceStruct difficulty_select_interface = UIIDCreateDifficultySelectInterface();
+    UIInterfaceStruct pause_interface = UIIDCreatePauseInterface();
+    UIInterfaceStruct credits_interface = UIIDCreateCreditsInterface();
+    UIInterfaceStruct lose_interface = UIIDCreateLoseInterface();
+    UIInterfaceStruct main_win_interface = UIIDCreateMainWinInterface();
+    UIInterfaceStruct challenge_win_interface = UIIDCreateChallengeWinInterface();
+    UIInterfaceStruct boss_win_interface = UIIDCreateBossWinInterface();
+    UIInterfaceStruct next_version_interface = UIIDCreateNextVersionInterface();
+    UIInterfaceStruct update_information_interface = UIIDCreateUpdateInformationInterface();
+    UIInterfaceStruct test_menu_interface = UIIDCreateTestMenuInterface();
+
+    UIInterfaceStruct unimplemented_interface = UIIDCreateUnimplementedInterface();
+
+    // Default to unimplemented interface just in case
+    UIInterfaceStruct *win_interface_to_use = &unimplemented_interface;
+
+    //
+    // Interface/game results
+    //
 
     // The current choice from the interface
     int ui_choice;
     // The result from the game
     int game_result;
+    // If we should exit the game
+    int exit_game = 0;
 
-    while (1) {
-        switch (CurrentActivity) {
-            // #region - Handle the main menu
-            case 'M':
+    //
+    // Game loop?
+    // Menu loop is more correct,
+    // But games are run in here as well...
+    //
+
+    do
+    {
+        switch (GameState.CurrentActivity)
+        {
+            // Handle the main menu
+            case GameState_MainMenu:
+            {
                 // Back to our title screen
                 dmaCopy(TitleBackgroundBitmap, bgGetGfxPtr(bg3), TitleBackgroundBitmapLen);
                 dmaCopy(TitleBackgroundPal, BG_PALETTE, TitleBackgroundPalLen);
@@ -634,400 +123,515 @@ int main(void)
                 // Hide everything
                 HideEverySprite();
 
-                // Reseeding the random number generator
-                Seed = rand() % 100000000;
-                srand((unsigned) Seed);
-                itoa(Seed, SeedString, 10);
+                // Random seed for each playthrough
+                SeedRNG();
                 GameRandomiseEnemySpawns();
 
                 // Resetting gameplay variables
-                NumEnemyGroups = 1;
-                Lives = GetNumLives();
+                GameState.NumEnemyGroups = 1;
+                GameState.Lives = GetNumLives();
 
-                ui_choice = UIHandleInterfaceAtOffsetWithFunction(
-                        &main_menu_interface,
-                        &FrameNumber,
-                        1,
-                        1,
-                        &MainMenuPrintFunc // PrintDifficulty
+                ui_choice = UIHandleInterfaceAtOffset(
+                    &main_menu_interface,
+                    &GameState.FrameNumber,
+                    1,
+                    1
                 );
 
-                switch (ui_choice) {
+                switch (ui_choice)
+                {
                     case 0: // Play
-                        CurrentActivity = 'G';
+                        GameState.CurrentActivity = GameState_Game;
                         break;
                     case 1: // Difficulty select
-                        CurrentActivity = 'D';
+                        GameState.CurrentActivity = GameState_DifficultySelectMenu;
                         break;
                     case 2: // Credits
-                        CurrentActivity = 'C';
+                        GameState.CurrentActivity = GameState_CreditsMenu;
                         break;
                     case 3: // Next version information
-                        CurrentActivity = 'N';
+                        GameState.CurrentActivity = GameState_NextVersionMenu;
                         break;
-                    case 4: // Boss
-                        CurrentActivity = 'S';
+                    case 4: // Update information
+                        GameState.CurrentActivity = GameState_UpdateInformationMenu;
                         break;
-                    case 5: // Challenge
-                        CurrentActivity = 'Y';
-                        NumEnemyGroups = 4;
+                    case 5: // Exit
+                        exit_game = 1;
+                        break;
+                    case 6: // Boss
+                        GameState.CurrentActivity = GameState_SuperSentinel;
+                        break;
+                    case 7: // Challenge
+                        GameState.CurrentActivity = GameState_ChallengeRound;
+                        GameState.NumEnemyGroups = 4;
+                        break;
+                    default: // An unknown value returned, go to unimplemented interface
+                        GameState.CurrentActivity = GameState_UnimplementedMenu;
                         break;
                 }
 
-                main_menu_interface.Choice = 0;
+                // Leave the choice on what the player last selected
+                // main_menu_interface.Choice = 0;
 
                 break;
-            // #endregion
+            }
 
-            // #region - Handle the difficulty select
-            case 'D':
-                ui_choice = UIHandleInterfaceAtOffsetWithFunction(
-                        &difficulty_select_interface,
-                        &FrameNumber,
-                        1,
-                        1,
-                        &DifficultySelectPrintFunc
+            // Handle the difficulty select
+            case GameState_DifficultySelectMenu:
+            {
+                ui_choice = UIHandleInterfaceAtOffset(
+                    &difficulty_select_interface,
+                    &GameState.FrameNumber,
+                    1,
+                    1
                 );
 
-                switch (ui_choice) {
+                switch (ui_choice)
+                {
                     case 0: // Easy
-                        Difficulty = 'E';
-                        Lives = -1;
+                        GameState.Difficulty = 'E';
+                        GameState.Lives = -1;
                         break;
                     case 1: // Medium
-                        Difficulty = 'N';
-                        Lives = 5;
+                        GameState.Difficulty = 'N';
+                        GameState.Lives = 5;
                         break;
                     case 2: // Hard
-                        Difficulty = 'H';
-                        Lives = 1;
+                        GameState.Difficulty = 'H';
+                        GameState.Lives = 1;
+                        break;
+                    default: // An unknown value returned, go to unimplemented interface
+                        GameState.CurrentActivity = GameState_UnimplementedMenu;
                         break;
                 }
 
-                CurrentActivity = 'M';
+                GameState.CurrentActivity = GameState_MainMenu;
 
                 break;
-            // #endregion
+            }
 
-            // #region - Credits screen
-            case 'C':
+            // Credits screen
+            case GameState_CreditsMenu:
+            {
                 ui_choice = UIHandleInterfaceAtOffset(
-                        &credits_interface,
-                        &FrameNumber,
-                        1,
-                        1
+                    &credits_interface,
+                    &GameState.FrameNumber,
+                    1,
+                    1
                 );
 
-                if (ui_choice == 5) main_menu_interface.NumUIOptions = 6;
+                if (ui_choice == 5) { main_menu_interface.NumUIOptions = 8; }
 
-                if (ui_choice == credits_interface.NumUIOptions - 1) CurrentActivity = 'M';
+                if (ui_choice == credits_interface.NumUIOptions - 1) { GameState.CurrentActivity = GameState_MainMenu; }
 
                 break;
-            // #endregion
+            }
 
-            // #region - Handling sector gameplay
-            case 'G': // Start a new game
-            case 'R': // Resume the game
+            // Handling sector gameplay
+            case GameState_Game: // Start a new game
+            case GameState_ResumeGame: // Resume the game
+            {
                 // If starting anew run the setup
-                if (CurrentActivity == 'G') {
+                if (GameState.CurrentActivity == GameState_Game)
+                {
                     // Set the correct background
                     dmaCopy(BattleBackgroundBitmap, bgGetGfxPtr(bg3), BattleBackgroundBitmapLen);
                     dmaCopy(BattleBackgroundPal, BG_PALETTE, BattleBackgroundPalLen);
 
                     GameSectorSetup(
-                        &Player,
-                        EnemyEntityArray, 8,
-                        BulletArray, MAX_BULLET_COUNT,
-                        &FrameNumber,
+                        &GameState.Player,
+                        GameState.EnemyEntityArray, 8,
+                        GameState.BulletArray, MAX_BULLET_COUNT,
+                        &GameState.FrameNumber,
                         &EnemiesAllEnemyData, &GFXAllSpriteGFX,
-                        NumEnemyGroups
-                        );
+                        GameState.NumEnemyGroups
+                    );
                 }
 
-                // If no setup was run then resumed
+                // If no setup was run, then resumed
                 // Changing activity back to game
-                CurrentActivity = 'G';
+                GameState.CurrentActivity = GameState_Game;
 
                 game_result = GameRunGameLoop(
-                        &Player,
-                        EnemyEntityArray, 8,
-                        BulletArray, MAX_BULLET_COUNT,
-                        &FrameNumber,
-                        &EnemiesAllEnemyData, &GFXAllSpriteGFX,
-                        PlayableArea,
-                        ScreenBoarder, 4,
-                        0
+                    &GameState.Player,
+                    GameState.EnemyEntityArray, 8,
+                    GameState.BulletArray, MAX_BULLET_COUNT,
+                    &GameState.FrameNumber,
+                    &EnemiesAllEnemyData, &GFXAllSpriteGFX,
+                    GameState.PlayableArea,
+                    GameState.ScreenBoarder, 4,
+                    0
                 );
 
-                switch (game_result) {
+                switch (game_result)
+                {
                     case -1: // Pause
-                        CurrentActivity = 'P';
-                        ResumeAfterPause = 'R';
+                        GameState.CurrentActivity = GameState_PauseMenu;
+                        GameState.ResumeAfterPause = GameState_ResumeGame;
                         break;
 
                     case 0: // Player dies
                         // To prevent endless run after death
-                        CurrentActivity = 'G';
+                        GameState.CurrentActivity = GameState_Game;
 
                         // Reduce life considering difficulty
-                        if (Difficulty == 'N' || Difficulty == 'H')
-                            Lives--;
+                        if (GameState.Difficulty == 'N' || GameState.Difficulty == 'H')
+                        {
+                            GameState.Lives--;
+                        }
 
                         // If all lives lost
-                        if (Lives == 0)
-                            CurrentActivity = 'L';
+                        if (GameState.Lives == 0)
+                        {
+                            GameState.CurrentActivity = GameState_LoseMenu;
+                        }
 
                         break;
 
                     case 1: // Player wins
                         // Checking for increase difficulty or win
-                        if (NumEnemyGroups < 4) { // Add more enemies
-                            NumEnemyGroups++;
+                        if (GameState.NumEnemyGroups < 4)
+                        {
+                            // Add more enemies
+                            GameState.NumEnemyGroups++;
                             GameRandomiseEnemySpawns();
-                        } else { // Summon the boss
-                            CurrentActivity = 'S';
+                        }
+                        else
+                        {
+                            // Summon the boss
+                            GameState.CurrentActivity = GameState_SuperSentinel;
                         }
 
                         // Reset the number of lives
-                        Lives = GetNumLives();
+                        GameState.Lives = GetNumLives();
 
+                        break;
+
+                    default: // An unknown value returned, go to unimplemented interface
+                        GameState.CurrentActivity = GameState_UnimplementedMenu;
                         break;
                 }
 
                 break;
-            // #endregion
+            }
 
-            // #region - Pause screen
-            case 'P':
-                ui_choice = UIHandleInterfaceAtOffsetWithFunction(
-                        &pause_interface,
-                        &FrameNumber,
-                        1,
-                        1,
-                        &PauseScreenPrintFunc
+            // Pause screen
+            case GameState_PauseMenu:
+            {
+                // Reset this to reset the scanning
+                UISSFResetState();
+
+                ui_choice = UIHandleInterfaceAtOffset(
+                    &pause_interface,
+                    &GameState.FrameNumber,
+                    1,
+                    1
                 );
 
-                // Reset this to reset the scanning
-                StartFrameNum = -1;
-                ScanningToggle = 0;
-                ScanningFinished = 0;
-
-                switch (ui_choice) {
+                switch (ui_choice)
+                {
                     case 0: // Resume
-                        CurrentActivity = ResumeAfterPause;
+                        GameState.CurrentActivity = GameState.ResumeAfterPause;
                         break;
 
                     case 1: // Main menu
-                        CurrentActivity = 'M';
+                        GameState.CurrentActivity = GameState_MainMenu;
+                        break;
+
+                    default: // An unknown value returned, go to unimplemented interface
+                        GameState.CurrentActivity = GameState_UnimplementedMenu;
                         break;
                 }
 
                 pause_interface.Choice = 0;
 
                 break;
+            }
 
-            // #endregion
-
-            // #region - Lose screen
-            case 'L':
-                ui_choice = UIHandleInterfaceAtOffsetWithFunction(
-                        &lose_interface,
-                        &FrameNumber,
-                        1,
-                        1,
-                        PrintDifficultyAndSeedFunc
+            // Lose screen
+            case GameState_LoseMenu:
+            {
+                // ui_choice = UIHandleInterfaceAtOffsetWithFunction(
+                // ui_choice not used after here
+                UIHandleInterfaceAtOffset(
+                    &lose_interface,
+                    &GameState.FrameNumber,
+                    1,
+                    1
                 );
-                CurrentActivity = 'M';
+                GameState.CurrentActivity = GameState_MainMenu;
                 break;
-            // #endregion
+            }
 
-            // #region - Win screen
-            case 'W':
-                ui_choice = UIHandleInterfaceAtOffsetWithFunction(
-                        win_interface_to_use,
-                        &FrameNumber,
-                        1,
-                        1,
-                        PrintDifficultyAndSeedFunc
+            // Win screen
+            case GameState_WinMenu:
+            {
+                // ui_choice = UIHandleInterfaceAtOffsetWithFunction(
+                // ui_choice not used after here
+                UIHandleInterfaceAtOffset(
+                    win_interface_to_use,
+                    &GameState.FrameNumber,
+                    1,
+                    1
                 );
-                CurrentActivity = 'M';
+                GameState.CurrentActivity = GameState_MainMenu;
                 break;
-            // #endregion
+            }
 
-            // #region - Super Sentinel battle
-            case 'S': // Start the super sentinel battle
-            case '0': // Resume from pause
-                if (CurrentActivity == 'S'){
+            // Super Sentinel battle
+            case GameState_SuperSentinel: // Start the super sentinel battle
+            case GameState_ResumeSuperSentinel: // Resume from pause
+            {
+                if (GameState.CurrentActivity == GameState_SuperSentinel)
+                {
                     // Set the correct background
                     dmaCopy(BossBackgroundBitmap, bgGetGfxPtr(bg3), BossBackgroundBitmapLen);
                     dmaCopy(BossBackgroundPal, BG_PALETTE, BossBackgroundPalLen);
 
                     SSSetupForGameLoop(
-                            &Player,
-                            EnemyEntityArray, 8,
-                            BulletArray, MAX_BULLET_COUNT,
-                            &FrameNumber,
-                            &GFXAllSpriteGFX,
-                            bg3
+                        &GameState.Player,
+                        GameState.EnemyEntityArray, 8,
+                        GameState.BulletArray, MAX_BULLET_COUNT,
+                        &GameState.FrameNumber,
+                        &GFXAllSpriteGFX,
+                        bg3
                     );
                 }
 
                 // Back to normal
-                CurrentActivity = 'S';
+                GameState.CurrentActivity = GameState_SuperSentinel;
 
                 game_result = SSRunGameLoop(
-                        &Player,
-                        EnemyEntityArray, 8,
-                        BulletArray, MAX_BULLET_COUNT,
-                        &FrameNumber,
-                        &GFXAllSpriteGFX,
-                        PlayableArea,
-                        ScreenBoarder, 4
+                    &GameState.Player,
+                    GameState.EnemyEntityArray, 8,
+                    GameState.BulletArray, MAX_BULLET_COUNT,
+                    &GameState.FrameNumber,
+                    &GFXAllSpriteGFX,
+                    GameState.PlayableArea,
+                    GameState.ScreenBoarder, 4
                 );
 
-                switch (game_result) {
-                    case -1: // Pause
-                        CurrentActivity = 'P';
-                        ResumeAfterPause = '0';
+                switch (game_result)
+                {
+                    // Pause
+                    case -1:
+                    {
+                        GameState.CurrentActivity = GameState_PauseMenu;
+                        GameState.ResumeAfterPause = GameState_ResumeSuperSentinel;
                         break;
+                    }
 
-                    case 0: // Player dies
+                    // Player dies
+                    case 0:
+                    {
                         // To prevent endless run after death
-                        CurrentActivity = 'S';
+                        GameState.CurrentActivity = GameState_SuperSentinel;
 
                         // Reduce life considering difficulty
-                        if (Difficulty == 'N' || Difficulty == 'H')
-                            Lives--;
+                        if (GameState.Difficulty == 'N' || GameState.Difficulty == 'H')
+                        {
+                            GameState.Lives--;
+                        }
 
                         // If all lives lost
-                        if (Lives == 0)
-                            CurrentActivity = 'L';
+                        if (GameState.Lives == 0)
+                        {
+                            GameState.CurrentActivity = GameState_LoseMenu;
+                        }
 
                         break;
+                    }
 
-                    case 1: // region - Player wins
-                        CurrentActivity = 'W'; // WIN SCREEN YAY
+                    case 1: // Player wins
+                    {
+                        GameState.CurrentActivity = GameState_WinMenu; // WIN SCREEN YAY
 
                         // Choosing the win interface to use
-                        if (NumEnemyGroups == 4) {
+                        if (GameState.NumEnemyGroups == 4)
+                        {
                             win_interface_to_use = &main_win_interface;
-                            main_menu_interface.NumUIOptions = 6;
-                        } else {
+                            main_menu_interface.NumUIOptions = 8;
+                        }
+                        else
+                        {
                             win_interface_to_use = &boss_win_interface;
                         }
 
                         // Run the death animation
                         SSRunEndLoop(
-                            &Player,
-                            EnemyEntityArray, 8,
-                            BulletArray, MAX_BULLET_COUNT,
-                            &FrameNumber,
+                            &GameState.Player,
+                            GameState.EnemyEntityArray, 8,
+                            GameState.BulletArray, MAX_BULLET_COUNT,
+                            &GameState.FrameNumber,
                             &GFXAllSpriteGFX
                         );
 
                         break;
-                        // endregion
+                    }
+
+                    default: // An unknown value returned, go to unimplemented interface
+                    {
+                        GameState.CurrentActivity = GameState_UnimplementedMenu;
+                        break;
+                    }
                 }
 
                 break;
-            // #endregion
+            }
 
-            // #region - Challenge battle
-            case 'Y': // New challenge attempt
-            case 'Z': // Resume challenge attempt
-                if (CurrentActivity == 'Y') {
+            // Challenge battle
+            case GameState_ChallengeRound: // New challenge attempt
+            case GameState_ResumeChallengeRound: // Resume challenge attempt
+            {
+                if (GameState.CurrentActivity == GameState_ChallengeRound)
+                {
                     // Set the correct background
                     dmaCopy(BattleBackgroundBitmap, bgGetGfxPtr(bg3), BattleBackgroundBitmapLen);
                     dmaCopy(BattleBackgroundPal, BG_PALETTE, BattleBackgroundPalLen);
 
                     GameSectorSetup(
-                        &Player,
-                        EnemyEntityArray, 8,
-                        BulletArray, MAX_BULLET_COUNT,
-                        &FrameNumber,
+                        &GameState.Player,
+                        GameState.EnemyEntityArray, 8,
+                        GameState.BulletArray, MAX_BULLET_COUNT,
+                        &GameState.FrameNumber,
                         &EnemiesAllEnemyData, &GFXAllSpriteGFX,
                         4
                     );
                 }
 
                 // Back to normal if resume
-                CurrentActivity = 'Y';
+                GameState.CurrentActivity = GameState_ChallengeRound;
 
                 game_result = GameRunGameLoop(
-                    &Player,
-                    EnemyEntityArray, 8,
-                    BulletArray, MAX_BULLET_COUNT,
-                    &FrameNumber,
+                    &GameState.Player,
+                    GameState.EnemyEntityArray, 8,
+                    GameState.BulletArray, MAX_BULLET_COUNT,
+                    &GameState.FrameNumber,
                     &EnemiesAllEnemyData, &GFXAllSpriteGFX,
-                    PlayableArea,
-                    ScreenBoarder, 4,
+                    GameState.PlayableArea,
+                    GameState.ScreenBoarder, 4,
                     1
                 );
 
-                // Processing game result
-                switch (game_result) {
-                case -1:  // Pause
-                    CurrentActivity = 'P';
-                    ResumeAfterPause = 'Z';
-                    break;
+                // Processing the game result
+                switch (game_result)
+                {
+                    case -1: // Pause
+                    {
+                        GameState.CurrentActivity = GameState_PauseMenu;
+                        GameState.ResumeAfterPause = GameState_ResumeChallengeRound;
+                        break;
+                    }
 
-                case 0:  // Player dies
-                    // To prevent endless run after death
-                    CurrentActivity = 'Y';
+                    case 0: // Player dies
+                    {
+                        // To prevent endless run after death
+                        GameState.CurrentActivity = GameState_ChallengeRound;
 
-                    // Reduce life considering difficulty
-                    if (Difficulty == 'N' || Difficulty == 'H') Lives--;
+                        // Reduce life considering difficulty
+                        if (GameState.Difficulty == 'N' || GameState.Difficulty == 'H') { GameState.Lives--; }
 
-                    // If all lives lost
-                    if (Lives == 0) CurrentActivity = 'L';
+                        // If all lives lost
+                        if (GameState.Lives == 0) { GameState.CurrentActivity = GameState_LoseMenu; }
 
-                    break;
+                        break;
+                    }
 
-                case 1:  // Player wins
-                    // Choosing the win interface to use
-                    win_interface_to_use = &challenge_win_interface;
+                    case 1: // Player wins
+                    {
+                        // Choosing the win interface to use
+                        win_interface_to_use = &challenge_win_interface;
 
-                    // We won yay
-                    CurrentActivity = 'W';
+                        // We won yay
+                        GameState.CurrentActivity = GameState_WinMenu;
 
-                    // Reset the number of lives
-                    Lives = GetNumLives();
+                        // Reset the number of lives
+                        GameState.Lives = GetNumLives();
 
-                    break;
+                        break;
+                    }
+
+                    default: // An unknown value returned, go to unimplemented interface
+                    {
+                        GameState.CurrentActivity = GameState_UnimplementedMenu;
+                        break;
+                    }
                 }
 
                 break;
-            // #endregion
+            }
 
-            // #region - Next Version Details
-            case 'N':
+            // Next Version Details
+            case GameState_NextVersionMenu:
+            {
                 ui_choice = UIHandleInterfaceAtOffset(
                     &next_version_interface,
-                    &FrameNumber,
+                    &GameState.FrameNumber,
                     1,
                     1
                 );
 
-                if (ui_choice == next_version_interface.NumUIOptions - 1) CurrentActivity = 'M';
+                if (ui_choice == next_version_interface.NumUIOptions - 1)
+                {
+                    GameState.CurrentActivity = GameState_MainMenu;
+                }
 
                 break;
-            // #endregion
+            }
 
-            // #region - For currently unimplemented interfaces
-            default:
-                UIHandleInterfaceAtOffset(
-                        &unimplemented_interface,
-                        &FrameNumber,
-                        1,
-                        1
+            // Update Information
+            case GameState_UpdateInformationMenu:
+            {
+                ui_choice = UIHandleInterfaceAtOffset(
+                    &update_information_interface,
+                    &GameState.FrameNumber,
+                    1,
+                    1
                 );
 
-                CurrentActivity = 'M';
+                if (ui_choice == update_information_interface.NumUIOptions - 1)
+                {
+                    GameState.CurrentActivity = GameState_MainMenu;
+                }
 
                 break;
-            // #endregion
+            }
+
+            // Test Menu
+            case GameState_TestMenu:
+            {
+                ui_choice = UIHandleInterfaceAtOffset(
+                    &test_menu_interface,
+                    &GameState.FrameNumber,
+                    1,
+                    1
+                );
+
+                if (ui_choice == test_menu_interface.NumUIOptions - 1)
+                {
+                    GameState.CurrentActivity = GameState_MainMenu;
+                }
+
+                break;
+            }
+
+            // For currently unimplemented interfaces
+            // Or a fallback upon receiving an unknown menu char
+            default:
+            {
+                UIHandleInterfaceAtOffset(
+                    &unimplemented_interface,
+                    &GameState.FrameNumber,
+                    1,
+                    1
+                );
+
+                GameState.CurrentActivity = GameState_MainMenu;
+
+                break;
+            }
         }
-    }
+    } while (exit_game == 0);
 
     return 0;
 }

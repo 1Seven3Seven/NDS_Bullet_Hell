@@ -3,101 +3,118 @@
 #include <nds.h>
 #include <nds/arm9/sprite.h>
 
-#include <stdio.h>
-
 #include "Constants.h"
 #include "Other.h"
-
 #include "UI.h"
-
 #include "GFX.h"
-
 #include "Bullet.h"
-
 #include "Entity.h"
 #include "Player.h"
 #include "Sentinel.h"
 #include "Shredder.h"
 #include "Miner.h"
-
 #include "Enemies.h"
 
 const int GameEnemySpawnData[3][8][4] = {
-        { // Sentinels [x, y, move_direction, NONE]
-                {31,  15, 0,  -1},
-                {15,  31,  1,  -1},
-                {209, 161, 0,  -1},
-                {225, 145, 1,  -1},
-                {47, 31, 0,  -1},
-                {31,  47,  1,  -1},
-                {193, 145, 0,  -1},
-                {209, 129, 1,  -1}
-        },
-        { // Shredders [x, y, NONE, NONE]
-                {15,  15, -1, -1},
-                {15,  162, -1, -1},
-                {226, 15,  -1, -1},
-                {226, 162, -1, -1},
-                {15, 89, -1, -1},
-                {226, 89,  -1, -1},
-                {121, 15,  -1, -1},
-                {121, 162, -1, -1}
-        },
-        { // Miners [x, y, vx, vy] vx and vy are to be divided by 10
-                {120, 30, -5, -5},
-                {120, 148, 5,  5},
-                {30,  88,  -5, 5},
-                {210, 88,  5,  -5},
-                {31, 31, -5, 5},
-                {31,  145, 5,  5},
-                {209, 31,  -5, -5},
-                {209, 145, 5,  -5}
-        }
+    {
+        // Sentinels [x, y, move_direction, NONE]
+        {31, 15, 0, -1},
+        {15, 31, 1, -1},
+        {209, 161, 0, -1},
+        {225, 145, 1, -1},
+        {47, 31, 0, -1},
+        {31, 47, 1, -1},
+        {193, 145, 0, -1},
+        {209, 129, 1, -1}
+    },
+    {
+        // Shredders [x, y, NONE, NONE]
+        {15, 15, -1, -1},
+        {15, 162, -1, -1},
+        {226, 15, -1, -1},
+        {226, 162, -1, -1},
+        {15, 89, -1, -1},
+        {226, 89, -1, -1},
+        {121, 15, -1, -1},
+        {121, 162, -1, -1}
+    },
+    {
+        // Miners [x, y, vx, vy] vx and vy are to be divided by 10
+        {120, 30, -5, -5},
+        {120, 148, 5, 5},
+        {30, 88, -5, 5},
+        {210, 88, 5, -5},
+        {31, 31, -5, 5},
+        {31, 145, 5, 5},
+        {209, 31, -5, -5},
+        {209, 145, 5, -5}
+    }
 };
 
 int GameEnemySpawnIndexes[3][8] = {
-        {0, 1, 2, 3, 4, 5, 6, 7},
-        {0, 1, 2, 3, 4, 5, 6, 7},
-        {0, 1, 2, 3, 4, 5, 6, 7}
+    {0, 1, 2, 3, 4, 5, 6, 7},
+    {0, 1, 2, 3, 4, 5, 6, 7},
+    {0, 1, 2, 3, 4, 5, 6, 7}
 };
 
-int GameEnemiesToSpawn[10] = {
-        SENTINEL_TYPE, SENTINEL_TYPE, SENTINEL_TYPE, SENTINEL_TYPE,
-        SHREDDER_TYPE, SHREDDER_TYPE, SHREDDER_TYPE,
-        MINER_TYPE, MINER_TYPE, MINER_TYPE
+EntityType GameEnemiesToSpawn[10] = {
+    EntityType_Sentinel, EntityType_Sentinel, EntityType_Sentinel, EntityType_Sentinel,
+    EntityType_Shredder, EntityType_Shredder, EntityType_Shredder,
+    EntityType_Miner, EntityType_Miner, EntityType_Miner
 };
 
-void GameShuffleEnemySpawnIndexes() {
+void GameShuffleEnemySpawnIndexes()
+{
     ShuffleIntArray(GameEnemySpawnIndexes[0], 8);
     ShuffleIntArray(GameEnemySpawnIndexes[1], 8);
     ShuffleIntArray(GameEnemySpawnIndexes[2], 8);
 }
 
-void GameShuffleEnemiesToSpawn() {
-    ShuffleIntArray(GameEnemiesToSpawn, 10);
+void GameShuffleEnemiesToSpawn()
+{
+    // Custom version of shuffle as we do not use ints here
+    // Hard coded with the array size of 10
+    //     Not the best of ideas, but ehh, probably won't shoot me in the foot later
+    for (int i = 9; i > 0; i--)
+    {
+        const int j = rand() % (i + 1);
+
+        const EntityType tmp = GameEnemiesToSpawn[i];
+        GameEnemiesToSpawn[i] = GameEnemiesToSpawn[j];
+        GameEnemiesToSpawn[j] = tmp;
+    }
 }
 
-void GameRandomiseEnemySpawns() {
+void GameRandomiseEnemySpawns()
+{
     GameShuffleEnemySpawnIndexes();
     GameShuffleEnemiesToSpawn();
 }
 
-void GameLoadSentinel(Entity enemy_array[], int enemy_array_len, int sentinel_move_directions[],
-                      const int sentinel_spawn_data[4]) {
-    int index = SentinelSetupInEntityArray(
-            enemy_array, enemy_array_len,
-            sentinel_spawn_data[0], sentinel_spawn_data[1]
+void GameLoadSentinel(
+    Entity enemy_array[],
+    const int enemy_array_len,
+    int sentinel_move_directions[],
+    const int sentinel_spawn_data[4])
+{
+    const int index = SentinelSetupInEntityArray(
+        enemy_array, enemy_array_len,
+        sentinel_spawn_data[0], sentinel_spawn_data[1]
     );
 
     sentinel_move_directions[index] = sentinel_spawn_data[2];
     enemy_array[index].current_bullet_delay = ENEMY_START_DELAY;
 }
 
-void GameLoadShredder(Entity enemy_array[], int enemy_array_len, float shredder_move_vectors[8][2],
-                      const int shredder_spawn_data[4]) {
-    int index = ShredderSetupInEntityArray(
-            enemy_array, enemy_array_len,
-            shredder_spawn_data[0], shredder_spawn_data[1]
+void GameLoadShredder(
+    Entity enemy_array[],
+    const int enemy_array_len,
+    float shredder_move_vectors[8][2],
+    const int shredder_spawn_data[4])
+{
+    const int index = ShredderSetupInEntityArray(
+        enemy_array, enemy_array_len,
+        shredder_spawn_data[0], shredder_spawn_data[1]
     );
 
     shredder_move_vectors[index][0] = 0.f;
@@ -105,11 +122,16 @@ void GameLoadShredder(Entity enemy_array[], int enemy_array_len, float shredder_
     enemy_array[index].current_bullet_delay = ENEMY_START_DELAY;
 }
 
-void GameLoadMiner(Entity enemy_array[], int enemy_array_len, float miner_move_vectors[8][2], int miner_mine_delay[8],
-                   const int miner_spawn_data[4]) {
-    int index = MinerSetupInEntityArray(
-            enemy_array, enemy_array_len,
-            miner_spawn_data[0], miner_spawn_data[1]
+void GameLoadMiner(
+    Entity enemy_array[],
+    const int enemy_array_len,
+    float miner_move_vectors[8][2],
+    int miner_mine_delay[8],
+    const int miner_spawn_data[4])
+{
+    const int index = MinerSetupInEntityArray(
+        enemy_array, enemy_array_len,
+        miner_spawn_data[0], miner_spawn_data[1]
     );
 
     miner_move_vectors[index][0] = (float) miner_spawn_data[2] / 10;
@@ -117,47 +139,65 @@ void GameLoadMiner(Entity enemy_array[], int enemy_array_len, float miner_move_v
     miner_mine_delay[index] = ENEMY_START_DELAY;
 }
 
-void GameLoadNumberOfRandomEnemySets(Entity enemy_array[], int enemy_array_len, EnemiesEnemyDataStruct *all_enemy_data,
-                                     int num_enemy_sets) {
+void GameLoadNumberOfRandomEnemySets(
+    Entity enemy_array[],
+    const int enemy_array_len,
+    EnemiesEnemyDataStruct *all_enemy_data,
+    const int num_enemy_sets)
+{
     EntityInitEntityArray(
-            enemy_array, enemy_array_len
+        enemy_array, enemy_array_len
     );
 
-    for (int i = 0; i < num_enemy_sets * 2; i += 2) {
-        for (int j = 0; j < 2; j++) {
-            switch (GameEnemiesToSpawn[i]) {
-                case SENTINEL_TYPE:
+    for (int i = 0; i < num_enemy_sets * 2; i += 2)
+    {
+        for (int j = 0; j < 2; j++)
+        {
+            switch (GameEnemiesToSpawn[i])
+            {
+                case EntityType_Sentinel:
                     GameLoadSentinel(
-                            enemy_array, enemy_array_len,
-                            all_enemy_data->SentinelMoveDirections,
-                            GameEnemySpawnData[0][GameEnemySpawnIndexes[0][i + j]]
+                        enemy_array, enemy_array_len,
+                        all_enemy_data->SentinelMoveDirections,
+                        GameEnemySpawnData[0][GameEnemySpawnIndexes[0][i + j]]
                     );
                     break;
 
-                case SHREDDER_TYPE:
+                case EntityType_Shredder:
                     GameLoadShredder(
-                            enemy_array, enemy_array_len,
-                            all_enemy_data->ShredderMoveVectors,
-                            GameEnemySpawnData[1][GameEnemySpawnIndexes[1][i + j]]
+                        enemy_array, enemy_array_len,
+                        all_enemy_data->ShredderMoveVectors,
+                        GameEnemySpawnData[1][GameEnemySpawnIndexes[1][i + j]]
                     );
                     break;
 
-                case MINER_TYPE:
+                case EntityType_Miner:
                     GameLoadMiner(
-                            enemy_array, enemy_array_len,
-                            all_enemy_data->MinerMoveVectors,
-                            all_enemy_data->MinerMineDelays,
-                            GameEnemySpawnData[2][GameEnemySpawnIndexes[2][i + j]]
+                        enemy_array, enemy_array_len,
+                        all_enemy_data->MinerMoveVectors,
+                        all_enemy_data->MinerMineDelays,
+                        GameEnemySpawnData[2][GameEnemySpawnIndexes[2][i + j]]
                     );
+                    break;
+
+                default: // Should not occur, but just in case
                     break;
             }
         }
     }
 }
 
-void GameSectorSetup(Entity *player, Entity enemy_array[], int enemy_array_len, Bullet bullet_array[],
-                     int bullet_array_len, int *frame_number, EnemiesEnemyDataStruct *all_enemy_data,
-                     GFXSpritesStruct *all_sprite_gfx, int num_enemy_sets) {
+void GameSectorSetup(
+    Entity *player,
+    Entity enemy_array[],
+    const int enemy_array_len,
+    Bullet bullet_array[],
+    const int bullet_array_len,
+    int *frame_number,
+    EnemiesEnemyDataStruct *all_enemy_data,
+    _GFXAllSpriteGFX *all_sprite_gfx,
+    const int num_enemy_sets)
+{
     // Setup
     PlayerSetup(player);
     BulletInitBulletArray(bullet_array, bullet_array_len);
@@ -165,9 +205,9 @@ void GameSectorSetup(Entity *player, Entity enemy_array[], int enemy_array_len, 
 
     // Loading the enemies
     GameLoadNumberOfRandomEnemySets(
-            enemy_array, enemy_array_len,
-            all_enemy_data,
-            num_enemy_sets
+        enemy_array, enemy_array_len,
+        all_enemy_data,
+        num_enemy_sets
     );
 
     // Hide everything
@@ -177,78 +217,90 @@ void GameSectorSetup(Entity *player, Entity enemy_array[], int enemy_array_len, 
     int player_spawn_counter = 32, enemy_spawn_counter = 32;
 
     // Loop
-    while (player_spawn_counter || enemy_spawn_counter) {
+    while (player_spawn_counter || enemy_spawn_counter)
+    {
         // Clear the text
         consoleClear();
         // Frame increment
         (*frame_number)++;
 
         // Player timer
-        if (player_spawn_counter) {
+        if (player_spawn_counter)
+        {
             player_spawn_counter--;
         }
 
         // Animating the player portal
         oamSet(
-                &oamMain,
-                BULLET_ID_START, // Use the bullet sprite IDs as there is no bullets in the setup
-                player->x - 1, player->y - 1,
-                0,
-                0,
-                SpriteSize_16x16,
-                SpriteColorFormat_256Color,
-                all_sprite_gfx->PortalGFXMem[15 - (int) (player_spawn_counter / 2)],
-                -1,
-                0,
-                !player_spawn_counter,
-                0,
-                0,
-                0
+            &oamMain,
+            BULLET_ID_START, // Use the bullet sprite IDs as there are no bullets during setup
+            (int) player->x - 1,
+            (int) player->y - 1,
+            0,
+            0,
+            SpriteSize_16x16,
+            SpriteColorFormat_256Color,
+            all_sprite_gfx->PortalGFXMem[15 - player_spawn_counter / 2],
+            -1,
+            0,
+            !player_spawn_counter,
+            0,
+            0,
+            0
         );
 
         // Drawing the player when the portal is halfway done
-        if (player_spawn_counter < 16) {
-            PlayerAnimate(player, 1, *frame_number, all_sprite_gfx->PlayerGFXMem, all_sprite_gfx->PortalGFXMem);
+        if (player_spawn_counter < 16)
+        {
+            PlayerAnimate(
+                player,
+                1,
+                *frame_number,
+                all_sprite_gfx->PlayerGFXMem,
+                all_sprite_gfx->PortalGFXMem);
         }
 
         // Spawning in the enemies when the player is finished
-        if (!player_spawn_counter) {
+        if (!player_spawn_counter)
+        {
             // Enemy timer
-            if (enemy_spawn_counter) {
-                enemy_spawn_counter--;
-            }
+            if (enemy_spawn_counter) { enemy_spawn_counter--; }
 
             // Animating the enemies portals
-            for (int i = 0; i < enemy_array_len; i++) {
+            for (int i = 0; i < enemy_array_len; i++)
+            {
                 // If the enemy exists
-                if (!enemy_array[i].dead) {
+                if (!enemy_array[i].dead)
+                {
                     oamSet(
-                            &oamMain,
-                            BULLET_ID_START + 1 + i,
-                            enemy_array[i].x, enemy_array[i].y,
-                            0,
-                            0,
-                            SpriteSize_16x16,
-                            SpriteColorFormat_256Color,
-                            all_sprite_gfx->PortalGFXMem[15 - (int) (enemy_spawn_counter / 2)],
-                            -1,
-                            0,
-                            !enemy_spawn_counter,
-                            0,
-                            0,
-                            0
+                        &oamMain,
+                        BULLET_ID_START + 1 + i,
+                        (int) enemy_array[i].x,
+                        (int) enemy_array[i].y,
+                        0,
+                        0,
+                        SpriteSize_16x16,
+                        SpriteColorFormat_256Color,
+                        all_sprite_gfx->PortalGFXMem[15 - enemy_spawn_counter / 2],
+                        -1,
+                        0,
+                        !enemy_spawn_counter,
+                        0,
+                        0,
+                        0
                     );
                 }
             }
 
             // Drawing the enemies when the portals are halfway done
-            if (enemy_spawn_counter < 16) {
+            if (enemy_spawn_counter < 16)
+            {
                 EnemiesDrawAll(
-                        enemy_array, enemy_array_len,
-                        1,
-                        *frame_number,
-                        all_enemy_data,
-                        all_sprite_gfx
+                    enemy_array, enemy_array_len,
+                    1,
+                    *frame_number,
+                    all_enemy_data,
+                    all_sprite_gfx
                 );
             }
         }
@@ -257,9 +309,9 @@ void GameSectorSetup(Entity *player, Entity enemy_array[], int enemy_array_len, 
         UIResetDisplayBuffer();
 
         UIWriteTextAtOffset(
-                "Warping in",
-                1,
-                1
+            "Warping in",
+            1,
+            1
         );
 
         UIPrintDisplayBuffer();
@@ -271,13 +323,20 @@ void GameSectorSetup(Entity *player, Entity enemy_array[], int enemy_array_len, 
     }
 }
 
-int GameRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, Bullet bullet_array[],
-                    int bullet_array_len, int *frame_number, EnemiesEnemyDataStruct *all_enemy_data,
-                    GFXSpritesStruct *all_sprite_gfx, int playable_area[4], int hitbox_array[][4], int hitbox_array_len,
-                    int difficulty) {
-    // Keys
-    int keys;
-
+int GameRunGameLoop(
+    Entity *player,
+    Entity enemy_array[],
+    const int enemy_array_len,
+    Bullet bullet_array[],
+    const int bullet_array_len,
+    int *frame_number,
+    EnemiesEnemyDataStruct *all_enemy_data,
+    _GFXAllSpriteGFX *all_sprite_gfx,
+    int playable_area[4],
+    int hitbox_array[][4],
+    const int hitbox_array_len,
+    const int difficulty)
+{
     // Data
     int player_center[2];
 
@@ -288,12 +347,13 @@ int GameRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, B
     // True when the player has won
     int win_condition = 0;
 
-    while (1) {
+    while (1)
+    {
         // Clear the text
         consoleClear();
         // Get key presses
         scanKeys();
-        keys = keysHeld();
+        const u32 keys = keysHeld();
         // Frame number
         (*frame_number)++;
 
@@ -302,37 +362,38 @@ int GameRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, B
 
         // Player bullets
         PlayerFireBullet(
-                player,
-                keys,
-                bullet_array, bullet_array_len,
-                hitbox_array, hitbox_array_len
+            player,
+            keys,
+            bullet_array, bullet_array_len,
+            hitbox_array, hitbox_array_len
         );
 
-        // Get the player center
+        // Get the player centre
         EntityGetCenterArray(player, player_center);
 
         // Handling enemies
         EnemiesHandleAll(
-                enemy_array, enemy_array_len,
-                bullet_array, bullet_array_len,
-                player_center,
-                &EnemiesAllEnemyData,
-                hitbox_array, hitbox_array_len
+            enemy_array, enemy_array_len,
+            bullet_array, bullet_array_len,
+            player_center,
+            &EnemiesAllEnemyData,
+            hitbox_array, hitbox_array_len
         );
 
         // Death bullets
-        if (difficulty) {
+        if (difficulty)
+        {
             BulletSpawnDeathBullets(
-                    bullet_array, bullet_array_len,
-                    enemy_array, enemy_array_len,
-                    player
+                bullet_array, bullet_array_len,
+                enemy_array, enemy_array_len,
+                player
             );
         }
 
         // Handling bullets
         BulletHandleBulletArray(
-                bullet_array, bullet_array_len,
-                playable_area
+            bullet_array, bullet_array_len,
+            playable_area
         );
 
         // Miner mine explosions
@@ -340,57 +401,77 @@ int GameRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, B
 
         // Handling bullet collisions
         BulletArrayCollisionWithPlayerAndEnemies(
-                bullet_array, bullet_array_len,
-                enemy_array, enemy_array_len,
-                player
+            bullet_array, bullet_array_len,
+            enemy_array, enemy_array_len,
+            player
         );
 
         // Collisions between player and enemies
         EnemiesCheckCollisionAgainstPlayer(
-                enemy_array, enemy_array_len,
-                player
+            enemy_array, enemy_array_len,
+            player
         );
 
+        //
         // DRAWING and ANIMATION
-        PlayerAnimate(player, 0, *frame_number, GFXAllSpriteGFX.PlayerGFXMem, GFXAllSpriteGFX.PlayerExplosionGFXMem);
+        //
+
+        PlayerAnimate(
+            player,
+            0,
+            *frame_number,
+            GFXAllSpriteGFX.PlayerGFXMem,
+            GFXAllSpriteGFX.PlayerExplosionGFXMem);
 
         EnemiesDrawAll(
-                enemy_array, enemy_array_len,
-                0,
-                *frame_number,
-                &EnemiesAllEnemyData,
-                &GFXAllSpriteGFX
+            enemy_array, enemy_array_len,
+            0,
+            *frame_number,
+            &EnemiesAllEnemyData,
+            &GFXAllSpriteGFX
         );
 
-        BulletDrawArray(bullet_array, bullet_array_len, GFXAllSpriteGFX.BulletGFXMem, GFXAllSpriteGFX.WildBulletGFXMem);
+        BulletDrawArray(
+            bullet_array,
+            bullet_array_len,
+            GFXAllSpriteGFX.BulletGFXMem,
+            GFXAllSpriteGFX.WildBulletGFXMem);
 
-        // region - Checking for end condition
+        //
+        // Checking for end condition
         // If end condition is met, wait 60 frames before exiting
         // Player death is checked first
+        //
 
-        // If player is dead
-        if (player->dead) {
+        // If a player is dead
+        if (player->dead)
+        {
             player_death_exit_delay--;
-            if (!player_death_exit_delay) {
-                return 0;
-            }
-        } else if (!win_condition) { // If all enemies are dead and no bullets are alive
-            // Assume true
+            if (!player_death_exit_delay) { return 0; }
+        }
+        else if (!win_condition)
+        {
+            // If all enemies are dead and no bullets are alive, then assume true
             win_condition = 1;
 
             // Check if each enemy is dead
-            for (int i = 0; i < enemy_array_len; i++) {
-                // If there is an alive enemy the not won yet
-                if (!enemy_array[i].dead) {
+            for (int i = 0; i < enemy_array_len; i++)
+            {
+                // If there is an enemy that is alive, then we have not won yet
+                if (!enemy_array[i].dead)
+                {
                     win_condition = 0;
                     break;
                 }
             }
-            // If each enemy is dead, check for alive bullets
-            if (win_condition) {
-                for (int i = 0; i < bullet_array_len; i++) {
-                    // If not a player bullet and alive then the win condition is false
-                    if ((bullet_array[i].type != PLAYER_BULLET) && bullet_array[i].alive) {
+            // If each enemy is dead, check for bullets that are alive
+            if (win_condition)
+            {
+                for (int i = 0; i < bullet_array_len; i++)
+                {
+                    // If not player bullets and alive, then the win condition is false
+                    if (bullet_array[i].type != BulletType_PlayerBullet && bullet_array[i].alive)
+                    {
                         win_condition = 0;
                         break;
                     }
@@ -398,43 +479,39 @@ int GameRunGameLoop(Entity *player, Entity enemy_array[], int enemy_array_len, B
             }
         }
 
-        if (win_condition) {
-            if (win_condition_exit_delay) {
-                win_condition_exit_delay--;
-            } else {
-                break;
-            }
+        if (win_condition)
+        {
+            if (win_condition_exit_delay) { win_condition_exit_delay--; }
+            else { break; }
         }
-        // endregion
 
-        // region - Showing information to the user
+        //
+        // Showing information to the user
+        //
 
         UIResetDisplayBuffer();
 
         if (!player->dead)
             UIWriteTextAtOffset(
-                    "Engaging in Combat",
-                    1,
-                    1
+                "Engaging in Combat",
+                1,
+                1
             );
         else
             UIWriteTextAtOffset(
-                    "Initiating Temporal Reset",
-                    1,
-                    1
+                "Initiating Temporal Reset",
+                1,
+                1
             );
 
         UIPrintDisplayBuffer();
-
-        // endregion
 
         // Waiting
         swiWaitForVBlank();
         // Update the screen
         oamUpdate(&oamMain);
         // To exit
-        if (keys & KEY_SELECT)
-            return -1;
+        if (keys & KEY_SELECT) { return -1; }
     }
 
     return 1;

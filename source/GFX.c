@@ -1,15 +1,15 @@
 #include "GFX.h"
 
 #include <nds.h>
-#include <nds/arm9/sprite.h>
 
+#include "Bullet.h"
 #include "SpriteSheet.h"
-
 #include "Constants.h"
 
-GFXSpritesStruct GFXAllSpriteGFX;
+_GFXAllSpriteGFX GFXAllSpriteGFX;
 
-void GFXInit() {
+void GFXInit()
+{
     GFXAllSpriteGFX.PlayerGFXMemLoaded = 0;
     GFXAllSpriteGFX.SentinelGFXMemLoaded = 0;
     GFXAllSpriteGFX.ShredderGFXMemLoaded = 0;
@@ -20,68 +20,76 @@ void GFXInit() {
     GFXAllSpriteGFX.PlayerExplosionGFXMemLoaded = 0;
     GFXAllSpriteGFX.EnemyExplosionGFXMemLoaded = 0;
 
-    for (int i = 0; i < NUMBER_OF_BULLETS; ++i) {
+    for (int i = 0; i < NUMBER_OF_BULLETS; ++i)
+    {
         GFXAllSpriteGFX.BulletGFXMemLoaded[i] = 0;
     }
-    for (int i = 0; i < NUMBER_OF_WILD_BULLETS; ++i) {
+    for (int i = 0; i < NUMBER_OF_WILD_BULLETS; ++i)
+    {
         GFXAllSpriteGFX.WildBulletGFXMemLoaded[i] = 0;
     }
 
     GFXAllSpriteGFX.PortalGFXMemLoaded = 0;
 }
 
-void GFXSetSpritePaletteDefault() {
+void GFXSetSpritePaletteDefault()
+{
     dmaCopy(SpriteSheetPal, SPRITE_PALETTE, 512);
 }
 
-void GFXLoadPlayerSprites() {
-    if (GFXAllSpriteGFX.PlayerGFXMemLoaded)
-        return;
+void GFXLoadPlayerSprites()
+{
+    if (GFXAllSpriteGFX.PlayerGFXMemLoaded) { return; }
 
-    for (int a = 0; a < 8; a++) {
+    for (int a = 0; a < 8; a++)
+    {
         GFXAllSpriteGFX.PlayerGFXMem[a] = oamAllocateGfx(
-                &oamMain,
-                SpriteSize_16x16,
-                SpriteColorFormat_256Color
+            &oamMain,
+            SpriteSize_16x16,
+            SpriteColorFormat_256Color
         );
         dmaCopy(
-                (u8 *) SpriteSheetTiles + TILE_SIZE * a,
-                GFXAllSpriteGFX.PlayerGFXMem[a],
-                16 * 16
+            (u8 *) SpriteSheetTiles + TILE_SIZE * a,
+            GFXAllSpriteGFX.PlayerGFXMem[a],
+            16 * 16
         );
     }
 
     GFXAllSpriteGFX.PlayerGFXMemLoaded = 1;
 }
-void GFXFreePlayerSprites() {
-    if (!GFXAllSpriteGFX.PlayerGFXMemLoaded)
-        return;
 
-    for (int a = 0; a < 8; ++a) {
+void GFXFreePlayerSprites()
+{
+    if (!GFXAllSpriteGFX.PlayerGFXMemLoaded) { return; }
+
+    for (int a = 0; a < 8; ++a)
+    {
         oamFreeGfx(
-                &oamMain,
-                GFXAllSpriteGFX.PlayerGFXMem[a]
+            &oamMain,
+            GFXAllSpriteGFX.PlayerGFXMem[a]
         );
     }
 
     GFXAllSpriteGFX.PlayerGFXMemLoaded = 0;
 }
 
-void GFXLoadSentinelSprites() {
-    if (GFXAllSpriteGFX.SentinelGFXMemLoaded)
-        return;
+void GFXLoadSentinelSprites()
+{
+    if (GFXAllSpriteGFX.SentinelGFXMemLoaded) { return; }
 
-    for (int a = 0; a < 2; a++) {
-        for (int b = 0; b < 8; b++) {
+    for (int a = 0; a < 2; a++)
+    {
+        for (int b = 0; b < 8; b++)
+        {
             GFXAllSpriteGFX.SentinelGFXMem[a][b] = oamAllocateGfx(
-                    &oamMain,
-                    SpriteSize_16x16,
-                    SpriteColorFormat_256Color
+                &oamMain,
+                SpriteSize_16x16,
+                SpriteColorFormat_256Color
             );
             dmaCopy(
-                    (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * (a + 1) + TILE_SIZE * b,
-                    GFXAllSpriteGFX.SentinelGFXMem[a][b],
-                    16 * 16
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * (a + 1) + TILE_SIZE * b,
+                GFXAllSpriteGFX.SentinelGFXMem[a][b],
+                16 * 16
             );
         }
     }
@@ -89,60 +97,67 @@ void GFXLoadSentinelSprites() {
     GFXAllSpriteGFX.SentinelGFXMemLoaded = 1;
 }
 
-void GFXLoadShredderSprites() {
-    if (GFXAllSpriteGFX.ShredderGFXMemLoaded)
-        return;
+void GFXLoadShredderSprites()
+{
+    if (GFXAllSpriteGFX.ShredderGFXMemLoaded) { return; }
 
-    for (int a = 0; a < 4; a++) {
+    for (int a = 0; a < 4; a++)
+    {
         GFXAllSpriteGFX.ShredderGFXMem[a] = oamAllocateGfx(
-                &oamMain,
-                SpriteSize_16x16,
-                SpriteColorFormat_256Color
+            &oamMain,
+            SpriteSize_16x16,
+            SpriteColorFormat_256Color
         );
         dmaCopy(
-                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 3 + TILE_SIZE * a,
-                GFXAllSpriteGFX.ShredderGFXMem[a],
-                16 * 16
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 3 + TILE_SIZE * a,
+            GFXAllSpriteGFX.ShredderGFXMem[a],
+            16 * 16
         );
     }
 
     GFXAllSpriteGFX.ShredderGFXMemLoaded = 1;
 }
 
-void GFXLoadMinerSprites() {
-    if (GFXAllSpriteGFX.MinerGFXMemLoaded)
-        return;
+void GFXLoadMinerSprites()
+{
+    if (GFXAllSpriteGFX.MinerGFXMemLoaded) { return; }
 
-    for (int a = 0; a < 8; a++) {
+    for (int a = 0; a < 8; a++)
+    {
         GFXAllSpriteGFX.MinerGFXMem[a] = oamAllocateGfx(
-                &oamMain,
-                SpriteSize_16x16,
-                SpriteColorFormat_256Color
+            &oamMain,
+            SpriteSize_16x16,
+            SpriteColorFormat_256Color
         );
         dmaCopy(
-                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 4 + TILE_SIZE * a,
-                GFXAllSpriteGFX.MinerGFXMem[a],
-                16 * 16
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 4 + TILE_SIZE * a,
+            GFXAllSpriteGFX.MinerGFXMem[a],
+            16 * 16
         );
     }
 
     GFXAllSpriteGFX.MinerGFXMemLoaded = 1;
 }
 
-void GFXLoadSuperSentinelSprites() {
-    if (!GFXAllSpriteGFX.SSBodyGFXMemLoaded) { // Super sentinel body
-        for (int a = 0; a < 4; ++a) {
-            for (int b = 0; b < 8; ++b) {
+void GFXLoadSuperSentinelSprites()
+{
+    if (!GFXAllSpriteGFX.SSBodyGFXMemLoaded)
+    {
+        // Super sentinel body
+        for (int a = 0; a < 4; ++a)
+        {
+            for (int b = 0; b < 8; ++b)
+            {
                 GFXAllSpriteGFX.SSBodyGFXMem[a][b] = oamAllocateGfx(
-                        &oamMain,
-                        SpriteSize_16x16,
-                        SpriteColorFormat_256Color
+                    &oamMain,
+                    SpriteSize_16x16,
+                    SpriteColorFormat_256Color
                 );
                 dmaCopy(
-                        (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * (5 + a) + TILE_SIZE * 8 +
-                        TILE_SIZE * b,
-                        GFXAllSpriteGFX.SSBodyGFXMem[a][b],
-                        16 * 16
+                    (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * (5 + a) + TILE_SIZE * 8 +
+                    TILE_SIZE * b,
+                    GFXAllSpriteGFX.SSBodyGFXMem[a][b],
+                    16 * 16
                 );
             }
         }
@@ -150,22 +165,25 @@ void GFXLoadSuperSentinelSprites() {
         GFXAllSpriteGFX.SSBodyGFXMemLoaded = 1;
     }
 
-    if (!GFXAllSpriteGFX.SSLaserWeaponGFXMemLoaded) { // Super sentinel laser weapons
-        for (int a = 0; a < 4; a++) {
+    if (!GFXAllSpriteGFX.SSLaserWeaponGFXMemLoaded)
+    {
+        // Super sentinel laser weapons
+        for (int a = 0; a < 4; a++)
+        {
             GFXAllSpriteGFX.SSLaserWeaponGFXMem[a] = oamAllocateGfx(
-                    &oamMain,
-                    SpriteSize_16x32,
-                    SpriteColorFormat_256Color
+                &oamMain,
+                SpriteSize_16x32,
+                SpriteColorFormat_256Color
             );
             dmaCopy(
-                    (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 4 + TILE_SIZE * 8 + TILE_SIZE * a,
-                    GFXAllSpriteGFX.SSLaserWeaponGFXMem[a],
-                    16 * 16
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 4 + TILE_SIZE * 8 + TILE_SIZE * a,
+                GFXAllSpriteGFX.SSLaserWeaponGFXMem[a],
+                16 * 16
             );
             dmaCopy(
-                    (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 4 + TILE_SIZE * 8 + TILE_SIZE * (a + 4),
-                    GFXAllSpriteGFX.SSLaserWeaponGFXMem[a] + 16 * 8,
-                    16 * 16
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 4 + TILE_SIZE * 8 + TILE_SIZE * (a + 4),
+                GFXAllSpriteGFX.SSLaserWeaponGFXMem[a] + 16 * 8,
+                16 * 16
             );
         }
 
@@ -173,40 +191,42 @@ void GFXLoadSuperSentinelSprites() {
     }
 }
 
-void GFXLoadPlayerExplosion() {
-    if (GFXAllSpriteGFX.PlayerExplosionGFXMemLoaded)
-        return;
+void GFXLoadPlayerExplosion()
+{
+    if (GFXAllSpriteGFX.PlayerExplosionGFXMemLoaded) { return; }
 
-    for (int a = 0; a < 8; a++) {
+    for (int a = 0; a < 8; a++)
+    {
         GFXAllSpriteGFX.PlayerExplosionGFXMem[a] = oamAllocateGfx(
-                &oamMain,
-                SpriteSize_16x16,
-                SpriteColorFormat_256Color
+            &oamMain,
+            SpriteSize_16x16,
+            SpriteColorFormat_256Color
         );
         dmaCopy(
-                (u8 *) SpriteSheetTiles + TILE_SIZE * 8 + TILE_SIZE * a,
-                GFXAllSpriteGFX.PlayerExplosionGFXMem[a],
-                16 * 16
+            (u8 *) SpriteSheetTiles + TILE_SIZE * 8 + TILE_SIZE * a,
+            GFXAllSpriteGFX.PlayerExplosionGFXMem[a],
+            16 * 16
         );
     }
 
     GFXAllSpriteGFX.PlayerExplosionGFXMemLoaded = 1;
 }
 
-void GFXLoadEnemyExplosion() {
-    if (GFXAllSpriteGFX.EnemyExplosionGFXMemLoaded)
-        return;
+void GFXLoadEnemyExplosion()
+{
+    if (GFXAllSpriteGFX.EnemyExplosionGFXMemLoaded) { return; }
 
-    for (int a = 0; a < 8; a++) {
+    for (int a = 0; a < 8; a++)
+    {
         GFXAllSpriteGFX.EnemyExplosionGFXMem[a] = oamAllocateGfx(
-                &oamMain,
-                SpriteSize_16x16,
-                SpriteColorFormat_256Color
+            &oamMain,
+            SpriteSize_16x16,
+            SpriteColorFormat_256Color
         );
         dmaCopy(
-                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH + TILE_SIZE * 8 + TILE_SIZE * a,
-                GFXAllSpriteGFX.EnemyExplosionGFXMem[a],
-                16 * 16
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH + TILE_SIZE * 8 + TILE_SIZE * a,
+            GFXAllSpriteGFX.EnemyExplosionGFXMem[a],
+            16 * 16
         );
     }
 
@@ -215,233 +235,256 @@ void GFXLoadEnemyExplosion() {
 
 void GFXLoadSSExplosion()
 {
-    if (GFXAllSpriteGFX.SSExplosionGFXMemLoaded)
-        return;
+    if (GFXAllSpriteGFX.SSExplosionGFXMemLoaded) { return; }
 
-    for (int a = 0; a < 8; a++) {
+    for (int a = 0; a < 8; a++)
+    {
         GFXAllSpriteGFX.SSExplosionGFXMem[a] = oamAllocateGfx(
-                &oamMain,
-                SpriteSize_16x16,
-                SpriteColorFormat_256Color
+            &oamMain,
+            SpriteSize_16x16,
+            SpriteColorFormat_256Color
         );
         dmaCopy(
-                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 9 + TILE_SIZE * 8 + TILE_SIZE * a,
-                GFXAllSpriteGFX.SSExplosionGFXMem[a],
-                16 * 16
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 9 + TILE_SIZE * 8 + TILE_SIZE * a,
+            GFXAllSpriteGFX.SSExplosionGFXMem[a],
+            16 * 16
         );
     }
 
     GFXAllSpriteGFX.SSExplosionGFXMemLoaded = 1;
 }
 
-void GFXLoadPlayerBullets() {
-    if (GFXAllSpriteGFX.BulletGFXMemLoaded[PLAYER_BULLET])
-        return;
+void GFXLoadPlayerBullets()
+{
+    if (GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_PlayerBullet]) { return; }
 
-    for (int a = 0; a < 4; a++) {
-        GFXAllSpriteGFX.BulletGFXMem[PLAYER_BULLET][a] = oamAllocateGfx(
-                &oamMain,
-                SpriteSize_16x16,
-                SpriteColorFormat_256Color
+    for (int a = 0; a < 4; a++)
+    {
+        GFXAllSpriteGFX.BulletGFXMem[BulletType_PlayerBullet][a] = oamAllocateGfx(
+            &oamMain,
+            SpriteSize_16x16,
+            SpriteColorFormat_256Color
         );
         dmaCopy(
-                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 7 + TILE_SIZE * a,
-                GFXAllSpriteGFX.BulletGFXMem[PLAYER_BULLET][a],
-                16 * 16
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 7 + TILE_SIZE * a,
+            GFXAllSpriteGFX.BulletGFXMem[BulletType_PlayerBullet][a],
+            16 * 16
         );
     }
 
-    GFXAllSpriteGFX.BulletGFXMemLoaded[PLAYER_BULLET] = 1;
+    GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_PlayerBullet] = 1;
 }
 
-void GFXLoadSentinelBullets() {
-    if (GFXAllSpriteGFX.BulletGFXMemLoaded[SENTINEL_BULLET])
-        return;
+void GFXLoadSentinelBullets()
+{
+    if (GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_SentinelBullet]) { return; }
 
-    for (int a = 0; a < 4; a++) {
-        GFXAllSpriteGFX.BulletGFXMem[SENTINEL_BULLET][a] = oamAllocateGfx(
-                &oamMain,
-                SpriteSize_16x16,
-                SpriteColorFormat_256Color
+    for (int a = 0; a < 4; a++)
+    {
+        GFXAllSpriteGFX.BulletGFXMem[BulletType_SentinelBullet][a] = oamAllocateGfx(
+            &oamMain,
+            SpriteSize_16x16,
+            SpriteColorFormat_256Color
         );
         dmaCopy(
-                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 6 + TILE_SIZE * a,
-                GFXAllSpriteGFX.BulletGFXMem[SENTINEL_BULLET][a],
-                16 * 16
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 6 + TILE_SIZE * a,
+            GFXAllSpriteGFX.BulletGFXMem[BulletType_SentinelBullet][a],
+            16 * 16
         );
     }
 
-    GFXAllSpriteGFX.BulletGFXMemLoaded[SENTINEL_BULLET] = 1;
+    GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_SentinelBullet] = 1;
 }
 
-void GFXLoadMinerBullets() {
+void GFXLoadMinerBullets()
+{
     // Miner mines
-    if (!GFXAllSpriteGFX.BulletGFXMemLoaded[MINER_MINE]) {
-        for (int a = 0; a < 4; a++) {
-            GFXAllSpriteGFX.BulletGFXMem[MINER_MINE][a] = oamAllocateGfx(
-                    &oamMain,
-                    SpriteSize_16x16,
-                    SpriteColorFormat_256Color
+    if (!GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_MinerMine])
+    {
+        for (int a = 0; a < 4; a++)
+        {
+            GFXAllSpriteGFX.BulletGFXMem[BulletType_MinerMine][a] = oamAllocateGfx(
+                &oamMain,
+                SpriteSize_16x16,
+                SpriteColorFormat_256Color
             );
             dmaCopy(
-                    (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 5 + TILE_SIZE * a,
-                    GFXAllSpriteGFX.BulletGFXMem[MINER_MINE][a],
-                    16 * 16
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 5 + TILE_SIZE * a,
+                GFXAllSpriteGFX.BulletGFXMem[BulletType_MinerMine][a],
+                16 * 16
             );
         }
 
-        GFXAllSpriteGFX.BulletGFXMemLoaded[MINER_MINE] = 1;
+        GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_MinerMine] = 1;
     }
 
     // Smol mine explosion bullets
-    if (!GFXAllSpriteGFX.BulletGFXMemLoaded[MINER_MINE_BULLET]) {
-        for (int a = 0; a < 4; a++) {
-            GFXAllSpriteGFX.BulletGFXMem[MINER_MINE_BULLET][a] = oamAllocateGfx(
-                    &oamMain,
-                    SpriteSize_16x16,
-                    SpriteColorFormat_256Color
-            );
-            dmaCopy(
-                    (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 3 + TILE_SIZE * 4 + TILE_SIZE * a,
-                    GFXAllSpriteGFX.BulletGFXMem[MINER_MINE_BULLET][a],
-                    16 * 16
-            );
-        }
-
-        GFXAllSpriteGFX.BulletGFXMemLoaded[MINER_MINE_BULLET] = 1;
-    }
-}
-
-void GFXLoadDeathBullets() {
-    if (GFXAllSpriteGFX.BulletGFXMemLoaded[DEATH_BULLET])
-        return;
-
-    for (int a = 0; a < 4; a++) {
-        GFXAllSpriteGFX.BulletGFXMem[DEATH_BULLET][a] = oamAllocateGfx(
+    if (!GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_MinerMineBullet])
+    {
+        for (int a = 0; a < 4; a++)
+        {
+            GFXAllSpriteGFX.BulletGFXMem[BulletType_MinerMineBullet][a] = oamAllocateGfx(
                 &oamMain,
                 SpriteSize_16x16,
                 SpriteColorFormat_256Color
-        );
-        dmaCopy(
-                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 3 + TILE_SIZE * 4 + TILE_SIZE * a,
-                GFXAllSpriteGFX.BulletGFXMem[DEATH_BULLET][a],
-                16 * 16
-        );
-    }
-
-    GFXAllSpriteGFX.BulletGFXMemLoaded[DEATH_BULLET] = 1;
-}
-
-void __GFXLoadSuperSentinelNormalBullets() {
-    // Super sentinel bullets
-    if (!GFXAllSpriteGFX.BulletGFXMemLoaded[SS_BULLET]) {
-        for (int a = 0; a < 4; a++) {
-            GFXAllSpriteGFX.BulletGFXMem[SS_BULLET][a] = oamAllocateGfx(
-                    &oamMain,
-                    SpriteSize_16x16,
-                    SpriteColorFormat_256Color
             );
             dmaCopy(
-                    (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 5 + TILE_SIZE * 4 + TILE_SIZE * a,
-                    GFXAllSpriteGFX.BulletGFXMem[SS_BULLET][a],
-                    16 * 16
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 3 + TILE_SIZE * 4 + TILE_SIZE * a,
+                GFXAllSpriteGFX.BulletGFXMem[BulletType_MinerMineBullet][a],
+                16 * 16
             );
         }
 
-        GFXAllSpriteGFX.BulletGFXMemLoaded[SS_BULLET] = 1;
+        GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_MinerMineBullet] = 1;
+    }
+}
+
+void GFXLoadDeathBullets()
+{
+    if (GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_DeathBullet]) { return; }
+
+    for (int a = 0; a < 4; a++)
+    {
+        GFXAllSpriteGFX.BulletGFXMem[BulletType_DeathBullet][a] = oamAllocateGfx(
+            &oamMain,
+            SpriteSize_16x16,
+            SpriteColorFormat_256Color
+        );
+        dmaCopy(
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 3 + TILE_SIZE * 4 + TILE_SIZE * a,
+            GFXAllSpriteGFX.BulletGFXMem[BulletType_DeathBullet][a],
+            16 * 16
+        );
+    }
+
+    GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_DeathBullet] = 1;
+}
+
+void __GFXLoadSuperSentinelNormalBullets()
+{
+    // Super sentinel bullets
+    if (!GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_SSBullet])
+    {
+        for (int a = 0; a < 4; a++)
+        {
+            GFXAllSpriteGFX.BulletGFXMem[BulletType_SSBullet][a] = oamAllocateGfx(
+                &oamMain,
+                SpriteSize_16x16,
+                SpriteColorFormat_256Color
+            );
+            dmaCopy(
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 5 + TILE_SIZE * 4 + TILE_SIZE * a,
+                GFXAllSpriteGFX.BulletGFXMem[BulletType_SSBullet][a],
+                16 * 16
+            );
+        }
+
+        GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_SSBullet] = 1;
     }
 
     // Super sentinel laser start
-    if (!GFXAllSpriteGFX.BulletGFXMemLoaded[SS_LASER_START_BULLET]) {
-        for (int a = 0; a < 4; a++) {
-            GFXAllSpriteGFX.BulletGFXMem[SS_LASER_START_BULLET][a] = oamAllocateGfx(
-                    &oamMain,
-                    SpriteSize_16x16,
-                    SpriteColorFormat_256Color
+    if (!GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_SSLaserStart])
+    {
+        for (int a = 0; a < 4; a++)
+        {
+            GFXAllSpriteGFX.BulletGFXMem[BulletType_SSLaserStart][a] = oamAllocateGfx(
+                &oamMain,
+                SpriteSize_16x16,
+                SpriteColorFormat_256Color
             );
             dmaCopy(
-                    (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 8 + TILE_SIZE * a,
-                    GFXAllSpriteGFX.BulletGFXMem[SS_LASER_START_BULLET][a],
-                    16 * 16
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 8 + TILE_SIZE * a,
+                GFXAllSpriteGFX.BulletGFXMem[BulletType_SSLaserStart][a],
+                16 * 16
             );
         }
 
-        GFXAllSpriteGFX.BulletGFXMemLoaded[SS_LASER_START_BULLET] = 1;
+        GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_SSLaserStart] = 1;
     }
 
     // Super sentinel laser segments
-    if (!GFXAllSpriteGFX.BulletGFXMemLoaded[SS_LASER_SEGMENT_BULLET]) {
-        for (int a = 0; a < 4; a++) {
-            GFXAllSpriteGFX.BulletGFXMem[SS_LASER_SEGMENT_BULLET][a] = oamAllocateGfx(
-                    &oamMain,
-                    SpriteSize_16x16,
-                    SpriteColorFormat_256Color
+    if (!GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_SSLaserSegment])
+    {
+        for (int a = 0; a < 4; a++)
+        {
+            GFXAllSpriteGFX.BulletGFXMem[BulletType_SSLaserSegment][a] = oamAllocateGfx(
+                &oamMain,
+                SpriteSize_16x16,
+                SpriteColorFormat_256Color
             );
             dmaCopy(
-                    (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 9 + TILE_SIZE * a,
-                    GFXAllSpriteGFX.BulletGFXMem[SS_LASER_SEGMENT_BULLET][a],
-                    16 * 16
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 9 + TILE_SIZE * a,
+                GFXAllSpriteGFX.BulletGFXMem[BulletType_SSLaserSegment][a],
+                16 * 16
             );
         }
 
-        GFXAllSpriteGFX.BulletGFXMemLoaded[SS_LASER_SEGMENT_BULLET] = 1;
+        GFXAllSpriteGFX.BulletGFXMemLoaded[BulletType_SSLaserSegment] = 1;
     }
 }
 
-void __GFXLoadSuperSentinelWildBullets() {
+void __GFXLoadSuperSentinelWildBullets()
+{
     // Super sentinel pilot laser start
-    if (!GFXAllSpriteGFX.WildBulletGFXMemLoaded[IndexForBulletType(SS_LASER_PILOT_START)]) {
-        for (int a = 0; a < 4; ++a) {
-            GFXAllSpriteGFX.WildBulletGFXMem[IndexForBulletType(SS_LASER_PILOT_START)][a] = oamAllocateGfx(
-                    &oamMain,
-                    SpriteSize_16x16,
-                    SpriteColorFormat_256Color
+    if (!GFXAllSpriteGFX.WildBulletGFXMemLoaded[IndexForBulletType(BulletType_SSLaserPilotStart)])
+    {
+        for (int a = 0; a < 4; ++a)
+        {
+            GFXAllSpriteGFX.WildBulletGFXMem[IndexForBulletType(BulletType_SSLaserPilotStart)][a] = oamAllocateGfx(
+                &oamMain,
+                SpriteSize_16x16,
+                SpriteColorFormat_256Color
             );
             dmaCopy(
-                    (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 8 + TILE_SIZE * 4 + TILE_SIZE * a,
-                    GFXAllSpriteGFX.WildBulletGFXMem[IndexForBulletType(SS_LASER_PILOT_START)][a],
-                    16 * 16
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 8 + TILE_SIZE * 4 + TILE_SIZE * a,
+                GFXAllSpriteGFX.WildBulletGFXMem[IndexForBulletType(BulletType_SSLaserPilotStart)][a],
+                16 * 16
             );
         }
     }
 
     // Super sentinel pilot laser segment
-    if (!GFXAllSpriteGFX.WildBulletGFXMemLoaded[IndexForBulletType(SS_LASER_PILOT_SEGMENT)]) {
-        for (int a = 0; a < 4; ++a) {
-            GFXAllSpriteGFX.WildBulletGFXMem[IndexForBulletType(SS_LASER_PILOT_SEGMENT)][a] = oamAllocateGfx(
-                    &oamMain,
-                    SpriteSize_16x16,
-                    SpriteColorFormat_256Color
+    if (!GFXAllSpriteGFX.WildBulletGFXMemLoaded[IndexForBulletType(BulletType_SSLaserPilotSegment)])
+    {
+        for (int a = 0; a < 4; ++a)
+        {
+            GFXAllSpriteGFX.WildBulletGFXMem[IndexForBulletType(BulletType_SSLaserPilotSegment)][a] = oamAllocateGfx(
+                &oamMain,
+                SpriteSize_16x16,
+                SpriteColorFormat_256Color
             );
             dmaCopy(
-                    (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 9 + TILE_SIZE * 4 + TILE_SIZE * a,
-                    GFXAllSpriteGFX.WildBulletGFXMem[IndexForBulletType(SS_LASER_PILOT_SEGMENT)][a],
-                    16 * 16
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 9 + TILE_SIZE * 4 + TILE_SIZE * a,
+                GFXAllSpriteGFX.WildBulletGFXMem[IndexForBulletType(BulletType_SSLaserPilotSegment)][a],
+                16 * 16
             );
         }
     }
 }
 
-void GFXLoadSuperSentinelBullets() {
+void GFXLoadSuperSentinelBullets()
+{
     __GFXLoadSuperSentinelNormalBullets();
     __GFXLoadSuperSentinelWildBullets();
 }
 
-void GFXLoadPortalSprites() {
-    if (GFXAllSpriteGFX.PortalGFXMemLoaded)
-        return;
+void GFXLoadPortalSprites()
+{
+    if (GFXAllSpriteGFX.PortalGFXMemLoaded) { return; }
 
-    for (int a = 0; a < 2; a++) {
-        for (int b = 0; b < 8; b++) {
+    for (int a = 0; a < 2; a++)
+    {
+        for (int b = 0; b < 8; b++)
+        {
             GFXAllSpriteGFX.PortalGFXMem[a * 8 + b] = oamAllocateGfx(
-                    &oamMain,
-                    SpriteSize_16x16,
-                    SpriteColorFormat_256Color
+                &oamMain,
+                SpriteSize_16x16,
+                SpriteColorFormat_256Color
             );
             dmaCopy(
-                    (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * (2 + a) + TILE_SIZE * 8 + TILE_SIZE * b,
-                    GFXAllSpriteGFX.PortalGFXMem[a * 8 + b],
-                    16 * 16
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * (2 + a) + TILE_SIZE * 8 + TILE_SIZE * b,
+                GFXAllSpriteGFX.PortalGFXMem[a * 8 + b],
+                16 * 16
             );
         }
     }
@@ -449,11 +492,14 @@ void GFXLoadPortalSprites() {
     GFXAllSpriteGFX.PortalGFXMemLoaded = 1;
 }
 
-void GFXLoadAllSprites() {
+void GFXLoadAllSprites()
+{
     // Setting the sprite palette
     GFXSetSpritePaletteDefault();
 
-    // region - Entity Sprites
+    //
+    // Entity Sprites
+    //
 
     GFXLoadPlayerSprites();
     GFXLoadSentinelSprites();
@@ -462,17 +508,17 @@ void GFXLoadAllSprites() {
 
     GFXLoadSuperSentinelSprites();
 
-    // endregion
-
-    // region - Explosions
+    //
+    // Explosions
+    //
 
     GFXLoadPlayerExplosion();
     GFXLoadEnemyExplosion();
     GFXLoadSSExplosion();
 
-    // endregion
-
-    // region - Bullets
+    //
+    // Bullets
+    //
 
     GFXLoadPlayerBullets();
     GFXLoadSentinelBullets();
@@ -482,25 +528,24 @@ void GFXLoadAllSprites() {
 
     GFXLoadSuperSentinelBullets();
 
-    // endregion
-
-    // region - Miscellaneous
+    //
+    // Miscellaneous
+    //
 
     GFXLoadPortalSprites();
 
     // BANG -> !
-    for (int a = 0; a < 4; ++a) {
+    for (int a = 0; a < 4; ++a)
+    {
         GFXAllSpriteGFX.BangGFXMem[a] = oamAllocateGfx(
-                &oamMain,
-                SpriteSize_16x16,
-                SpriteColorFormat_256Color
+            &oamMain,
+            SpriteSize_16x16,
+            SpriteColorFormat_256Color
         );
         dmaCopy(
-                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 6 + TILE_SIZE * 4 + TILE_SIZE * a,
-                GFXAllSpriteGFX.BangGFXMem[a],
-                16 * 16
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 6 + TILE_SIZE * 4 + TILE_SIZE * a,
+            GFXAllSpriteGFX.BangGFXMem[a],
+            16 * 16
         );
     }
-
-    // endregion
 }

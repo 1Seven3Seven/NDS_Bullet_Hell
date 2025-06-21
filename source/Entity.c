@@ -3,18 +3,30 @@
 #include "Constants.h"
 #include "Other.h"
 
-void EntityInit(Entity *self) {
+void EntityInit(Entity *self)
+{
     self->dead = 1;
     self->counter = 0;
 }
 
-void EntityInitEntityArray(Entity entity_array[], int entity_array_len) {
-    for (int i = 0; i < entity_array_len; i++) {
+void EntityInitEntityArray(Entity entity_array[], const int entity_array_len)
+{
+    for (int i = 0; i < entity_array_len; i++)
+    {
         EntityInit(&entity_array[i]);
     }
 }
 
-void EntitySetup(Entity *self, int x, int y, int w, int h, int health, int type, int bullet_delay) {
+void EntitySetup(
+    Entity *self,
+    const int x,
+    const int y,
+    const int w,
+    const int h,
+    const int health,
+    const EntityType type,
+    const int bullet_delay)
+{
     self->x = (float) x;
     self->y = (float) y;
     self->w = w;
@@ -35,89 +47,119 @@ void EntitySetup(Entity *self, int x, int y, int w, int h, int health, int type,
     self->animation_frame_number = 0;
 }
 
-int EntityGetNextAvailableIndexInArray(Entity entity_array[], int entity_array_len) {
-    for (int i = 0; i < entity_array_len; i++) {
+int EntityGetNextAvailableIndexInArray(Entity entity_array[], const int entity_array_len)
+{
+    for (int i = 0; i < entity_array_len; i++)
+    {
         if (entity_array[i].dead)
+        {
             return i;
+        }
     }
 
     return -1;
 }
 
-int EntitySetupInEntityArray(Entity entity_array[], int entity_array_len, int x, int y, int w, int h, int health,
-                             int type, int bullet_delay) {
-    int index = EntityGetNextAvailableIndexInArray(entity_array, entity_array_len);
+int EntitySetupInEntityArray(
+    Entity entity_array[],
+    const int entity_array_len,
+    const int x,
+    const int y,
+    const int w,
+    const int h,
+    const int health,
+    const int type,
+    const int bullet_delay)
+{
+    const int index = EntityGetNextAvailableIndexInArray(entity_array, entity_array_len);
 
     if (index == -1)
+    {
         return -1;
+    }
 
     EntitySetup(
-            &entity_array[index],
-            x, y,
-            w, h,
-            health,
-            type,
-            bullet_delay
+        &entity_array[index],
+        x, y,
+        w, h,
+        health,
+        type,
+        bullet_delay
     );
 
     return index;
 }
 
-void EntityGetHitBox(Entity *self, int rect_array[4]) {
+void EntityGetHitBox(const Entity *self, int rect_array[4])
+{
     rect_array[0] = (int) self->x;
     rect_array[1] = (int) self->y;
     rect_array[2] = self->w;
     rect_array[3] = self->h;
 }
 
-void EntityGetCenterArray(Entity *self, int center_array[2]) {
+void EntityGetCenterArray(const Entity *self, int center_array[2])
+{
     center_array[0] = (int) (self->x + (float) self->w / 2);
     center_array[1] = (int) (self->y + (float) self->h / 2);
 }
 
-float EntityGetLeft(Entity *self) {
+float EntityGetLeft(const Entity *self)
+{
     return self->x;
 }
 
-float EntityGetRight(Entity *self) {
+float EntityGetRight(const Entity *self)
+{
     return self->x + (float) self->w;
 }
 
-float EntityGetTop(Entity *self) {
+float EntityGetTop(const Entity *self)
+{
     return self->y;
 }
 
-float EntityGetBottom(Entity *self) {
+float EntityGetBottom(const Entity *self)
+{
     return self->y + (float) self->h;
 }
 
-void EntitySetLeft(Entity *self, float left) {
+void EntitySetLeft(Entity *self, const float left)
+{
     self->x = left;
 }
 
-void EntitySetRight(Entity *self, float right) {
+void EntitySetRight(Entity *self, const float right)
+{
     self->x = right - (float) self->w;
 }
 
-void EntitySetTop(Entity *self, float top) {
+void EntitySetTop(Entity *self, const float top)
+{
     self->y = top;
 }
 
-void EntitySetBottom(Entity *self, float bottom) {
+void EntitySetBottom(Entity *self, const float bottom)
+{
     self->y = bottom - (float) self->h;
 }
 
-void EntityTakeDamage(Entity *self, int damage) {
+void EntityTakeDamage(Entity *self, const int damage)
+{
     self->health -= damage;
 
     if (self->health <= 0)
+    {
         self->dead = 1;
+    }
 }
 
-int EntityMoveX(Entity *self, float x, int hitbox_array[][4], int hitbox_array_len) {
+int EntityMoveX(Entity *self, const float x, int hitbox_array[][4], const int hitbox_array_len)
+{
     int hit_a_hitbox = 0;
 
-    if (x != 0) {
+    if (x != 0)
+    {
         // Move the entity
         self->x += x;
         // Get the hitbox
@@ -125,7 +167,8 @@ int EntityMoveX(Entity *self, float x, int hitbox_array[][4], int hitbox_array_l
         EntityGetHitBox(self, hitbox);
 
         // Check for a collision
-        for (int i = 0; i < hitbox_array_len; i++) {
+        for (int i = 0; i < hitbox_array_len; i++)
+        {
             if (RectangleCollision(hitbox, hitbox_array[i])) // If there is a collision, solve it
             {
                 // Because you hit a hitbox on the x-axis
@@ -133,9 +176,13 @@ int EntityMoveX(Entity *self, float x, int hitbox_array[][4], int hitbox_array_l
 
                 // Solving the collision
                 if (x > 0) // Moving to the right
-                    EntitySetRight(self, RectangleGetLeft(hitbox_array[i]));
+                {
+                    EntitySetRight(self, (float) RectangleGetLeft(hitbox_array[i]));
+                }
                 else // Moving to the left
-                    EntitySetLeft(self, RectangleGetRight(hitbox_array[i]));
+                {
+                    EntitySetLeft(self, (float) RectangleGetRight(hitbox_array[i]));
+                }
             }
         }
     }
@@ -143,10 +190,12 @@ int EntityMoveX(Entity *self, float x, int hitbox_array[][4], int hitbox_array_l
     return hit_a_hitbox;
 }
 
-int EntityMoveY(Entity *self, float y, int hitbox_array[][4], int hitbox_array_len) {
+int EntityMoveY(Entity *self, const float y, int hitbox_array[][4], const int hitbox_array_len)
+{
     int hit_a_hitbox = 0;
 
-    if (y != 0) {
+    if (y != 0)
+    {
         // Move the entity
         self->y += y;
         // Get the hitbox
@@ -154,7 +203,8 @@ int EntityMoveY(Entity *self, float y, int hitbox_array[][4], int hitbox_array_l
         EntityGetHitBox(self, hitbox);
 
         // Check for a collision
-        for (int i = 0; i < hitbox_array_len; i++) {
+        for (int i = 0; i < hitbox_array_len; i++)
+        {
             if (RectangleCollision(hitbox, hitbox_array[i])) // If there is a collision
             {
                 // Because you hit a hitbox on the y-axis
@@ -164,9 +214,13 @@ int EntityMoveY(Entity *self, float y, int hitbox_array[][4], int hitbox_array_l
                 if (RectangleCollision(hitbox, hitbox_array[i])) // If there is a collision, solve it
                 {
                     if (y > 0) // Moving to the down
-                        EntitySetBottom(self, RectangleGetTop(hitbox_array[i]));
+                    {
+                        EntitySetBottom(self, (float) RectangleGetTop(hitbox_array[i]));
+                    }
                     else // Moving to the up
-                        EntitySetTop(self, RectangleGetBottom(hitbox_array[i]));
+                    {
+                        EntitySetTop(self, (float) RectangleGetBottom(hitbox_array[i]));
+                    }
                 }
             }
         }
@@ -175,9 +229,10 @@ int EntityMoveY(Entity *self, float y, int hitbox_array[][4], int hitbox_array_l
     return hit_a_hitbox;
 }
 
-int EntityMove(Entity *self, float x, float y, int hitbox_array[][4], int hitbox_array_len) {
-    int x_movement = EntityMoveX(self, x, hitbox_array, hitbox_array_len);
-    int y_movement = EntityMoveY(self, y, hitbox_array, hitbox_array_len);
+int EntityMove(Entity *self, const float x, const float y, int hitbox_array[][4], const int hitbox_array_len)
+{
+    const int x_movement = EntityMoveX(self, x, hitbox_array, hitbox_array_len);
+    const int y_movement = EntityMoveY(self, y, hitbox_array, hitbox_array_len);
 
     return x_movement || y_movement;
 }
