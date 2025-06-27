@@ -62,7 +62,7 @@ int main(void)
     int bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
 
     // Seeding the random number generator
-    srand((unsigned) time(&GameState.Seed));
+    srand((unsigned)time(NULL));
 
     //
     // Sprite Memory Allocation and Loading
