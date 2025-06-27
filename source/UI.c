@@ -265,7 +265,7 @@ int UIHandleInterfaceAtOffset(
     {
         consoleClear();
         scanKeys();
-        const u32 keys = keysHeld();
+        const u32 keys = keysDownRepeat();
         (*frame_number)++;
 
         UIResetDisplayBuffer();
