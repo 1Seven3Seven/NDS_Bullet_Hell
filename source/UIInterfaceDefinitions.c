@@ -13,6 +13,7 @@ static void MainMenuPrintFunc(void)
 {
     UIHPFPrintVersion(22, 0, false, VERSION);
     UIHPFPrintDifficulty(23, GameState.Difficulty);
+    UIHPFPrintSeed(21, GameState.SeedString);
 }
 
 UIInterfaceStruct UIIDCreateMainMenuInterface(void)
@@ -21,15 +22,16 @@ UIInterfaceStruct UIIDCreateMainMenuInterface(void)
     UIInitInterface(
         &ui,
         "Main Menu",
-        8,
+        9,
         "Play",
         "Difficulty Select",
         "Credits",
         "Next version Ideas",
         "Update Information",
         "Exit",
-        "Boss Quick Start",
-        "Challenge"
+        "  Boss Quick Start", // ToDo: is this necessary with the test menu?
+        "  Challenge",
+        "  Test Menu"
     );
     ui.Separation = 1;
     // I should not really do this as it comes with the repercussion that any function that interacts with this will be
@@ -159,38 +161,38 @@ static void PauseScreenPrintFunc(void)
 {
     switch (GameState.ResumeAfterPause)
     {
-        case GameState_ResumeGame: // Resume normal game
-            UISSFEnemiesScanPrintFunction(
-                GameState.FrameNumber,
-                GameState.Difficulty,
-                GameState.Lives,
-                &GameState.Player,
-                GameState.EnemyEntityArray
-            );
-            break;
+    case GameState_ResumeGame: // Resume normal game
+        UISSFEnemiesScanPrintFunction(
+            GameState.FrameNumber,
+            GameState.Difficulty,
+            GameState.Lives,
+            &GameState.Player,
+            GameState.EnemyEntityArray
+        );
+        break;
 
-        case GameState_ResumeSuperSentinel: // Resume boss fight
-            UISSFSuperSentinelScanPrintFunction(
-                GameState.FrameNumber,
-                GameState.Difficulty,
-                GameState.Lives,
-                &GameState.Player,
-                GameState.EnemyEntityArray
-            );
-            break;
+    case GameState_ResumeSuperSentinel: // Resume boss fight
+        UISSFSuperSentinelScanPrintFunction(
+            GameState.FrameNumber,
+            GameState.Difficulty,
+            GameState.Lives,
+            &GameState.Player,
+            GameState.EnemyEntityArray
+        );
+        break;
 
-        case GameState_ResumeChallengeRound: // Resume challenge game
-            UISSFChallengeScanPrintFunction(
-                GameState.FrameNumber,
-                GameState.Difficulty,
-                GameState.Lives,
-                &GameState.Player,
-                GameState.EnemyEntityArray
-            );
-            break;
+    case GameState_ResumeChallengeRound: // Resume challenge game
+        UISSFChallengeScanPrintFunction(
+            GameState.FrameNumber,
+            GameState.Difficulty,
+            GameState.Lives,
+            &GameState.Player,
+            GameState.EnemyEntityArray
+        );
+        break;
 
-        default:
-            UIWriteTextAtOffset("Something broke", 10, 3);
+    default:
+        UIWriteTextAtOffset("Something broke", 10, 3);
     }
 }
 
@@ -273,18 +275,47 @@ UIInterfaceStruct UIIDCreateBossWinInterface(void)
 // Test menus
 //
 
+static void PrintSeedFunc(void)
+{
+    UIHPFPrintSeed(23, GameState.SeedString);
+}
+
 UIInterfaceStruct UIIDCreateTestMenuInterface(void)
 {
     UIInterfaceStruct ui;
     UIInitInterface(
         &ui,
-        "Test Menu",
-        5,
+        "Main Test Menu",
+        4,
+        "Seed Input",
         "Levels",
         "Bosses",
-        "Menus",
-        "",
         "Return to Main Menu"
+    );
+    ui.Choice = ui.NumUIOptions - 1;
+    ui.Separation = 1;
+    ui.PrintFunction = &PrintSeedFunc;
+
+    return ui;
+}
+
+UIInterfaceStruct UIIDCreateTestSeedInputInterface(void)
+{
+    UIInterfaceStruct ui;
+    UIInitInterface(
+        &ui,
+        "Seed Input",
+        10,
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "Return to Test Menu"
     );
     ui.Choice = ui.NumUIOptions - 1;
 
@@ -297,18 +328,16 @@ UIInterfaceStruct UIIDCreateTestLevelsInterface(void)
     UIInitInterface(
         &ui,
         "Test Levels",
-        9,
-        "Seed Input",
-        "",
+        6,
         "2 Enemies",
         "4 Enemies",
         "6 Enemies",
         "8 Enemies",
         "8 Enemies Challenge",
-        "",
         "Return to Test Menu"
     );
     ui.Choice = ui.NumUIOptions - 1;
+    ui.Separation = 1;
 
     return ui;
 }
@@ -318,13 +347,47 @@ UIInterfaceStruct UIIDCreateTestBossesInterface(void)
     UIInterfaceStruct ui;
     UIInitInterface(
         &ui,
-        "Test Levels",
-        3,
-        "Hello, World!",
-        "",
+        "Test Bosses",
+        4,
+        "Super Sentinel",
+        "Unimplemented 1",
+        "Unimplemented 2",
         "Return to Test Menu"
     );
     ui.Choice = ui.NumUIOptions - 1;
+    ui.Separation = 1;
+
+    return ui;
+}
+
+UIInterfaceStruct UIIDCreateTestSuperSentinelInterface(void)
+{
+    UIInterfaceStruct ui;
+    UIInitInterface(
+        &ui,
+        "Test Super Sentinel",
+        4,
+        "Initial Stage",
+        "Second Stage",
+        "Final Stage",
+        "Return to Test Bosses Menu"
+    );
+    ui.Choice = ui.NumUIOptions - 1;
+    ui.Separation = 1;
+
+    return ui;
+}
+
+UIInterfaceStruct UIIDCreateTestFinishedInterface(void)
+{
+    UIInterfaceStruct ui;
+    UIInitInterface(
+        &ui,
+        "Test Finished",
+        1,
+        "Return"
+    );
+    ui.Separation = 1;
 
     return ui;
 }
@@ -334,13 +397,13 @@ UIInterfaceStruct UIIDCreateTestMenusInterface(void)
     UIInterfaceStruct ui;
     UIInitInterface(
         &ui,
-        "Test Levels",
-        3,
+        "Test Menus",
+        2,
         "Hello, World!",
-        "",
         "Return to Test Menu"
     );
     ui.Choice = ui.NumUIOptions - 1;
+    ui.Separation = 1;
 
     return ui;
 }

@@ -11,7 +11,8 @@
 typedef enum _GameStateStates_e
 {
     //
-    // Menu States
+    // Main Menu States
+    // Not just the Main Menu, just the main states for the menus
     //
 
     GameState_MainMenu,
@@ -28,12 +29,25 @@ typedef enum _GameStateStates_e
     // ChallengeWinMenu,
     // BossWinMenu,
 
-    GameState_TestMenu,
-    GameState_TestLevelsMenu,
-    GameState_TestBossesMenu,
-    GameState_TestMenusMenu,
-
     GameState_UnimplementedMenu,
+
+    //
+    // Test Menu States
+    //
+
+    GameState_TestMenu,
+
+    GameState_TestSeedInputMenu,
+
+    GameState_TestLevelsMenu,
+
+    GameState_TestBossesMenu,
+    GameState_TestSuperSentinelMenu,
+
+    /// Game State for when a test game (normal or boss-related) is finished.
+    GameState_TestFinishedMenu,
+
+    GameState_TestMenusMenu,
 
     //
     // Game States
@@ -87,11 +101,11 @@ typedef struct _GameState_s
     int ScreenBoarder[4][4];
 
     /// The Seed.
-    time_t Seed;
+    int Seed;
 
     /// The Seed in string form.
-    /// 20 chars long because the max length of time_t is 20 chars.
-    char SeedString[21];
+    /// 9 chars long because we % by 1,000,000,000.
+    char SeedString[10];
 
     // Numbers that are known to produce bugs
     // Seed = 1668036031; srand((unsigned) Seed); // Two miners spawned in the same place with 1 set of enemies

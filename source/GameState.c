@@ -17,7 +17,7 @@ _GameState GameState = {
     // Not strictly necessary to set the seed as it is set in the main function
     .Seed = 0,
     // This is necessary though
-    .SeedString = "12345678901234567890",
+    .SeedString = "123456789",
 
     .NumEnemyGroups = 1,
     // Should start on the main menu

@@ -4,7 +4,7 @@
 #include "nds.h"
 
 //
-// Constants for the amount of characters that can be displayed
+// Constants for the number of characters that can be displayed
 //
 
 /// The width of the ui in characters - non-inclusive of '\0'.
@@ -83,8 +83,8 @@ void UIWriteTextAtOffset(const char *string, int line_number, int char_offset);
 // UI Interface setup and use related
 //
 
-/// Initialises the interface to have num_options amount of options.
-/// After num_options there should be num_options amount of strings representing the options.
+/// Initialises the interface to have `num_options` number of options.
+/// After num_options there should be a ` num_options ` number of strings representing the options.
 void UIInitInterface(UIInterfaceStruct *interface, const char *name, int num_options, ...);
 
 /// Does what UIDisplayInterface does at the given offsets.
