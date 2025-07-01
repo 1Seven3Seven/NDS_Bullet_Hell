@@ -4,7 +4,7 @@
 #include "Bullet.h"
 #include "Entity.h"
 
-///
+/// General information about the Super Shredder.
 typedef struct _SuperShredderInformation_s
 {
     /// Movement vector.

@@ -48,10 +48,10 @@ void SuperShredder_Move(Entity enemy_array[])
 /// Used during the entry of the Super Shredder and only works if the vector has one element 0.
 static int IsSuperShredderOutOfBounds(const float vx, const float vy, const Entity enemy_array[])
 {
-    return (vx > 0 && enemy_array[0].x > SCREEN_WIDTH + SUPERSHREDDER_WIDTH * 0.3)   // Moving right
-        || (vx < 0 && enemy_array[0].x < -SUPERSHREDDER_WIDTH * 1.3)                 // Moving left
-        || (vy > 0 && enemy_array[0].y > SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT * 0.3) // Moving up
-        || (vy < 0 && enemy_array[0].y < -SUPERSHREDDER_HEIGHT * 1.3);               // Moving down
+    return (vx > 0 && enemy_array[0].x > SCREEN_WIDTH + SUPERSHREDDER_WIDTH)      // Moving right
+           || (vx < 0 && enemy_array[0].x < -SUPERSHREDDER_WIDTH * 2)             // Moving left
+           || (vy > 0 && enemy_array[0].y > SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT) // Moving up
+           || (vy < 0 && enemy_array[0].y < -SUPERSHREDDER_HEIGHT * 2);           // Moving down
 }
 
 /// Selects a screen edge and direction to move along for the Super Shredder entry.
@@ -68,52 +68,52 @@ static void PickScreenEdgeAndDirection(const int screen_boarders[], const int bo
         {
             // Travel Left
             {
-                SCREEN_WIDTH + SUPERSHREDDER_WIDTH * 1.3, -SUPERSHREDDER_HEIGHT / 2,
-                -SUPERSHREDDER_SPEED, 0
+                SCREEN_WIDTH + SUPERSHREDDER_WIDTH, -SUPERSHREDDER_HEIGHT / 2,
+                -SUPERSHREDDER_ENTRY_SPEED, 0
             },
             // Travel Right
             {
-                -SUPERSHREDDER_WIDTH * 1.3, -SUPERSHREDDER_HEIGHT / 2,
-                SUPERSHREDDER_SPEED, 0
+                -SUPERSHREDDER_WIDTH, -SUPERSHREDDER_HEIGHT / 2,
+                SUPERSHREDDER_ENTRY_SPEED, 0
             },
         },
         // Left of the screen
         {
             // Travel Up
             {
-                -SUPERSHREDDER_WIDTH / 2, SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT * 1.3,
-                0, -SUPERSHREDDER_SPEED
+                -SUPERSHREDDER_WIDTH / 2, SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT,
+                0, -SUPERSHREDDER_ENTRY_SPEED
             },
             // Travel Down
             {
-                -SUPERSHREDDER_WIDTH / 2, -SUPERSHREDDER_HEIGHT * 1.3,
-                0, SUPERSHREDDER_SPEED
+                -SUPERSHREDDER_WIDTH / 2, -SUPERSHREDDER_HEIGHT,
+                0, SUPERSHREDDER_ENTRY_SPEED
             },
         },
         // Bottom of the screen
         {
             // Travel left
             {
-                SCREEN_WIDTH + SUPERSHREDDER_WIDTH * 1.3, SCREEN_HEIGHT - SUPERSHREDDER_HEIGHT / 2,
-                -SUPERSHREDDER_SPEED, 0
+                SCREEN_WIDTH + SUPERSHREDDER_WIDTH, SCREEN_HEIGHT - SUPERSHREDDER_HEIGHT / 2,
+                -SUPERSHREDDER_ENTRY_SPEED, 0
             },
             // Travel right
             {
-                -SUPERSHREDDER_WIDTH * 1.3, SCREEN_HEIGHT - SUPERSHREDDER_HEIGHT / 2,
-                SUPERSHREDDER_SPEED, 0
+                -SUPERSHREDDER_WIDTH, SCREEN_HEIGHT - SUPERSHREDDER_HEIGHT / 2,
+                SUPERSHREDDER_ENTRY_SPEED, 0
             },
         },
         // Right of the screen
         {
             // Travel Up
             {
-                SCREEN_WIDTH - SUPERSHREDDER_WIDTH / 2, SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT * 1.3,
-                0, -SUPERSHREDDER_SPEED
+                SCREEN_WIDTH - SUPERSHREDDER_WIDTH / 2, SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT,
+                0, -SUPERSHREDDER_ENTRY_SPEED
             },
             // Travel Down
             {
-                SCREEN_WIDTH - SUPERSHREDDER_WIDTH / 2, -SUPERSHREDDER_HEIGHT * 1.3,
-                0, SUPERSHREDDER_SPEED
+                SCREEN_WIDTH - SUPERSHREDDER_WIDTH / 2, -SUPERSHREDDER_HEIGHT,
+                0, SUPERSHREDDER_ENTRY_SPEED
             }
         }
     };
@@ -227,7 +227,7 @@ void SuperShredder_SetupForGameLoop(
         if (player_spawn_counter == 0 && boss_entry_stage < 5)
         {
             // If not moving, pick a screen edge and a direction to move and set position
-            if (boss_moving == 0)
+            if (boss_moving == 0 && boss_entry_stage < 4)
             {
                 PickScreenEdgeAndDirection(screen_boarders, boss_entry_stage, enemy_array);
                 boss_entry_stage++;
@@ -251,12 +251,9 @@ void SuperShredder_SetupForGameLoop(
         }
 
         // If the boss has finished moving, and we are at the last stage, then we are all done
-        if (boss_moving == 0 && boss_entry_stage == 4)
-        {
-            boss_entry_stage = 5;
-        }
+        if (boss_moving == 0 && boss_entry_stage == 4) { boss_entry_stage = 5; }
 
-        if (boss_entry_stage == 5)
+        if (boss_entry_stage == 5) // ToDo: Remove this and set loop end condition to 5 instead of 6
         {
             if (random_counter > 0) { random_counter--; }
             else { boss_entry_stage = 6; }
