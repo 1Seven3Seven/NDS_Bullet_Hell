@@ -14,6 +14,7 @@
 // Backgrounds
 #include "BattleBackground.h"
 #include "BossBackground.h"
+#include "SuperShredder.h"
 #include "TitleBackground.h"
 
 // Returns the number of lives depending on the difficulty
@@ -94,12 +95,13 @@ int main(void)
     UIInterfaceStruct test_levels_interface = UIIDCreateTestLevelsInterface();
     UIInterfaceStruct test_bosses_interface = UIIDCreateTestBossesInterface();
     UIInterfaceStruct test_super_sentinels_interface = UIIDCreateTestSuperSentinelInterface();
+    UIInterfaceStruct test_super_shredder_interface = UIIDCreateTestSuperShredderInterface();
     UIInterfaceStruct test_finished_interface = UIIDCreateTestFinishedInterface();
 
     UIInterfaceStruct unimplemented_interface = UIIDCreateUnimplementedInterface();
 
     // Default to unimplemented interface just in case
-    UIInterfaceStruct* win_interface_to_use = &unimplemented_interface;
+    UIInterfaceStruct *win_interface_to_use = &unimplemented_interface;
 
     //
     // Interface/game results
@@ -126,6 +128,9 @@ int main(void)
     // Menu loop is more correct,
     // But games are run in here as well...
     //
+
+    // For testing, uncomment for release
+    main_menu_interface.NumUIOptions = 9;
 
     do
     {
@@ -269,9 +274,9 @@ int main(void)
                 case 6: // Whitespace
                     test_menu_secret |= 0b00000010;
                     break;
-                case 7: // Do nothing
-                case 8: // Do nothing
-                case 9: // Do nothing
+                case 7:  // Do nothing
+                case 8:  // Do nothing
+                case 9:  // Do nothing
                 case 10: // Do nothing
                     break;
                 case 11:
@@ -297,7 +302,7 @@ int main(void)
                 break;
             }
 
-        case GameState_Game: // Start a new game
+        case GameState_Game:       // Start a new game
         case GameState_ResumeGame: // Resume the game
             {
                 // If starting anew run the setup
@@ -469,7 +474,7 @@ int main(void)
                 break;
             }
 
-        case GameState_SuperSentinel: // Start the super sentinel battle
+        case GameState_SuperSentinel:       // Start the super sentinel battle
         case GameState_ResumeSuperSentinel: // Resume from pause
             {
                 if (GameState.CurrentActivity == GameState_SuperSentinel)
@@ -606,7 +611,37 @@ int main(void)
                 break;
             }
 
-        case GameState_ChallengeRound: // New challenge attempt
+        case GameState_SuperShredder:       // Start the Super Shredder battle
+        case GameState_ResumeSuperShredder: // Resume from pause
+            {
+                if (GameState.CurrentActivity == GameState_SuperShredder)
+                {
+                    // Background
+                    dmaCopy(BossBackgroundBitmap, bgGetGfxPtr(bg3), BossBackgroundBitmapLen);
+                    dmaCopy(BossBackgroundPal, BG_PALETTE, BossBackgroundPalLen);
+
+                    SuperShredder_SetupForGameLoop(
+                        &GameState.Player,
+                        GameState.EnemyEntityArray, 8,
+                        GameState.BulletArray, MAX_BULLET_COUNT,
+                        &GameState.FrameNumber,
+                        bg3
+                    );
+                }
+
+                // Prevent looping
+                GameState.CurrentActivity = GameState_SuperShredder;
+
+                // ToDo: Acquire game result
+
+                // ToDo: Switch on game result
+
+                GameState.CurrentActivity = GameState_TestSuperShredderMenu;
+
+                break;
+            }
+
+        case GameState_ChallengeRound:       // New challenge attempt
         case GameState_ResumeChallengeRound: // Resume challenge attempt
             {
                 if (GameState.CurrentActivity == GameState_ChallengeRound)
@@ -796,6 +831,8 @@ int main(void)
 
                 if (ui_choice == test_seed_input_interface.NumUIOptions - 1)
                 {
+                    // ToDo: There is a bug where the randomness is not correctly seeded once we have selected a seed
+
                     // Save the seed, then re-seed
                     for (int i = 0; i < 9; i++)
                     {
@@ -815,7 +852,7 @@ int main(void)
                 {
                     // Increment the number at the UI option index
                     // If greater than 9, then set to 0
-                    char* selected_digit = test_seed_input_interface.UIOptions[ui_choice];
+                    char *selected_digit = test_seed_input_interface.UIOptions[ui_choice];
                     if (selected_digit[0] == '9')
                     {
                         selected_digit[0] = '0';
@@ -904,6 +941,9 @@ int main(void)
                     break;
 
                 case 1: // Unimplemented 1
+                    GameState.CurrentActivity = GameState_TestSuperShredderMenu;
+                    GameState.Lives = GetNumLives();
+                    break;
                 case 2: // Unimplemented 2
                     break;
 
@@ -946,6 +986,33 @@ int main(void)
                     GameState.CurrentActivity = GameState_SuperSentinel;
                     break;
                 case 3: // Return to Test Bosses Menu
+                    GameState.CurrentActivity = GameState_TestBossesMenu;
+                    break;
+                default: // An unknown value returned, go to unimplemented interface
+                    GameState.CurrentActivity = GameState_UnimplementedMenu;
+                }
+
+                break;
+            }
+
+        case GameState_TestSuperShredderMenu:
+            {
+                ui_choice = UIHandleInterfaceAtOffset(
+                    &test_super_shredder_interface,
+                    &GameState.FrameNumber,
+                    1,
+                    1
+                );
+
+                running_test = true;
+                return_after_test = GameState_TestSuperShredderMenu;
+
+                switch (ui_choice)
+                {
+                case 0: // Game Start
+                    GameState.CurrentActivity = GameState_SuperShredder;
+                    break;
+                case 1: // Return to Test Bosses Menu
                     GameState.CurrentActivity = GameState_TestBossesMenu;
                     break;
                 default: // An unknown value returned, go to unimplemented interface

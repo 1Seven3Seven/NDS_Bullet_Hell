@@ -350,7 +350,7 @@ UIInterfaceStruct UIIDCreateTestBossesInterface(void)
         "Test Bosses",
         4,
         "Super Sentinel",
-        "Unimplemented 1",
+        "Super Shredder",
         "Unimplemented 2",
         "Return to Test Menu"
     );
@@ -370,6 +370,22 @@ UIInterfaceStruct UIIDCreateTestSuperSentinelInterface(void)
         "Initial Stage",
         "Second Stage",
         "Final Stage",
+        "Return to Test Bosses Menu"
+    );
+    ui.Choice = ui.NumUIOptions - 1;
+    ui.Separation = 1;
+
+    return ui;
+}
+
+UIInterfaceStruct UIIDCreateTestSuperShredderInterface(void)
+{
+    UIInterfaceStruct ui;
+    UIInitInterface(
+        &ui,
+        "Test Super Shredder",
+        2,
+        "Start",
         "Return to Test Bosses Menu"
     );
     ui.Choice = ui.NumUIOptions - 1;

@@ -30,7 +30,7 @@ typedef enum _BulletType_e
     /// Bullets fired upon enemy death.
     BulletType_DeathBullet = 4,
     /// The main bullet fired.
-    BulletType_SSBullet = 5,
+    BulletType_BossBullet = 5,
     /// The start of the laser, animated differently.
     BulletType_SSLaserStart = 6,
     /// The segments of the lasers.

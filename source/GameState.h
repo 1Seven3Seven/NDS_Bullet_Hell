@@ -43,6 +43,7 @@ typedef enum _GameStateStates_e
 
     GameState_TestBossesMenu,
     GameState_TestSuperSentinelMenu,
+    GameState_TestSuperShredderMenu,
 
     /// Game State for when a test game (normal or boss-related) is finished.
     GameState_TestFinishedMenu,
@@ -65,6 +66,9 @@ typedef enum _GameStateStates_e
 
     GameState_SuperSentinel,
     GameState_ResumeSuperSentinel,
+
+    GameState_SuperShredder,
+    GameState_ResumeSuperShredder,
 } GameStateState;
 
 /// A collection of variables regarding the current state of the game.

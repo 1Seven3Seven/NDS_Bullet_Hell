@@ -30,6 +30,9 @@ typedef struct _GFXAllSpriteGFX_s
     int SSLaserWeaponGFXMemLoaded;
     u16 *SSLaserWeaponGFXMem[SS_LASER_ANIMATION_FRAMES];
 
+    int SuperShredderGFXMemLoaded;
+    u16 *SuperShredderGFXMem[SUPERSHREDDER_ANIMATION_FRAMES];
+
     //
     // Explosion Sprites
     //
@@ -67,8 +70,16 @@ extern _GFXAllSpriteGFX GFXAllSpriteGFX;
 /// Initialises the main GFX struct.
 void GFXInit();
 
+//
+// Palette stuff
+//
+
 ///
 void GFXSetSpritePaletteDefault();
+
+//
+// Entity Sprites
+//
 
 ///
 void GFXLoadPlayerSprites();
@@ -89,6 +100,13 @@ void GFXLoadMinerSprites();
 void GFXLoadSuperSentinelSprites();
 
 ///
+void GFXLoadSuperShredderSprites();
+
+//
+// EXPLOSIONS!
+//
+
+///
 void GFXLoadPlayerExplosion();
 
 ///
@@ -96,6 +114,10 @@ void GFXLoadEnemyExplosion();
 
 ///
 void GFXLoadSSExplosion();
+
+//
+// Bullets
+//
 
 ///
 void GFXLoadPlayerBullets();
@@ -110,16 +132,28 @@ void GFXLoadMinerBullets();
 void GFXLoadDeathBullets();
 
 ///
-void __GFXLoadSuperSentinelNormalBullets();
+void GFXLoadBossNormalBullets();
 
 ///
-void __GFXLoadSuperSentinelWildBullets();
+void GFXLoadSuperSentinelPilotLaserBullets();
 
 ///
-void GFXLoadSuperSentinelBullets();
+void GFXLoadSuperSentinelLaserBullets();
+
+///
+void GFXLoadAllSuperSentinelBullets();
+
+//
+// Other
+//
 
 ///
 void GFXLoadPortalSprites();
+
+//
+// Would you like a bit of everything?
+// Or just everything?
+//
 
 /// Loads all the sprite data into `GFXAllSpriteGFX` and sets the colour pallet.
 /// Must be run before using `GFXAllSpriteGFX`.

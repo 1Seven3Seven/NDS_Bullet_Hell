@@ -1,7 +1,6 @@
 #include "SuperSentinel.h"
 
 #include <nds.h>
-#include <nds/arm9/sprite.h>
 
 #include <math.h>
 #include <stdlib.h>
@@ -443,7 +442,7 @@ void SSFireSalvo(Entity enemy_array[], int player_center[2], Bullet bullet_array
                 1,
                 270,
                 1,
-                BulletType_SSBullet
+                BulletType_BossBullet
             );
 
             SSSuperSentinelInformation.BulletsFired++;

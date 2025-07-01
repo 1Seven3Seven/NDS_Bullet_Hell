@@ -16,6 +16,8 @@ typedef enum _EntityType_e
     EntityType_SSBody = 4,
     /// The type of the super sentinel laser weapons.
     EntityType_SSLaser = 5,
+    /// The type of the Super Shredder.
+    EntityType_SuperShredder = 6,
 } EntityType;
 
 /// Contains information regarding an entity.

@@ -71,6 +71,14 @@
 #define SS_CRITICAL_HEALTH 10 // Does not affect the fight but effects text displayed
 #define SS_CENTER_X 112       // The x coord of the main body to be set when centered
 
+#define SUPERSHREDDER_HEALTH 300
+#define SUPERSHREDDER_START_X -100
+#define SUPERSHREDDER_START_Y -100
+#define SUPERSHREDDER_BULLET_DELAY 000
+#define SUPERSHREDDER_WIDTH 24
+#define SUPERSHREDDER_HEIGHT 24
+#define SUPERSHREDDER_SPEED 6
+
 //
 // Enemy animation information
 //
@@ -88,6 +96,7 @@
 #define SS_BODY_ANIMATION_FRAMES 8
 #define SS_LASER_ANIMATION_FRAMES 4
 #define SS_EXPLOSION_ANIMATION_FRAMES 8
+#define SUPERSHREDDER_ANIMATION_FRAMES 4
 
 //
 // Returned by move functions to determine what was happening when collisions were detected

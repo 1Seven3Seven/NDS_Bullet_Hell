@@ -61,6 +61,9 @@ UIInterfaceStruct UIIDCreateTestBossesInterface(void);
 /// Creates the testing interface for the Super Sentinel allowing one to quickly jump to each stage of the boss fight.
 UIInterfaceStruct UIIDCreateTestSuperSentinelInterface(void);
 
+/// Creates the testing interface for the Super Shredder allowing one to quickly jump to each stage of the boss fight.
+UIInterfaceStruct UIIDCreateTestSuperShredderInterface(void);
+
 /// Creates the testing interface used when a game-related test is finished.
 /// A game is considered finished when either the player loses all lives or kills all enemies.
 UIInterfaceStruct UIIDCreateTestFinishedInterface(void);
