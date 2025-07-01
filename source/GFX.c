@@ -191,6 +191,87 @@ void GFXLoadSuperSentinelSprites()
     }
 }
 
+void GFXLoadSuperShredderSprites()
+{
+    if (GFXAllSpriteGFX.SuperShredderGFXMemLoaded) { return; }
+
+    // This is a bit of fun...
+    // The Super Shredder's sprites are 32x32 and have no subparts (at time of writing).
+    // So, we must allocate space for 32x32 sprites and copy over the data in a way that properly fills the sprite.
+
+    for (int a = 0; a < 4; a++)
+    {
+        GFXAllSpriteGFX.SuperShredderGFXMem[a] = oamAllocateGfx(
+            &oamMain,
+            SpriteSize_32x32,
+            SpriteColorFormat_256Color
+        );
+
+        /*
+         * It looks as if dmaCopy copies in 8x8 pixel chunks
+         */
+
+        // const u8 *sprite_top_left = (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 10 + TILE_SIZE * 8;
+        // A better sprite to test with
+        // const u8 *sprite_top_left = (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 10 + TILE_SIZE * 14;
+        // Trying with the portal
+        const u8* first_line_top_left = (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 3 + TILE_SIZE * 9;
+        const u8 *second_line_top_left = (u8 *)SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 4 + TILE_SIZE * 9;
+
+        // ToDo: maf
+
+        // Top left 16x16 segment
+        dmaCopy(
+            first_line_top_left,
+            GFXAllSpriteGFX.SuperShredderGFXMem[a],
+            16 * 8
+        );
+        dmaCopy(
+            first_line_top_left + 16 * 8,
+            GFXAllSpriteGFX.SuperShredderGFXMem[a] + 16 * 8,
+            16 * 8
+        );
+
+        // Top right 16x16 segment
+        dmaCopy(
+            first_line_top_left + 16 * 16,
+            GFXAllSpriteGFX.SuperShredderGFXMem[a] + 16 * 4,
+            16 * 8
+        );
+        dmaCopy(
+            first_line_top_left + 16 * 24,
+            GFXAllSpriteGFX.SuperShredderGFXMem[a] + 16 * 12,
+            16 * 8
+        );
+
+        // Bottom left 16x16 segment
+        dmaCopy(
+            second_line_top_left,
+            GFXAllSpriteGFX.SuperShredderGFXMem[a] + 16 * 16,
+            16 * 8
+        );
+        dmaCopy(
+            second_line_top_left + 16 * 8,
+            GFXAllSpriteGFX.SuperShredderGFXMem[a] + 16 * 24,
+            16 * 8
+        );
+
+        // Bottom right 16x16 segment
+        dmaCopy(
+            second_line_top_left + 16 * 16,
+            GFXAllSpriteGFX.SuperShredderGFXMem[a] + 16 * 20,
+            16 * 8
+        );
+        dmaCopy(
+            second_line_top_left + 16 * 24,
+            GFXAllSpriteGFX.SuperShredderGFXMem[a] + 16 * 28,
+            16 * 8
+        );
+    }
+
+    GFXAllSpriteGFX.SuperShredderGFXMemLoaded = 1;
+}
+
 void GFXLoadPlayerExplosion()
 {
     if (GFXAllSpriteGFX.PlayerExplosionGFXMemLoaded) { return; }
