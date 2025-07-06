@@ -530,24 +530,24 @@ void GFXLoadAllSuperSentinelBullets()
 
 void GFXLoadSuperShredderTelegraphBullets()
 {
-    // ToDo: bug where the gfx here is not correctly loaded?
+    // ToDo: use correct sprite once drawn
     if (GFXAllSpriteGFX.WildBulletGFXMemLoaded[IndexForBulletType(BulletType_SuperShredderTelegraph)]) { return; }
 
     for (int a = 0; a < 4; a++)
     {
-        GFXAllSpriteGFX.BulletGFXMem[IndexForBulletType(BulletType_SuperShredderTelegraph)][a] = oamAllocateGfx(
+        GFXAllSpriteGFX.WildBulletGFXMem[IndexForBulletType(BulletType_SuperShredderTelegraph)][a] = oamAllocateGfx(
             &oamMain,
             SpriteSize_16x16,
             SpriteColorFormat_256Color
         );
         dmaCopy(
             (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 2 + TILE_SIZE * 8 + TILE_SIZE * a,
-            GFXAllSpriteGFX.BulletGFXMem[IndexForBulletType(BulletType_SuperShredderTelegraph)][a],
+            GFXAllSpriteGFX.WildBulletGFXMem[IndexForBulletType(BulletType_SuperShredderTelegraph)][a],
             16 * 16
         );
     }
 
-    GFXAllSpriteGFX.BulletGFXMemLoaded[IndexForBulletType(BulletType_SuperShredderTelegraph)] = 1;
+    GFXAllSpriteGFX.WildBulletGFXMemLoaded[IndexForBulletType(BulletType_SuperShredderTelegraph)] = 1;
 }
 
 void GFXLoadAllSuperShredderBullets()
