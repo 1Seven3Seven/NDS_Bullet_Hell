@@ -57,7 +57,7 @@ void GFXLoadPlayerSprites()
             SpriteColorFormat_256Color
         );
         dmaCopy(
-            (u8*) SpriteSheetTiles + TILE_SIZE * a,
+            (u8 *) SpriteSheetTiles + TILE_SIZE * a,
             GFXAllSpriteGFX.PlayerGFXMem[a],
             16 * 16
         );
@@ -95,7 +95,7 @@ void GFXLoadSentinelSprites()
                 SpriteColorFormat_256Color
             );
             dmaCopy(
-                (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * (a + 1) + TILE_SIZE * b,
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * (a + 1) + TILE_SIZE * b,
                 GFXAllSpriteGFX.SentinelGFXMem[a][b],
                 16 * 16
             );
@@ -117,7 +117,7 @@ void GFXLoadShredderSprites()
             SpriteColorFormat_256Color
         );
         dmaCopy(
-            (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 3 + TILE_SIZE * a,
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 3 + TILE_SIZE * a,
             GFXAllSpriteGFX.ShredderGFXMem[a],
             16 * 16
         );
@@ -138,7 +138,7 @@ void GFXLoadMinerSprites()
             SpriteColorFormat_256Color
         );
         dmaCopy(
-            (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 4 + TILE_SIZE * a,
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 4 + TILE_SIZE * a,
             GFXAllSpriteGFX.MinerGFXMem[a],
             16 * 16
         );
@@ -162,7 +162,7 @@ void GFXLoadSuperSentinelSprites()
                     SpriteColorFormat_256Color
                 );
                 dmaCopy(
-                    (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * (5 + a) + TILE_SIZE * 8 +
+                    (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * (5 + a) + TILE_SIZE * 8 +
                     TILE_SIZE * b,
                     GFXAllSpriteGFX.SSBodyGFXMem[a][b],
                     16 * 16
@@ -184,12 +184,12 @@ void GFXLoadSuperSentinelSprites()
                 SpriteColorFormat_256Color
             );
             dmaCopy(
-                (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 4 + TILE_SIZE * 8 + TILE_SIZE * a,
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 4 + TILE_SIZE * 8 + TILE_SIZE * a,
                 GFXAllSpriteGFX.SSLaserWeaponGFXMem[a],
                 16 * 16
             );
             dmaCopy(
-                (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 4 + TILE_SIZE * 8 + TILE_SIZE * (a + 4),
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 4 + TILE_SIZE * 8 + TILE_SIZE * (a + 4),
                 GFXAllSpriteGFX.SSLaserWeaponGFXMem[a] + 16 * 8,
                 16 * 16
             );
@@ -215,12 +215,12 @@ void GFXLoadSuperShredderSprites()
             SpriteColorFormat_256Color
         );
 
-        const u8 *sprite_first_line = (u8*) SpriteSheetTiles
-            + TILE_SIZE * SPRITE_SHEET_WIDTH * 10
-            + TILE_SIZE * (8 + a * 2);
-        const u8 *sprite_second_line = (u8*) SpriteSheetTiles
-            + TILE_SIZE * SPRITE_SHEET_WIDTH * 11
-            + TILE_SIZE * (8 + a * 2);
+        const u8 *sprite_first_line = (u8 *) SpriteSheetTiles
+                                      + TILE_SIZE * SPRITE_SHEET_WIDTH * 10
+                                      + TILE_SIZE * (8 + a * 2);
+        const u8 *sprite_second_line = (u8 *) SpriteSheetTiles
+                                       + TILE_SIZE * SPRITE_SHEET_WIDTH * 11
+                                       + TILE_SIZE * (8 + a * 2);
 
         // For easier indexing below
         const u8 *sprite_lines[2] = {sprite_first_line, sprite_second_line};
@@ -255,7 +255,7 @@ void GFXLoadPlayerExplosion()
             SpriteColorFormat_256Color
         );
         dmaCopy(
-            (u8*) SpriteSheetTiles + TILE_SIZE * 8 + TILE_SIZE * a,
+            (u8 *) SpriteSheetTiles + TILE_SIZE * 8 + TILE_SIZE * a,
             GFXAllSpriteGFX.PlayerExplosionGFXMem[a],
             16 * 16
         );
@@ -276,7 +276,7 @@ void GFXLoadEnemyExplosion()
             SpriteColorFormat_256Color
         );
         dmaCopy(
-            (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH + TILE_SIZE * 8 + TILE_SIZE * a,
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH + TILE_SIZE * 8 + TILE_SIZE * a,
             GFXAllSpriteGFX.EnemyExplosionGFXMem[a],
             16 * 16
         );
@@ -297,7 +297,7 @@ void GFXLoadSSExplosion()
             SpriteColorFormat_256Color
         );
         dmaCopy(
-            (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 9 + TILE_SIZE * 8 + TILE_SIZE * a,
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 9 + TILE_SIZE * 8 + TILE_SIZE * a,
             GFXAllSpriteGFX.SSExplosionGFXMem[a],
             16 * 16
         );
@@ -322,7 +322,7 @@ void GFXLoadPlayerBullets()
             SpriteColorFormat_256Color
         );
         dmaCopy(
-            (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 7 + TILE_SIZE * a,
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 7 + TILE_SIZE * a,
             GFXAllSpriteGFX.BulletGFXMem[BulletType_PlayerBullet][a],
             16 * 16
         );
@@ -343,7 +343,7 @@ void GFXLoadSentinelBullets()
             SpriteColorFormat_256Color
         );
         dmaCopy(
-            (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 6 + TILE_SIZE * a,
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 6 + TILE_SIZE * a,
             GFXAllSpriteGFX.BulletGFXMem[BulletType_SentinelBullet][a],
             16 * 16
         );
@@ -365,7 +365,7 @@ void GFXLoadMinerBullets()
                 SpriteColorFormat_256Color
             );
             dmaCopy(
-                (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 5 + TILE_SIZE * a,
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 5 + TILE_SIZE * a,
                 GFXAllSpriteGFX.BulletGFXMem[BulletType_MinerMine][a],
                 16 * 16
             );
@@ -385,7 +385,7 @@ void GFXLoadMinerBullets()
                 SpriteColorFormat_256Color
             );
             dmaCopy(
-                (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 3 + TILE_SIZE * 4 + TILE_SIZE * a,
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 3 + TILE_SIZE * 4 + TILE_SIZE * a,
                 GFXAllSpriteGFX.BulletGFXMem[BulletType_MinerMineBullet][a],
                 16 * 16
             );
@@ -407,7 +407,7 @@ void GFXLoadDeathBullets()
             SpriteColorFormat_256Color
         );
         dmaCopy(
-            (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 3 + TILE_SIZE * 4 + TILE_SIZE * a,
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 3 + TILE_SIZE * 4 + TILE_SIZE * a,
             GFXAllSpriteGFX.BulletGFXMem[BulletType_DeathBullet][a],
             16 * 16
         );
@@ -429,7 +429,7 @@ void GFXLoadBossNormalBullets()
                 SpriteColorFormat_256Color
             );
             dmaCopy(
-                (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 5 + TILE_SIZE * 4 + TILE_SIZE * a,
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 5 + TILE_SIZE * 4 + TILE_SIZE * a,
                 GFXAllSpriteGFX.BulletGFXMem[BulletType_BossBullet][a],
                 16 * 16
             );
@@ -452,7 +452,7 @@ void GFXLoadSuperSentinelPilotLaserBullets()
                 SpriteColorFormat_256Color
             );
             dmaCopy(
-                (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 8 + TILE_SIZE * 4 + TILE_SIZE * a,
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 8 + TILE_SIZE * 4 + TILE_SIZE * a,
                 GFXAllSpriteGFX.WildBulletGFXMem[IndexForBulletType(BulletType_SSLaserPilotStart)][a],
                 16 * 16
             );
@@ -470,7 +470,7 @@ void GFXLoadSuperSentinelPilotLaserBullets()
                 SpriteColorFormat_256Color
             );
             dmaCopy(
-                (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 9 + TILE_SIZE * 4 + TILE_SIZE * a,
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 9 + TILE_SIZE * 4 + TILE_SIZE * a,
                 GFXAllSpriteGFX.WildBulletGFXMem[IndexForBulletType(BulletType_SSLaserPilotSegment)][a],
                 16 * 16
             );
@@ -491,7 +491,7 @@ void GFXLoadSuperSentinelLaserBullets()
                 SpriteColorFormat_256Color
             );
             dmaCopy(
-                (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 8 + TILE_SIZE * a,
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 8 + TILE_SIZE * a,
                 GFXAllSpriteGFX.BulletGFXMem[BulletType_SSLaserStart][a],
                 16 * 16
             );
@@ -511,7 +511,7 @@ void GFXLoadSuperSentinelLaserBullets()
                 SpriteColorFormat_256Color
             );
             dmaCopy(
-                (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 9 + TILE_SIZE * a,
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 9 + TILE_SIZE * a,
                 GFXAllSpriteGFX.BulletGFXMem[BulletType_SSLaserSegment][a],
                 16 * 16
             );
@@ -526,6 +526,34 @@ void GFXLoadAllSuperSentinelBullets()
     GFXLoadBossNormalBullets();
     GFXLoadSuperSentinelPilotLaserBullets();
     GFXLoadSuperSentinelLaserBullets();
+}
+
+void GFXLoadSuperShredderTelegraphBullets()
+{
+    // ToDo: bug where the gfx here is not correctly loaded?
+    if (GFXAllSpriteGFX.WildBulletGFXMemLoaded[IndexForBulletType(BulletType_SuperShredderTelegraph)]) { return; }
+
+    for (int a = 0; a < 4; a++)
+    {
+        GFXAllSpriteGFX.BulletGFXMem[IndexForBulletType(BulletType_SuperShredderTelegraph)][a] = oamAllocateGfx(
+            &oamMain,
+            SpriteSize_16x16,
+            SpriteColorFormat_256Color
+        );
+        dmaCopy(
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 2 + TILE_SIZE * 8 + TILE_SIZE * a,
+            GFXAllSpriteGFX.BulletGFXMem[IndexForBulletType(BulletType_SuperShredderTelegraph)][a],
+            16 * 16
+        );
+    }
+
+    GFXAllSpriteGFX.BulletGFXMemLoaded[IndexForBulletType(BulletType_SuperShredderTelegraph)] = 1;
+}
+
+void GFXLoadAllSuperShredderBullets()
+{
+    GFXLoadBossNormalBullets();
+    GFXLoadSuperShredderTelegraphBullets();
 }
 
 //
@@ -546,7 +574,7 @@ void GFXLoadPortalSprites()
                 SpriteColorFormat_256Color
             );
             dmaCopy(
-                (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * (2 + a) + TILE_SIZE * 8 + TILE_SIZE * b,
+                (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * (2 + a) + TILE_SIZE * 8 + TILE_SIZE * b,
                 GFXAllSpriteGFX.PortalGFXMem[a * 8 + b],
                 16 * 16
             );
@@ -597,6 +625,7 @@ void GFXLoadAllSprites()
     GFXLoadDeathBullets();
 
     GFXLoadAllSuperSentinelBullets();
+    GFXLoadAllSuperShredderBullets();
 
     //
     // Miscellaneous
@@ -613,7 +642,7 @@ void GFXLoadAllSprites()
             SpriteColorFormat_256Color
         );
         dmaCopy(
-            (u8*) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 6 + TILE_SIZE * 4 + TILE_SIZE * a,
+            (u8 *) SpriteSheetTiles + TILE_SIZE * SPRITE_SHEET_WIDTH * 6 + TILE_SIZE * 4 + TILE_SIZE * a,
             GFXAllSpriteGFX.BangGFXMem[a],
             16 * 16
         );

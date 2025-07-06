@@ -143,6 +143,12 @@ void GFXLoadSuperSentinelLaserBullets();
 ///
 void GFXLoadAllSuperSentinelBullets();
 
+///
+void GFXLoadSuperShredderTelegraphBullets();
+
+///
+void GFXLoadAllSuperShredderBullets();
+
 //
 // Other
 //

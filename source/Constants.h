@@ -27,7 +27,7 @@
 
 #define MAX_BULLET_COUNT 119
 #define NUMBER_OF_BULLETS 8         // The number of different types of bullets
-#define NUMBER_OF_WILD_BULLETS 2    // The number of different types of wild bullets
+#define NUMBER_OF_WILD_BULLETS 3    // The number of different types of wild bullets
 #define FRAMES_PER_BULLET 4         // The number of frames of animation of the bullets
 #define BULLET_ID_START 9           // The beginning of the oam offset of the bullets
 
@@ -74,7 +74,7 @@
 #define SUPERSHREDDER_HEALTH 300
 #define SUPERSHREDDER_START_X -100
 #define SUPERSHREDDER_START_Y -100
-#define SUPERSHREDDER_BULLET_DELAY 000
+#define SUPERSHREDDER_BULLET_DELAY 60
 #define SUPERSHREDDER_WIDTH 24
 #define SUPERSHREDDER_HEIGHT 24
 #define SUPERSHREDDER_ENTRY_SPEED 6
@@ -93,11 +93,16 @@
 #define ENEMY_EXPLOSION_ANIMATION_FRAMES 8
 #define PORTAL_ANIMATION_FRAMES 16
 #define BANG_ANIMATION_FRAMES 4
+
 #define SS_BODY_PARTS 4                     // The number of segments/parts the body of the super sentinel has
 #define SS_BODY_ANIMATION_FRAMES 8
 #define SS_LASER_ANIMATION_FRAMES 4
 #define SS_EXPLOSION_ANIMATION_FRAMES 8
+
 #define SUPERSHREDDER_ANIMATION_FRAMES 4
+#define SUPERSHREDDER_TELEGRAPH_ANIMATION_FRAMES 60
+#define SUPERSHREDDER_NUM_RUSH_TELEGRAPH_POINTS 8
+#define SUPERSHREDDER_TELEGRAPH_DELAY SUPERSHREDDER_TELEGRAPH_ANIMATION_FRAMES / SUPERSHREDDER_NUM_RUSH_TELEGRAPH_POINTS
 
 //
 // Returned by move functions to determine what was happening when collisions were detected

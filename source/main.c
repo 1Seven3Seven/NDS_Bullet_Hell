@@ -620,6 +620,7 @@ int main(void)
                     dmaCopy(BossBackgroundBitmap, bgGetGfxPtr(bg3), BossBackgroundBitmapLen);
                     dmaCopy(BossBackgroundPal, BG_PALETTE, BossBackgroundPalLen);
 
+                    // Cool entry
                     SuperShredder_SetupForGameLoop(
                         &GameState.Player,
                         GameState.EnemyEntityArray, 8,
@@ -629,13 +630,89 @@ int main(void)
                     );
                 }
 
+                // Testing stuff
+                if (running_test && GameState.CurrentActivity == GameState_SuperShredder)
+                {
+                    // ToDo: do the testing stuff
+                }
+
                 // Prevent looping
                 GameState.CurrentActivity = GameState_SuperShredder;
 
-                // ToDo: Acquire game result
+                // 3... 2... 1... FIGHT!
+                game_result = SuperShredder_RunGameLoop(
+                    &GameState.Player,
+                    GameState.EnemyEntityArray, 8,
+                    GameState.BulletArray, MAX_BULLET_COUNT,
+                    &GameState.FrameNumber,
+                    GameState.PlayableArea,
+                    GameState.ScreenBoarder, 4
+                );
 
-                // ToDo: Switch on game result
+                switch (game_result)
+                {
+                case -1: // Sleep time
+                    {
+                        GameState.CurrentActivity = GameState_PauseMenu;
+                        GameState.ResumeAfterPause = GameState_ResumeSuperShredder;
+                        break;
+                    }
 
+                case 0: // Sadness, we lose
+                    {
+                        // Preventing endless game
+                        GameState.CurrentActivity = GameState_SuperShredder;
+
+                        // Painful
+                        if (GameState.Difficulty == 'N' || GameState.Difficulty == 'H')
+                        {
+                            GameState.Lives--;
+                        }
+
+                        // Proper sadness
+                        if (GameState.Lives == 0)
+                        {
+                            if (running_test)
+                            {
+                                GameState.CurrentActivity = GameState_TestFinishedMenu;
+                            }
+                            else
+                            {
+                                GameState.CurrentActivity = GameState_LoseMenu;
+                            }
+                        }
+
+                        break;
+                    }
+
+                case 1: // Happiness
+                    {
+                        GameState.CurrentActivity = GameState_WinMenu;
+
+                        // Select the win interface
+                        if (running_test)
+                        {
+                            GameState.CurrentActivity = GameState_TestFinishedMenu;
+                        }
+                        else
+                        {
+                            // ToDo: win menu for the Super Shredder
+                            win_interface_to_use = &boss_win_interface;
+                        }
+
+                        // ToDo: Super Shredder death animation
+
+                        break;
+                    }
+
+                default: // An unknown value returned, go to unimplemented interface
+                    {
+                        GameState.CurrentActivity = GameState_UnimplementedMenu;
+                        break;
+                    }
+                }
+
+                // ToDo: correct the current activity after Super Shredder result
                 GameState.CurrentActivity = GameState_TestSuperShredderMenu;
 
                 break;

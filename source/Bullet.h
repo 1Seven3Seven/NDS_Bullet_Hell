@@ -40,6 +40,8 @@ typedef enum _BulletType_e
     BulletType_SSLaserPilotStart = -1,
     /// The segments of the pilot laser.
     BulletType_SSLaserPilotSegment = -2,
+    /// The telegraphing 'bullet' for the Super Shredder
+    BulletType_SuperShredderTelegraph = -3,
 } BulletType;
 
 /// Macro to return the index for the given wild bullet id.
