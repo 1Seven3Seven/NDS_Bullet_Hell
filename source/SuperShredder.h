@@ -41,7 +41,7 @@ extern _SuperShredderInformation SuperShredder_Information;
 void SuperShredder_Setup(Entity enemy_array[], int enemy_array_len);
 
 /// Moves the Super Shredder according to the vector stored in <c>SuperShredder_Information</c>.
-void SuperShredder_Move(Entity enemy_array[]);
+void SuperShredder_Move(Entity *super_shredder);
 
 /// Handles the 'thinking' of the Super Shredder.
 /// Includes responsibilities such as
@@ -49,10 +49,10 @@ void SuperShredder_Move(Entity enemy_array[]);
 /// - Setting up the attack state,
 /// - Telegraphing attacks,
 /// - Something else if I think of it.
-void SuperShredder_Think();
+void SuperShredder_Think(Entity *super_shredder, const Entity *player, Bullet bullet_array[]);
 
 /// Animates the Super Shredder
-void SuperShredder_Animate(Entity enemy_array[], int priority, int frame_number);
+void SuperShredder_Animate(Entity *super_shredder, int priority, int frame_number);
 
 /// Sets up the game loop.
 /// Initialises the player, bullet array, and entity array.

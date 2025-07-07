@@ -36,35 +36,37 @@ void SuperShredder_Setup(Entity enemy_array[], const int enemy_array_len)
     SuperShredder_Information.vector[0] = 0;
     SuperShredder_Information.vector[1] = 0;
 
-    // The entity init sets this to 0, I want it to be full to start with
-    enemy_array[0].current_bullet_delay = SUPERSHREDDER_BULLET_DELAY;
+    // Initially we choose the attack to be performed.
+    SuperShredder_Information.State = SuperShredderState_AttackPreamble;
 
     // We can do a fun thing to try and get the shredders in the paint scheme of the Super Sentinel.
     // Mainly by messing about with the colour palette.
     // By inspecting the palette memory, we can figure out which one is the dark-green and replace that with dark-blue.
 }
 
-void SuperShredder_Move(Entity enemy_array[])
+void SuperShredder_Move(Entity *super_shredder)
 {
+    if (super_shredder->current_bullet_delay != 0) { return; }
+
     // We don't use the EntityMove function as we do not need collision with environment hitboxes
-    enemy_array[0].x += SuperShredder_Information.vector[0];
-    enemy_array[0].y += SuperShredder_Information.vector[1];
+    super_shredder->x += SuperShredder_Information.vector[0];
+    super_shredder->y += SuperShredder_Information.vector[1];
 }
 
 /// Choose the attack to be used based on the current health.
 /// Also set up the bullet/attack delay.
-static void AttackPreamble(Entity enemy_array[])
+static void AttackPreamble(Entity *super_shredder)
 {
     // Choose an attack to be used
     // ToDo: think about the other attacks
     SuperShredder_Information.State = SuperShredderState_ThinkAboutRushAttack;
 
     // Default wait period
-    enemy_array[0].current_bullet_delay = enemy_array[0].bullet_delay;
+    super_shredder->current_bullet_delay = super_shredder->bullet_delay;
 }
 
 /// Chooses a random starting position for the rush attack around the edge of the screen.
-static void ChooseRushStartPosition(Entity enemy_array[])
+static void ChooseRushStartPosition(Entity *super_shredder)
 {
     // 0 -> top
     // 1 -> left
@@ -72,32 +74,41 @@ static void ChooseRushStartPosition(Entity enemy_array[])
     // 3 -> right
     const int choice = rand() % 4;
 
-    if (choice % 2) // Top or bottom
+    if (choice % 2 == 0) // Top or bottom
     {
         // Choose a random x position
-        enemy_array[0].x = (float) (rand() % (SCREEN_WIDTH + SUPERSHREDDER_WIDTH)) - (float) SUPERSHREDDER_WIDTH / 2;
+        super_shredder->x = (float) (rand() % (SCREEN_WIDTH + SUPERSHREDDER_WIDTH))
+            - (float) SUPERSHREDDER_WIDTH / 2;
 
         // Choose the top or bottom based on the choice
-        enemy_array[0].y = (float) ((SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT) * (choice == 2) - SUPERSHREDDER_HEALTH);
+        super_shredder->y = choice == 2 ? SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT : -SUPERSHREDDER_HEIGHT;
     }
     else // Left or right
     {
         // Choose a random y position
-        enemy_array[0].y = (float) (rand() % (SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT)) - (float) SUPERSHREDDER_HEIGHT / 2;
+        super_shredder->y = (float) (rand() % (SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT))
+            - (float) SUPERSHREDDER_HEIGHT / 2;
 
         // Choose the left or right based on the choice
-        enemy_array[0].y = (float) ((SCREEN_WIDTH + SUPERSHREDDER_WIDTH) * (choice == 3) - SUPERSHREDDER_HEALTH);
+        super_shredder->x = choice == 3 ? SCREEN_WIDTH + SUPERSHREDDER_WIDTH : -SUPERSHREDDER_WIDTH;
     }
 }
 
 /// Contains some information regarding a collision with a wall.
 typedef struct WallHitInformation_s
 {
+    /// If this struct's information is valid.
     int valid;
+    /// The point of intersection/collision.
     float x, y;
+    /// The length of the vector up to this point of intersection.
     float t;
 } WallHitInformation;
 
+/// Given the centre of the Super shredder and the y value of a horizontal wall, find the point of intersection.
+///
+/// `valid` will be false if the vector in <c>SuperShredder_Information</c> is parallel.
+/// `t` represents the length of the vector from the centre of the Super Shredder to the point of intersection.
 static WallHitInformation FindHorizontalWallHit(const float my_centre[2], const float wall_y)
 {
     WallHitInformation horizontal_hit_info = {0};
@@ -119,6 +130,10 @@ static WallHitInformation FindHorizontalWallHit(const float my_centre[2], const 
     return horizontal_hit_info;
 }
 
+/// Given the centre of the Super shredder and the x value of a vertical wall, find the point of intersection.
+///
+/// `valid` will be false if the vector in <c>SuperShredder_Information</c> is parallel.
+/// `t` represents the length of the vector from the centre of the Super Shredder to the point of intersection.
 static WallHitInformation FindVerticalWallHit(const float my_centre[2], const float wall_x)
 {
     WallHitInformation vertical_hit_info = {0};
@@ -136,6 +151,9 @@ static WallHitInformation FindVerticalWallHit(const float my_centre[2], const fl
     return vertical_hit_info;
 }
 
+/// Given two points of intersection, pick the closest valid point of intersection and save it in the given vector.
+///
+/// Assumes that one of the points of intersection is valid.
 static void SaveClosestValidHitLocation(
     const WallHitInformation *horizontal_hit_info,
     const WallHitInformation *vertical_hit_info,
@@ -173,6 +191,15 @@ static void SaveClosestValidHitLocation(
     //  this is called
 }
 
+/// Determines if the Super Shredder is out of bounds.
+static int IsSuperShredderOutOfBounds(const Entity *super_shredder)
+{
+    return (SuperShredder_Information.vector[0] > 0 && super_shredder->x > SCREEN_WIDTH)           // Moving right
+        || (SuperShredder_Information.vector[0] < 0 && super_shredder->x < -SUPERSHREDDER_WIDTH)   // Moving left
+        || (SuperShredder_Information.vector[1] > 0 && super_shredder->y > SCREEN_HEIGHT)          // Moving up
+        || (SuperShredder_Information.vector[1] < 0 && super_shredder->y < -SUPERSHREDDER_HEIGHT); // Moving down
+}
+
 /// Using the Super Shredder's Position and the vector from it to the player, we find the collision point using the line
 ///  from the centre of the Super Shredder and its vector with the screen boarders.
 ///
@@ -180,12 +207,12 @@ static void SaveClosestValidHitLocation(
 ///  <c>SuperShredder_Information</c>.
 ///
 /// A big boi function.
-static void DevelopVectorFindScreenEdgeCollision(Entity enemy_array[], const Entity *player)
+static void DevelopVectorFindScreenEdgeCollision(const Entity *super_shredder, const Entity *player)
 {
     // Our beautiful vector
 
     int my_centre[2];
-    EntityGetCenterArray(&enemy_array[0], my_centre);
+    EntityGetCenterArray(super_shredder, my_centre);
     const float my_centre_f[2] = {(float) my_centre[0], (float) my_centre[1]};
 
     int player_center[2];
@@ -250,13 +277,13 @@ static void DevelopVectorFindScreenEdgeCollision(Entity enemy_array[], const Ent
 
 /// Sets up the attack vector to be used.
 /// Summons in the telegraphing sprites using the reload counter to space them.
-static void RushPreambleAndTelegraph(Entity enemy_array[], const Entity *player, Bullet bullet_array[])
+static void RushPreambleAndTelegraph(Entity *super_shredder, const Entity *player, Bullet bullet_array[])
 {
     // If the bullet delay is the max, then we choose a position and develop the vector
-    if (enemy_array[0].current_bullet_delay == SUPERSHREDDER_TELEGRAPH_ANIMATION_FRAMES)
+    if (super_shredder->current_bullet_delay == super_shredder->bullet_delay)
     {
-        ChooseRushStartPosition(enemy_array);
-        DevelopVectorFindScreenEdgeCollision(enemy_array, player);
+        ChooseRushStartPosition(super_shredder);
+        DevelopVectorFindScreenEdgeCollision(super_shredder, player);
     }
 
     // Every multiple of 6 for the bullet delay we spawn a wild bullet for the path
@@ -264,63 +291,77 @@ static void RushPreambleAndTelegraph(Entity enemy_array[], const Entity *player,
 
     // ToDo: base this off of the number of telegraphs rather than just 6
     const int time_between = 6;
-    if (enemy_array[0].current_bullet_delay > time_between && enemy_array[0].current_bullet_delay % time_between == 0)
+    if (super_shredder->current_bullet_delay > time_between && super_shredder->current_bullet_delay % time_between == 0)
     {
-        const int step = (enemy_array[0].bullet_delay - enemy_array[0].current_bullet_delay) / time_between + 1;
+        const int step = (super_shredder->bullet_delay - super_shredder->current_bullet_delay) / time_between + 1;
 
         BulletSetupInBulletArray(
             bullet_array, MAX_BULLET_COUNT,
             SuperShredder_Information.screen_boarder_hit_location[0]
-            + SuperShredder_Information.rush_telegraph_vector_step[0] * (float) step,
+            + SuperShredder_Information.rush_telegraph_vector_step[0] * (float) step
+            - 4, // ToDo: use correct offsets when telegraph sprites are created
             SuperShredder_Information.screen_boarder_hit_location[1]
-            + SuperShredder_Information.rush_telegraph_vector_step[1] * (float) step,
-            8, 8,
+            + SuperShredder_Information.rush_telegraph_vector_step[1] * (float) step
+            - 4, // ToDo: here as well
+            3, 3,
             0, 0,
-            enemy_array[0].current_bullet_delay + 8 * (int) step,
+            super_shredder->current_bullet_delay + 8 * (int) step,
             0,
             BulletType_SuperShredderTelegraph
         );
     }
 
-    if (enemy_array[0].current_bullet_delay > 0) { enemy_array[0].current_bullet_delay--; }
+    if (super_shredder->current_bullet_delay > 0) { super_shredder->current_bullet_delay--; }
+    else { SuperShredder_Information.State = SuperShredderState_AttackingAkaThinkAboutNoThink; }
 }
 
-void SuperShredder_Think(Entity enemy_array[], const Entity *player, Bullet bullet_array[])
+void SuperShredder_Think(Entity *super_shredder, const Entity *player, Bullet bullet_array[])
 {
     // If we are to choose an attack, aka an attack has finished
     if (SuperShredder_Information.State == SuperShredderState_AttackPreamble)
     {
-        AttackPreamble(enemy_array);
+        AttackPreamble(super_shredder);
     }
 
     switch (SuperShredder_Information.State)
     {
     case SuperShredderState_ThinkAboutRushAttack:
-        RushPreambleAndTelegraph(enemy_array, player, bullet_array);
+        RushPreambleAndTelegraph(super_shredder, player, bullet_array);
         break;
 
-    default: ; // We are attacking, and no thinking is required
+    case SuperShredderState_AttackingAkaThinkAboutNoThink:
+        {
+            if (IsSuperShredderOutOfBounds(super_shredder))
+            {
+                super_shredder->current_bullet_delay = super_shredder->bullet_delay;
+                SuperShredder_Information.State = SuperShredderState_AttackPreamble;
+            }
+
+            break;
+        }
+
+    default: ; // SuperShredderState_AttackPreamble, aka we have already handled this
     }
 }
 
-void SuperShredder_Animate(Entity enemy_array[], const int priority, const int frame_number)
+void SuperShredder_Animate(Entity *super_shredder, const int priority, const int frame_number)
 {
     if (frame_number % 2)
     {
-        enemy_array[0].animation_frame_number++;
-        enemy_array[0].animation_frame_number %= 4;
+        super_shredder->animation_frame_number++;
+        super_shredder->animation_frame_number %= 4;
     }
 
     oamSet(
         &oamMain,
         1,
-        (int) enemy_array[0].x,
-        (int) enemy_array[0].y,
+        (int) super_shredder->x,
+        (int) super_shredder->y,
         priority,
         0,
         SpriteSize_32x32,
         SpriteColorFormat_256Color,
-        GFXAllSpriteGFX.SuperShredderGFXMem[enemy_array[0].animation_frame_number],
+        GFXAllSpriteGFX.SuperShredderGFXMem[super_shredder->animation_frame_number],
         -1,
         false,
         false,
@@ -332,22 +373,24 @@ void SuperShredder_Animate(Entity enemy_array[], const int priority, const int f
 
 /// Determines if the Super Shredder is out of bounds given its movement vector.
 /// Used during the entry of the Super Shredder and only works if the vector has one element 0.
-static int IsSuperShredderOutOfBounds(const float vx, const float vy, const Entity enemy_array[])
+///
+/// Uses slightly different values compared to <c>IsSuperShredderOutOfBounds</c> for timing purposes.
+static int IsSuperShredderOutOfBoundsDuringEntry(const float vx, const float vy, const Entity *super_shredder)
 {
-    return (vx > 0 && enemy_array[0].x > SCREEN_WIDTH + SUPERSHREDDER_WIDTH)      // Moving right
-           || (vx < 0 && enemy_array[0].x < -SUPERSHREDDER_WIDTH * 2)             // Moving left
-           || (vy > 0 && enemy_array[0].y > SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT) // Moving up
-           || (vy < 0 && enemy_array[0].y < -SUPERSHREDDER_HEIGHT * 2);           // Moving down
+    return (vx > 0 && super_shredder->x > SCREEN_WIDTH + SUPERSHREDDER_WIDTH)   // Moving right
+        || (vx < 0 && super_shredder->x < -SUPERSHREDDER_WIDTH * 2)             // Moving left
+        || (vy > 0 && super_shredder->y > SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT) // Moving up
+        || (vy < 0 && super_shredder->y < -SUPERSHREDDER_HEIGHT * 2);           // Moving down
 }
 
 /// Selects a screen edge and direction to move along for the Super Shredder entry.
 /// Modifies the movement vector in <c>SuperShredder_Information</c> and the position of the boss entity in
 ///  <c>enemy_array</c>.
-static void PickScreenEdgeAndDirection(const int screen_boarders[], const int boss_entry_stage, Entity enemy_array[])
+static void PickScreenEdgeAndDirection(const int screen_boarders[], const int boss_entry_stage, Entity *super_shredder)
 {
     const int edge_and_direction[4][2][4] = {
         //                       ^  ^  ^-- [x, y, vx, vy]
-        //                       |  +----- Going left/up or right/down direction
+        //                       |  |----- Going left/up or right/down direction
         //                       |-------- [Top, Left, Bottom, Right] directions
 
         // Top of the screen
@@ -408,8 +451,8 @@ static void PickScreenEdgeAndDirection(const int screen_boarders[], const int bo
     const int screen_boarder = screen_boarders[boss_entry_stage];
     const int movement_dir = rand() % 2;
 
-    enemy_array[0].x = (float) edge_and_direction[screen_boarder][movement_dir][0];
-    enemy_array[0].y = (float) edge_and_direction[screen_boarder][movement_dir][1];
+    super_shredder->x = (float) edge_and_direction[screen_boarder][movement_dir][0];
+    super_shredder->y = (float) edge_and_direction[screen_boarder][movement_dir][1];
 
     SuperShredder_Information.vector[0] = (float) edge_and_direction[screen_boarder][movement_dir][2];
     SuperShredder_Information.vector[1] = (float) edge_and_direction[screen_boarder][movement_dir][3];
@@ -429,6 +472,7 @@ void SuperShredder_SetupForGameLoop(
     PlayerSetup(player);
     BulletInitBulletArray(bullet_array, bullet_array_len);
     SuperShredder_Setup(enemy_array, enemy_array_len);
+    Entity *super_shredder = &enemy_array[0];
 
     // Hide the sprites
     HideEverySprite();
@@ -499,6 +543,7 @@ void SuperShredder_SetupForGameLoop(
             0,
             SpriteSize_32x32,
             SpriteColorFormat_256Color,
+            // ReSharper disable once CppRedundantParentheses
             GFXAllSpriteGFX.SuperShredderGFXMem[(*frame_number / 2) % 4],
             -1,
             0,
@@ -514,19 +559,19 @@ void SuperShredder_SetupForGameLoop(
             // If not moving, pick a screen edge and a direction to move and set position
             if (boss_moving == 0 && boss_entry_stage < 4)
             {
-                PickScreenEdgeAndDirection(screen_boarders, boss_entry_stage, enemy_array);
+                PickScreenEdgeAndDirection(screen_boarders, boss_entry_stage, super_shredder);
                 boss_entry_stage++;
                 boss_moving = 1;
             }
 
             // Move the boss according to its vector
-            SuperShredder_Move(enemy_array);
+            SuperShredder_Move(super_shredder);
 
             // Check if the boss is outside the screen in the direction of movement
-            if (IsSuperShredderOutOfBounds(
+            if (IsSuperShredderOutOfBoundsDuringEntry(
                 SuperShredder_Information.vector[0],
                 SuperShredder_Information.vector[1],
-                enemy_array
+                super_shredder
             ))
             {
                 boss_moving = 0;
@@ -559,7 +604,7 @@ void SuperShredder_SetupForGameLoop(
         sprintf(temp, "bes = %d", boss_entry_stage);
         UIWriteTextAtOffset(temp, 4, 1);
 
-        sprintf(temp, "boss pos = %.1f, %.1f", enemy_array[0].x, enemy_array[0].y);
+        sprintf(temp, "boss pos = %.1f, %.1f", super_shredder->x, super_shredder->y);
         UIWriteTextAtOffset(temp, 6, 1);
 
         sprintf(temp, "boss vec = %.1f, %.1f",
@@ -580,6 +625,21 @@ void SuperShredder_SetupForGameLoop(
     bgUpdate();
 }
 
+static const char *GetSuperShredderStateString()
+{
+    switch (SuperShredder_Information.State)
+    {
+    case SuperShredderState_AttackPreamble:
+        return "Attack Preamble";
+    case SuperShredderState_ThinkAboutRushAttack:
+        return "Think About Rush Attack";
+    case SuperShredderState_AttackingAkaThinkAboutNoThink:
+        return "Attacking";
+    default:
+        return "Unknown/Unimplemented";
+    }
+}
+
 int SuperShredder_RunGameLoop(
     Entity *player,
     Entity enemy_array[],
@@ -592,6 +652,9 @@ int SuperShredder_RunGameLoop(
     const int hitbox_array_len
 )
 {
+    // The blade of death
+    Entity *super_shredder = &enemy_array[0];
+
     // Some data
     int player_center[2];
 
@@ -631,10 +694,10 @@ int SuperShredder_RunGameLoop(
         EntityGetCenterArray(player, player_center);
 
         // ToDo: Super Shredder thinking
-        SuperShredder_Think(enemy_array, player, bullet_array);
+        SuperShredder_Think(super_shredder, player, bullet_array);
 
         // ToDo: Super Shredder moving
-        // SuperShredder_Move(enemy_array);
+        SuperShredder_Move(super_shredder);
 
         // ToDo: Super Shredder bullets
 
@@ -672,7 +735,7 @@ int SuperShredder_RunGameLoop(
         );
 
         SuperShredder_Animate(
-            enemy_array,
+            super_shredder,
             0,
             *frame_number
         );
@@ -704,6 +767,7 @@ int SuperShredder_RunGameLoop(
             win_condition = 1;
 
             // Check if the Super Shredder and other enemies are dead
+            // ToDo: simplify this if we do not have other enemies during the fight
             for (int i = 0; i < enemy_array_len; i++)
             {
                 if (enemy_array[i].health > 0)
@@ -748,40 +812,40 @@ int SuperShredder_RunGameLoop(
 
         char temp[UI_NUM_CHARS + 1];
 
-        sprintf(temp, "bullet delay = %d", enemy_array[0].current_bullet_delay);
+        sprintf(temp, "position = %.1f, %.1f", super_shredder->x, super_shredder->y);
         UIWriteTextAtOffset(temp, 1, 1);
 
-        sprintf(temp, "vector = %.1f, %.1f", SuperShredder_Information.vector[0], SuperShredder_Information.vector[1]);
+        sprintf(temp, "bullet delay = %d", super_shredder->current_bullet_delay);
         UIWriteTextAtOffset(temp, 2, 1);
 
-        sprintf(temp, "boarder hit = %.1f, %.1f",
-                SuperShredder_Information.screen_boarder_hit_location[0],
-                SuperShredder_Information.screen_boarder_hit_location[1]);
+        sprintf(temp, "move vector = %.1f, %.1f",
+                SuperShredder_Information.vector[0],
+                SuperShredder_Information.vector[1]);
         UIWriteTextAtOffset(temp, 3, 1);
 
-        sprintf(temp, "telegraph step = %.1f, %.1f",
-                SuperShredder_Information.rush_telegraph_vector_step[0],
-                SuperShredder_Information.rush_telegraph_vector_step[1]);
+        sprintf(temp, "boarder hit loc = %.1f, %.1f",
+                SuperShredder_Information.screen_boarder_hit_location[0],
+                SuperShredder_Information.screen_boarder_hit_location[1]);
         UIWriteTextAtOffset(temp, 4, 1);
 
-        sprintf(temp, "bullet count = %d", BulletGetNumberAliveBulletsInBulletArray(bullet_array, MAX_BULLET_COUNT));
+        sprintf(temp, "step vector = %.1f, %.1f",
+                SuperShredder_Information.rush_telegraph_vector_step[0],
+                SuperShredder_Information.rush_telegraph_vector_step[1]);
         UIWriteTextAtOffset(temp, 5, 1);
 
-        // enemy_array[0].current_bullet_delay > time_between && (enemy_array[0].current_bullet_delay % time_between) == 0
-        sprintf(temp, "%d, %d", enemy_array[0].current_bullet_delay > 6, enemy_array[0].current_bullet_delay % 6 == 0);
+        sprintf(temp, "bullet count = %d", BulletGetNumberAliveBulletsInBulletArray(bullet_array, MAX_BULLET_COUNT));
         UIWriteTextAtOffset(temp, 6, 1);
 
-        const int step = (enemy_array[0].bullet_delay - enemy_array[0].current_bullet_delay) / 6 + 1;
-        sprintf(temp, "step num = %d", step);
+        sprintf(temp, "Bounds checks = %d%d%d%d -> %d",
+                SuperShredder_Information.vector[0] > 0 && super_shredder->x > SCREEN_WIDTH,
+                SuperShredder_Information.vector[0] < 0 && super_shredder->x < -SUPERSHREDDER_WIDTH,
+                SuperShredder_Information.vector[1] > 0 && super_shredder->y > SCREEN_HEIGHT,
+                SuperShredder_Information.vector[1] < 0 && super_shredder->y < -SUPERSHREDDER_HEIGHT,
+                IsSuperShredderOutOfBounds(super_shredder)
+        );
         UIWriteTextAtOffset(temp, 7, 1);
 
-        const float x = SuperShredder_Information.screen_boarder_hit_location[0]
-                        + SuperShredder_Information.rush_telegraph_vector_step[0] * (float) step;
-        const float y = SuperShredder_Information.screen_boarder_hit_location[1]
-                        + SuperShredder_Information.rush_telegraph_vector_step[1] * (float) step;
-
-        sprintf(temp, "next location = %.1f, %.1f", x, y);
-        UIWriteTextAtOffset(temp, 8, 1);
+        UIWriteTextAtOffset(GetSuperShredderStateString(), 8, 1);
 
         UIPrintDisplayBuffer();
 
