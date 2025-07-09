@@ -51,13 +51,25 @@ void SuperShredder_Move(Entity *super_shredder);
 /// - Something else if I think of it.
 void SuperShredder_Think(Entity *super_shredder, const Entity *player, Bullet bullet_array[]);
 
-/// Animates the Super Shredder
+/// Animates the Super Shredder.
 void SuperShredder_Animate(Entity *super_shredder, int priority, int frame_number);
+
+/// Handles firing bullets.
+void SuperShredder_FireBullets(
+    Entity *super_shredder,
+    Bullet bullet_array[],
+    int bullet_array_len,
+    const int my_centre[2],
+    const int player_centre[2]
+);
 
 /// Sets up the game loop.
 /// Initialises the player, bullet array, and entity array.
 /// An aesthetic game loop.
 /// Run <c>SuperShredder_RunGameLoop</c> after.
+///
+/// <c>num_stages</c> controls the number of sides the boss should travel along before attacking the player.
+/// Default is 4, minimum is 2.
 void SuperShredder_SetupForGameLoop(
     Entity *player,
     Entity enemy_array[],
@@ -65,7 +77,8 @@ void SuperShredder_SetupForGameLoop(
     Bullet bullet_array[],
     int bullet_array_len,
     int *frame_number,
-    int bg_id
+    int bg_id,
+    int num_stages
 );
 
 /// Runs the game loop till either:

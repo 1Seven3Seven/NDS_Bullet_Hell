@@ -620,13 +620,17 @@ int main(void)
                     dmaCopy(BossBackgroundBitmap, bgGetGfxPtr(bg3), BossBackgroundBitmapLen);
                     dmaCopy(BossBackgroundPal, BG_PALETTE, BossBackgroundPalLen);
 
+                    int num_stages = GameState.Lives - 1;
+                    if (num_stages < 2) { num_stages = 2; }
+
                     // Cool entry
                     SuperShredder_SetupForGameLoop(
                         &GameState.Player,
                         GameState.EnemyEntityArray, 8,
                         GameState.BulletArray, MAX_BULLET_COUNT,
                         &GameState.FrameNumber,
-                        bg3
+                        bg3,
+                        num_stages
                     );
                 }
 
@@ -713,7 +717,7 @@ int main(void)
                 }
 
                 // ToDo: correct the current activity after Super Shredder result
-                GameState.CurrentActivity = GameState_TestSuperShredderMenu;
+                // GameState.CurrentActivity = GameState_TestSuperShredderMenu;
 
                 break;
             }

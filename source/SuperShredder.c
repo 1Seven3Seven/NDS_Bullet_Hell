@@ -26,7 +26,7 @@ void SuperShredder_Setup(Entity enemy_array[], const int enemy_array_len)
         &enemy_array[0],
         SUPERSHREDDER_START_X,
         SUPERSHREDDER_START_Y,
-        21, 21,
+        SUPERSHREDDER_WIDTH, SUPERSHREDDER_HEIGHT,
         SUPERSHREDDER_HEALTH,
         EntityType_SuperShredder,
         SUPERSHREDDER_BULLET_DELAY
@@ -78,7 +78,7 @@ static void ChooseRushStartPosition(Entity *super_shredder)
     {
         // Choose a random x position
         super_shredder->x = (float) (rand() % (SCREEN_WIDTH + SUPERSHREDDER_WIDTH))
-            - (float) SUPERSHREDDER_WIDTH / 2;
+                            - (float) SUPERSHREDDER_WIDTH / 2;
 
         // Choose the top or bottom based on the choice
         super_shredder->y = choice == 2 ? SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT : -SUPERSHREDDER_HEIGHT;
@@ -87,7 +87,7 @@ static void ChooseRushStartPosition(Entity *super_shredder)
     {
         // Choose a random y position
         super_shredder->y = (float) (rand() % (SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT))
-            - (float) SUPERSHREDDER_HEIGHT / 2;
+                            - (float) SUPERSHREDDER_HEIGHT / 2;
 
         // Choose the left or right based on the choice
         super_shredder->x = choice == 3 ? SCREEN_WIDTH + SUPERSHREDDER_WIDTH : -SUPERSHREDDER_WIDTH;
@@ -194,10 +194,10 @@ static void SaveClosestValidHitLocation(
 /// Determines if the Super Shredder is out of bounds.
 static int IsSuperShredderOutOfBounds(const Entity *super_shredder)
 {
-    return (SuperShredder_Information.vector[0] > 0 && super_shredder->x > SCREEN_WIDTH)           // Moving right
-        || (SuperShredder_Information.vector[0] < 0 && super_shredder->x < -SUPERSHREDDER_WIDTH)   // Moving left
-        || (SuperShredder_Information.vector[1] > 0 && super_shredder->y > SCREEN_HEIGHT)          // Moving up
-        || (SuperShredder_Information.vector[1] < 0 && super_shredder->y < -SUPERSHREDDER_HEIGHT); // Moving down
+    return (SuperShredder_Information.vector[0] > 0 && super_shredder->x > SCREEN_WIDTH)              // Moving right
+           || (SuperShredder_Information.vector[0] < 0 && super_shredder->x < -SUPERSHREDDER_WIDTH)   // Moving left
+           || (SuperShredder_Information.vector[1] > 0 && super_shredder->y > SCREEN_HEIGHT)          // Moving up
+           || (SuperShredder_Information.vector[1] < 0 && super_shredder->y < -SUPERSHREDDER_HEIGHT); // Moving down
 }
 
 /// Using the Super Shredder's Position and the vector from it to the player, we find the collision point using the line
@@ -371,16 +371,59 @@ void SuperShredder_Animate(Entity *super_shredder, const int priority, const int
     );
 }
 
+void SuperShredder_FireBullets(
+    Entity *super_shredder,
+    Bullet bullet_array[],
+    const int bullet_array_len,
+    const int my_centre[2],
+    const int player_centre[2]
+)
+{
+    if (super_shredder->health > SUPERSHREDDER_SECOND_STAGE_HEALTH
+        && super_shredder->health <= SUPERSHREDDER_HEALTH - 40)
+    {
+        // Attempt to fire a bullet, we will use the counter attribute of the entity
+        // This is normally used for animation purposes but is not used for the Super Shredder
+        if (super_shredder->counter > 0)
+        {
+            super_shredder->counter--;
+            return;
+        }
+
+        super_shredder->counter = 20;
+
+        const float angle = GetAngleFromOriginTo(
+            (float) (player_centre[0] - my_centre[0]),
+            (float) (player_centre[1] - my_centre[1])
+        );
+
+        for (int i = 0; i < 4; i++)
+        {
+            BulletSetupInBulletArray(
+                bullet_array, bullet_array_len,
+                (float) my_centre[0] - 4,
+                (float) my_centre[1] - 4,
+                8, 8,
+                angle + (float) M_PI_2 * (float) i,
+                1,
+                320,
+                1,
+                BulletType_BossBullet
+            );
+        }
+    }
+}
+
 /// Determines if the Super Shredder is out of bounds given its movement vector.
 /// Used during the entry of the Super Shredder and only works if the vector has one element 0.
 ///
 /// Uses slightly different values compared to <c>IsSuperShredderOutOfBounds</c> for timing purposes.
 static int IsSuperShredderOutOfBoundsDuringEntry(const float vx, const float vy, const Entity *super_shredder)
 {
-    return (vx > 0 && super_shredder->x > SCREEN_WIDTH + SUPERSHREDDER_WIDTH)   // Moving right
-        || (vx < 0 && super_shredder->x < -SUPERSHREDDER_WIDTH * 2)             // Moving left
-        || (vy > 0 && super_shredder->y > SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT) // Moving up
-        || (vy < 0 && super_shredder->y < -SUPERSHREDDER_HEIGHT * 2);           // Moving down
+    return (vx > 0 && super_shredder->x > SCREEN_WIDTH + SUPERSHREDDER_WIDTH)      // Moving right
+           || (vx < 0 && super_shredder->x < -SUPERSHREDDER_WIDTH * 2)             // Moving left
+           || (vy > 0 && super_shredder->y > SCREEN_HEIGHT + SUPERSHREDDER_HEIGHT) // Moving up
+           || (vy < 0 && super_shredder->y < -SUPERSHREDDER_HEIGHT * 2);           // Moving down
 }
 
 /// Selects a screen edge and direction to move along for the Super Shredder entry.
@@ -465,7 +508,8 @@ void SuperShredder_SetupForGameLoop(
     Bullet bullet_array[],
     const int bullet_array_len,
     int *frame_number,
-    const int bg_id
+    const int bg_id,
+    const int num_stages
 )
 {
     // Simple setup
@@ -496,7 +540,7 @@ void SuperShredder_SetupForGameLoop(
     int player_spawn_counter = 32;
     int boss_entry_stage = 0;
     int boss_moving = 0;
-    while (boss_entry_stage != 5 || player_spawn_counter)
+    while (boss_entry_stage != num_stages + 1 || player_spawn_counter)
     {
         consoleClear();
         (*frame_number)++;
@@ -554,10 +598,10 @@ void SuperShredder_SetupForGameLoop(
         );
 
         // If the player is finished
-        if (player_spawn_counter == 0 && boss_entry_stage < 5)
+        if (player_spawn_counter == 0 && boss_entry_stage < num_stages + 1)
         {
             // If not moving, pick a screen edge and a direction to move and set position
-            if (boss_moving == 0 && boss_entry_stage < 4)
+            if (boss_moving == 0 && boss_entry_stage < num_stages)
             {
                 PickScreenEdgeAndDirection(screen_boarders, boss_entry_stage, super_shredder);
                 boss_entry_stage++;
@@ -585,7 +629,7 @@ void SuperShredder_SetupForGameLoop(
         }
 
         // If the boss has finished moving, and we are at the last stage, then we are all done
-        if (boss_moving == 0 && boss_entry_stage == 4) { boss_entry_stage = 5; }
+        if (boss_moving == 0 && boss_entry_stage == num_stages) { boss_entry_stage = num_stages + 1; }
 
         // Lore, kinda
         UIResetDisplayBuffer();
@@ -656,7 +700,8 @@ int SuperShredder_RunGameLoop(
     Entity *super_shredder = &enemy_array[0];
 
     // Some data
-    int player_center[2];
+    int player_centre[2];
+    int my_centre[2];
 
     // Exit delays
     int player_death_exit_delay = EXIT_DELAY;
@@ -691,7 +736,8 @@ int SuperShredder_RunGameLoop(
         );
 
         // Player centre for thinking
-        EntityGetCenterArray(player, player_center);
+        EntityGetCenterArray(player, player_centre);
+        EntityGetCenterArray(super_shredder, my_centre);
 
         // ToDo: Super Shredder thinking
         SuperShredder_Think(super_shredder, player, bullet_array);
@@ -700,6 +746,12 @@ int SuperShredder_RunGameLoop(
         SuperShredder_Move(super_shredder);
 
         // ToDo: Super Shredder bullets
+        SuperShredder_FireBullets(
+            super_shredder,
+            bullet_array, MAX_BULLET_COUNT,
+            my_centre,
+            player_centre
+        );
 
 
         // Handling bullets
@@ -716,9 +768,21 @@ int SuperShredder_RunGameLoop(
         );
 
         // Collision between player and enemies
-        // ToDo: uncomment
+        int super_shredder_hitbox[4];
+        EntityGetHitBox(super_shredder, super_shredder_hitbox);
+        super_shredder_hitbox[0] += 4;
+        super_shredder_hitbox[1] += 4;
+        super_shredder_hitbox[2] -= 8;
+        super_shredder_hitbox[3] -= 8;
+        int player_hitbox[4];
+        PlayerGetHitBox(player, player_hitbox);
+        if (RectangleCollision(super_shredder_hitbox, player_hitbox))
+        {
+            EntityTakeDamage(player, 1);
+        }
+        // ToDo: uncomment if we end up having mini shredders
         // EnemiesCheckCollisionAgainstPlayer(
-        //     enemy_array, enemy_array_len,
+        //     enemy_array + 1, enemy_array_len - 1,
         //     player
         // );
 
@@ -836,16 +900,10 @@ int SuperShredder_RunGameLoop(
         sprintf(temp, "bullet count = %d", BulletGetNumberAliveBulletsInBulletArray(bullet_array, MAX_BULLET_COUNT));
         UIWriteTextAtOffset(temp, 6, 1);
 
-        sprintf(temp, "Bounds checks = %d%d%d%d -> %d",
-                SuperShredder_Information.vector[0] > 0 && super_shredder->x > SCREEN_WIDTH,
-                SuperShredder_Information.vector[0] < 0 && super_shredder->x < -SUPERSHREDDER_WIDTH,
-                SuperShredder_Information.vector[1] > 0 && super_shredder->y > SCREEN_HEIGHT,
-                SuperShredder_Information.vector[1] < 0 && super_shredder->y < -SUPERSHREDDER_HEIGHT,
-                IsSuperShredderOutOfBounds(super_shredder)
-        );
-        UIWriteTextAtOffset(temp, 7, 1);
+        sprintf(temp, "health = %d", super_shredder->health);
+        UIWriteTextAtOffset(temp, 22, 1);
 
-        UIWriteTextAtOffset(GetSuperShredderStateString(), 8, 1);
+        UIWriteTextAtOffset(GetSuperShredderStateString(), 23, 1);
 
         UIPrintDisplayBuffer();
 

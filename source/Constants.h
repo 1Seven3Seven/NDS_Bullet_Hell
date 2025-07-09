@@ -71,16 +71,16 @@
 #define SS_CRITICAL_HEALTH 10 // Does not affect the fight but effects text displayed
 #define SS_CENTER_X 112       // The x coord of the main body to be set when centered
 
-#define SUPERSHREDDER_HEALTH 120
-#define SUPERSHREDDER_START_X -100
-#define SUPERSHREDDER_START_Y -100
-#define SUPERSHREDDER_BULLET_DELAY 60
-#define SUPERSHREDDER_WIDTH 32
-#define SUPERSHREDDER_HEIGHT 32
-#define SUPERSHREDDER_COLLISION_WIDTH 24
-#define SUPERSHREDDER_COLLISION_HEIGHT 24
-#define SUPERSHREDDER_ENTRY_SPEED 6
-#define SUPERSHREDDER_SPEED 4
+#define SUPERSHREDDER_HEALTH 240                /// Not as health as the Super Sentinel.
+#define SUPERSHREDDER_START_X -100              /// Initial start position off-screen.
+#define SUPERSHREDDER_START_Y -100              /// Initial start position off-screen.
+#define SUPERSHREDDER_BULLET_DELAY 60           /// Defines the time between attacks.
+#define SUPERSHREDDER_WIDTH 32                  /// The sprite width.
+#define SUPERSHREDDER_HEIGHT 32                 /// The sprite height.
+#define SUPERSHREDDER_ENTRY_SPEED 6             /// The speed during the entry animation.
+#define SUPERSHREDDER_SPEED 4                   /// The speed during normal gameplay.
+#define SUPERSHREDDER_SECOND_STAGE_HEALTH 160   /// The health level to be below to activate the second stage.
+#define SUPERSHREDDER_FINAL_STAGE_HEALTH 80     /// The health level to be below to activate the last stage.
 
 //
 // Enemy animation information
@@ -102,9 +102,7 @@
 #define SS_EXPLOSION_ANIMATION_FRAMES 8
 
 #define SUPERSHREDDER_ANIMATION_FRAMES 4
-#define SUPERSHREDDER_TELEGRAPH_ANIMATION_FRAMES 60
 #define SUPERSHREDDER_NUM_RUSH_TELEGRAPH_POINTS 8
-#define SUPERSHREDDER_TELEGRAPH_DELAY SUPERSHREDDER_TELEGRAPH_ANIMATION_FRAMES / SUPERSHREDDER_NUM_RUSH_TELEGRAPH_POINTS
 
 //
 // Returned by move functions to determine what was happening when collisions were detected
