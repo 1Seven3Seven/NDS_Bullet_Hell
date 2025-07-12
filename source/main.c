@@ -14,7 +14,6 @@
 // Backgrounds
 #include "BattleBackground.h"
 #include "BossBackground.h"
-#include "SuperShredder.h"
 #include "TitleBackground.h"
 
 // Returns the number of lives depending on the difficulty
@@ -120,7 +119,7 @@ int main(void)
     /// 0 -> normal
     /// 1 -> second stage
     /// 2 -> final stage
-    int test_super_sentinel_stage = 0;
+    int test_boss_stage = 0;
     GameStateState return_after_test = GameState_TestMenu;
 
     //
@@ -496,7 +495,7 @@ int main(void)
                 // Testing stuff
                 if (running_test && GameState.CurrentActivity == GameState_SuperSentinel)
                 {
-                    switch (test_super_sentinel_stage)
+                    switch (test_boss_stage)
                     {
                     case 1:
                         // Health 199, aka second stage
@@ -638,6 +637,21 @@ int main(void)
                 if (running_test && GameState.CurrentActivity == GameState_SuperShredder)
                 {
                     // ToDo: do the testing stuff
+                    switch (test_boss_stage)
+                    {
+                    case 1: // Initial Stage pt. 2
+                        GameState.EnemyEntityArray[0].health = SUPERSHREDDER_HEALTH - 30;
+                        break;
+                    case 2: // Second Stage pt. 1
+                        GameState.EnemyEntityArray[0].health = SUPERSHREDDER_SECOND_STAGE_HEALTH;
+                        break;
+                    case 3: // Second Stage pt. 2
+                        GameState.EnemyEntityArray[0].health = SUPERSHREDDER_SECOND_STAGE_HEALTH - 30;
+                        break;
+                    case 0: // Do nothing
+                    default:
+                        break;
+                    }
                 }
 
                 // Prevent looping
@@ -649,8 +663,8 @@ int main(void)
                     GameState.EnemyEntityArray, 8,
                     GameState.BulletArray, MAX_BULLET_COUNT,
                     &GameState.FrameNumber,
-                    GameState.PlayableArea,
-                    GameState.ScreenBoarder, 4
+                    bg3,
+                    GameState.PlayableArea, GameState.ScreenBoarder, 4
                 );
 
                 switch (game_result)
@@ -1055,15 +1069,15 @@ int main(void)
                 switch (ui_choice)
                 {
                 case 0: // Initial stage
-                    test_super_sentinel_stage = 0;
+                    test_boss_stage = 0;
                     GameState.CurrentActivity = GameState_SuperSentinel;
                     break;
                 case 1: // Second stage
-                    test_super_sentinel_stage = 1;
+                    test_boss_stage = 1;
                     GameState.CurrentActivity = GameState_SuperSentinel;
                     break;
                 case 2: // Final stage
-                    test_super_sentinel_stage = 2;
+                    test_boss_stage = 2;
                     GameState.CurrentActivity = GameState_SuperSentinel;
                     break;
                 case 3: // Return to Test Bosses Menu
@@ -1090,12 +1104,24 @@ int main(void)
 
                 switch (ui_choice)
                 {
-                case 0: // Game Start
+                case 0: // Initial Stage pt. 1
+                    GameState.CurrentActivity = GameState_SuperShredder;
+                    test_boss_stage = 0;
+                    break;
+                case 1: // Initial Stage pt. 2
+                    GameState.CurrentActivity = GameState_SuperShredder;
+                    test_boss_stage = 1;
+                    break;
+                case 2: // Second Stage pt. 1
+                    GameState.CurrentActivity = GameState_SuperShredder;
+                    test_boss_stage = 2;
+                    break;
+                case 3: // Second Stage pt. 2
+                    test_boss_stage = 3;
                     GameState.CurrentActivity = GameState_SuperShredder;
                     break;
-                case 1: // Return to Test Bosses Menu
+                case 4: // Return to Test Bosses Menu
                     GameState.CurrentActivity = GameState_TestBossesMenu;
-                    break;
                 default: // An unknown value returned, go to unimplemented interface
                     GameState.CurrentActivity = GameState_UnimplementedMenu;
                 }

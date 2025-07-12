@@ -21,5 +21,6 @@
 #include "Game.h"
 
 #include "SuperSentinel.h"
+#include "SuperShredder.h"
 
 #endif

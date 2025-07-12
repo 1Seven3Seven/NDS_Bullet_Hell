@@ -10,11 +10,18 @@ typedef enum _SuperShredderState_e
     /// Choosing which attack to use.
     SuperShredderState_AttackPreamble,
 
-    /// Telegraphing the rush attack.
+    /// Setting up and telegraphing the rush attack.
     SuperShredderState_ThinkAboutRushAttack,
 
-    /// We are performing an attack, no need to think.
-    SuperShredderState_AttackingAkaThinkAboutNoThink,
+    /// We are performing the rush attack.
+    SuperShredderState_RushAttack,
+
+    /// Setting up the second attack.
+    SuperShredderState_ThinkAboutZoomAttack,
+
+    /// We are performing the second attack.
+    /// ToDo: A better name is needed.
+    SuperShredderState_ZoomAttack,
 } _SuperShredderState;
 
 /// General information about the Super Shredder.
@@ -27,10 +34,22 @@ typedef struct _SuperShredderInformation_s
     float screen_boarder_hit_location[2];
 
     /// The step between rush telegraph bullets.
-    float rush_telegraph_vector_step[2];
+    float telegraph_vector[2];
+
+    /// Specific to the Zoom attack, which direction we are moving in.
+    ///
+    /// - 0 -> up/down
+    /// - 1 -> left/right
+    int move_direction;
+
+    /// For the second stage, if the boss should fire bullets when hitting the wall.
+    int should_fire;
+
+    /// Specific to the Zoom attack, indicates if the wall has been hit.
+    int boarder_hit;
 
     /// The current state of the Super Shredder.
-    _SuperShredderState State;
+    _SuperShredderState state;
 } _SuperShredderInformation;
 
 /// Contains information about the Super Shredder, not necessary to touch directly.
@@ -49,7 +68,16 @@ void SuperShredder_Move(Entity *super_shredder);
 /// - Setting up the attack state,
 /// - Telegraphing attacks,
 /// - Something else if I think of it.
-void SuperShredder_Think(Entity *super_shredder, const Entity *player, Bullet bullet_array[]);
+void SuperShredder_Think(
+    Entity *super_shredder,
+    const Entity *player,
+    Bullet bullet_array[],
+    int frame_number,
+    int bg_id,
+    const int screen_shake_x[9],
+    const int screen_shake_y[9],
+    int *screen_shake_index
+);
 
 /// Animates the Super Shredder.
 void SuperShredder_Animate(Entity *super_shredder, int priority, int frame_number);
@@ -93,9 +121,9 @@ int SuperShredder_RunGameLoop(
     Bullet bullet_array[],
     int bullet_array_len,
     int *frame_number,
+    int bg_id,
     int playable_area[4],
-    int hitbox_array[][4],
-    int hitbox_array_len
+    int hitbox_array[][4], int hitbox_array_len
 );
 
 #endif

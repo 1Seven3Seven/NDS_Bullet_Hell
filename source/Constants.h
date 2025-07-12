@@ -71,7 +71,7 @@
 #define SS_CRITICAL_HEALTH 10 // Does not affect the fight but effects text displayed
 #define SS_CENTER_X 112       // The x coord of the main body to be set when centered
 
-#define SUPERSHREDDER_HEALTH 240                /// Not as health as the Super Sentinel.
+#define SUPERSHREDDER_HEALTH 180                /// Not as health as the Super Sentinel.
 #define SUPERSHREDDER_START_X -100              /// Initial start position off-screen.
 #define SUPERSHREDDER_START_Y -100              /// Initial start position off-screen.
 #define SUPERSHREDDER_BULLET_DELAY 60           /// Defines the time between attacks.
@@ -79,8 +79,8 @@
 #define SUPERSHREDDER_HEIGHT 32                 /// The sprite height.
 #define SUPERSHREDDER_ENTRY_SPEED 6             /// The speed during the entry animation.
 #define SUPERSHREDDER_SPEED 4                   /// The speed during normal gameplay.
-#define SUPERSHREDDER_SECOND_STAGE_HEALTH 160   /// The health level to be below to activate the second stage.
-#define SUPERSHREDDER_FINAL_STAGE_HEALTH 80     /// The health level to be below to activate the last stage.
+#define SUPERSHREDDER_SECOND_STAGE_HEALTH 120   /// The health level to be below to activate the second stage.
+#define SUPERSHREDDER_FINAL_STAGE_HEALTH 60     /// The health level to be below to activate the last stage.
 
 //
 // Enemy animation information

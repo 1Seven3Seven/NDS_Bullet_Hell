@@ -37,7 +37,11 @@ void SuperShredder_Setup(Entity enemy_array[], const int enemy_array_len)
     SuperShredder_Information.vector[1] = 0;
 
     // Initially we choose the attack to be performed.
-    SuperShredder_Information.State = SuperShredderState_AttackPreamble;
+    SuperShredder_Information.state = SuperShredderState_AttackPreamble;
+
+    // Other information
+    SuperShredder_Information.boarder_hit = 0;
+    SuperShredder_Information.should_fire = 0;
 
     // We can do a fun thing to try and get the shredders in the paint scheme of the Super Sentinel.
     // Mainly by messing about with the colour palette.
@@ -51,6 +55,42 @@ void SuperShredder_Move(Entity *super_shredder)
     // We don't use the EntityMove function as we do not need collision with environment hitboxes
     super_shredder->x += SuperShredder_Information.vector[0];
     super_shredder->y += SuperShredder_Information.vector[1];
+
+    if (SuperShredder_Information.state == SuperShredderState_ZoomAttack)
+    {
+        // Zoom attack requires collision based on the direction of movement
+        if (SuperShredder_Information.move_direction == 0) // Moving up/down
+        {
+            // Go back in bounds if out of bounds
+            if (super_shredder->x < 0)
+            {
+                super_shredder->x = 0;
+                SuperShredder_Information.vector[0] = -SuperShredder_Information.vector[0];
+                SuperShredder_Information.boarder_hit = 1;
+            }
+            else if (super_shredder->x > SCREEN_WIDTH - SUPERSHREDDER_WIDTH)
+            {
+                super_shredder->x = SCREEN_WIDTH - SUPERSHREDDER_WIDTH;
+                SuperShredder_Information.vector[0] = -SuperShredder_Information.vector[0];
+                SuperShredder_Information.boarder_hit = 1;
+            }
+        }
+        else // Moving left/right
+        {
+            if (super_shredder->y < 0)
+            {
+                super_shredder->y = 0;
+                SuperShredder_Information.vector[1] = -SuperShredder_Information.vector[1];
+                SuperShredder_Information.boarder_hit = 1;
+            }
+            else if (super_shredder->y > SCREEN_HEIGHT - SUPERSHREDDER_HEIGHT)
+            {
+                super_shredder->y = SCREEN_HEIGHT - SUPERSHREDDER_HEIGHT;
+                SuperShredder_Information.vector[1] = -SuperShredder_Information.vector[1];
+                SuperShredder_Information.boarder_hit = 1;
+            }
+        }
+    }
 }
 
 /// Choose the attack to be used based on the current health.
@@ -59,14 +99,32 @@ static void AttackPreamble(Entity *super_shredder)
 {
     // Choose an attack to be used
     // ToDo: think about the other attacks
-    SuperShredder_Information.State = SuperShredderState_ThinkAboutRushAttack;
+    if (super_shredder->health > SUPERSHREDDER_SECOND_STAGE_HEALTH)
+    {
+        SuperShredder_Information.state = SuperShredderState_ThinkAboutRushAttack;
+    }
+    else if (super_shredder->health > SUPERSHREDDER_FINAL_STAGE_HEALTH)
+    {
+        SuperShredder_Information.state = SuperShredderState_ThinkAboutZoomAttack;
+    }
+    else
+    {
+        // Final stage
+    }
 
     // Default wait period
     super_shredder->current_bullet_delay = super_shredder->bullet_delay;
 }
 
-/// Chooses a random starting position for the rush attack around the edge of the screen.
-static void ChooseRushStartPosition(Entity *super_shredder)
+/// Chooses a random position outside the edge of the screen.
+///
+/// Returns the chosen side as an integer with values:
+///
+/// - 0 -> top
+/// - 1 -> left
+/// - 2 -> bottom
+/// - 3 -> right
+static int ChoosePositionOutsideOfScreen(Entity *super_shredder)
 {
     // 0 -> top
     // 1 -> left
@@ -92,6 +150,8 @@ static void ChooseRushStartPosition(Entity *super_shredder)
         // Choose the left or right based on the choice
         super_shredder->x = choice == 3 ? SCREEN_WIDTH + SUPERSHREDDER_WIDTH : -SUPERSHREDDER_WIDTH;
     }
+
+    return choice;
 }
 
 /// Contains some information regarding a collision with a wall.
@@ -257,7 +317,7 @@ static void DevelopVectorFindScreenEdgeCollision(const Entity *super_shredder, c
         SuperShredder_Information.vector[0] < 0 ? 0 : SCREEN_WIDTH
     );
 
-    float far_hit_info_location[2];
+    float far_hit_info_location[2]; // We do not need to save this value into SuperShredder_Information
     SaveClosestValidHitLocation(
         &far_horizontal_hit_info,
         &far_vertical_hit_info,
@@ -271,8 +331,8 @@ static void DevelopVectorFindScreenEdgeCollision(const Entity *super_shredder, c
 
     // All done
 
-    SuperShredder_Information.rush_telegraph_vector_step[0] = x_diff / (SUPERSHREDDER_NUM_RUSH_TELEGRAPH_POINTS + 1);
-    SuperShredder_Information.rush_telegraph_vector_step[1] = y_diff / (SUPERSHREDDER_NUM_RUSH_TELEGRAPH_POINTS + 1);
+    SuperShredder_Information.telegraph_vector[0] = x_diff / (SUPERSHREDDER_NUM_RUSH_TELEGRAPH_POINTS + 1);
+    SuperShredder_Information.telegraph_vector[1] = y_diff / (SUPERSHREDDER_NUM_RUSH_TELEGRAPH_POINTS + 1);
 }
 
 /// Sets up the attack vector to be used.
@@ -282,7 +342,7 @@ static void RushPreambleAndTelegraph(Entity *super_shredder, const Entity *playe
     // If the bullet delay is the max, then we choose a position and develop the vector
     if (super_shredder->current_bullet_delay == super_shredder->bullet_delay)
     {
-        ChooseRushStartPosition(super_shredder);
+        ChoosePositionOutsideOfScreen(super_shredder);
         DevelopVectorFindScreenEdgeCollision(super_shredder, player);
     }
 
@@ -298,10 +358,10 @@ static void RushPreambleAndTelegraph(Entity *super_shredder, const Entity *playe
         BulletSetupInBulletArray(
             bullet_array, MAX_BULLET_COUNT,
             SuperShredder_Information.screen_boarder_hit_location[0]
-            + SuperShredder_Information.rush_telegraph_vector_step[0] * (float) step
+            + SuperShredder_Information.telegraph_vector[0] * (float) step
             - 4, // ToDo: use correct offsets when telegraph sprites are created
             SuperShredder_Information.screen_boarder_hit_location[1]
-            + SuperShredder_Information.rush_telegraph_vector_step[1] * (float) step
+            + SuperShredder_Information.telegraph_vector[1] * (float) step
             - 4, // ToDo: here as well
             3, 3,
             0, 0,
@@ -312,33 +372,288 @@ static void RushPreambleAndTelegraph(Entity *super_shredder, const Entity *playe
     }
 
     if (super_shredder->current_bullet_delay > 0) { super_shredder->current_bullet_delay--; }
-    else { SuperShredder_Information.State = SuperShredderState_AttackingAkaThinkAboutNoThink; }
+    else { SuperShredder_Information.state = SuperShredderState_RushAttack; }
 }
 
-void SuperShredder_Think(Entity *super_shredder, const Entity *player, Bullet bullet_array[])
+/// Sets up the zoom attack by picking the initial side and position.
+static void ZoomPreamble(Entity *super_shredder)
+{
+    // A random position outside the screen
+    const int screen_side = ChoosePositionOutsideOfScreen(super_shredder);
+    // Save this as our movement direction
+    SuperShredder_Information.move_direction = screen_side % 2;
+
+    // Now to choose a random vector/angle
+    // Well, random-ish
+    // For going left to right; I wish to travel 32 pixels x for 192*2 pixels y
+    // I think the same for vertical, just swap the values around and 192->256
+    // So, the math is rather simple.
+
+    const int choice = rand() % 2;
+    float vx = 0, vy = 0;
+    if (screen_side == 0) // Top
+    {
+        vx = choice ? 192.f : -192.f;
+        vy = 32.f;
+    }
+    else if (screen_side == 1) // Left
+    {
+        vx = 64.f;
+        vy = choice ? 256.f : -256.f;
+    }
+    else if (screen_side == 2) // Bottom
+    {
+        vx = choice ? 192.f : -192.f;
+        vy = -32.f;
+    }
+    else // Right
+    {
+        vx = -64.f;
+        vy = choice ? 256.f : -256.f;
+    }
+
+    // Normalise the vector to the length of movement speed
+    const float magnitude = sqrtf(vx * vx + vy * vy);
+    SuperShredder_Information.vector[0] = vx / magnitude * SUPERSHREDDER_SPEED;
+    SuperShredder_Information.vector[1] = vy / magnitude * SUPERSHREDDER_SPEED;
+
+    // Our telegraph will also use this
+    SuperShredder_Information.telegraph_vector[0] = SuperShredder_Information.vector[0];
+    SuperShredder_Information.telegraph_vector[1] = SuperShredder_Information.vector[1];
+
+    // Lastly, our telegraph requires the Super Shredder's position
+    // We will reuse the wall-hit location to store this
+    SuperShredder_Information.screen_boarder_hit_location[0] = super_shredder->x;
+    SuperShredder_Information.screen_boarder_hit_location[1] = super_shredder->y;
+
+    // And now delay
+    super_shredder->current_bullet_delay = super_shredder->bullet_delay;
+
+    // Determine if we can fire bullets
+    if (super_shredder->health > SUPERSHREDDER_FINAL_STAGE_HEALTH
+        && super_shredder->health <= SUPERSHREDDER_SECOND_STAGE_HEALTH - 30)
+    {
+        SuperShredder_Information.should_fire = 1;
+    }
+    else
+    {
+        SuperShredder_Information.should_fire = 0;
+    }
+
+    // Done thinking
+    SuperShredder_Information.state = SuperShredderState_ZoomAttack;
+}
+
+static void ZoomTelegraph(Bullet bullet_array[], const int frame_number)
+{
+    // Do nothing if the vector is nothing, aka we have gone outside the screen
+    if (SuperShredder_Information.telegraph_vector[0] == 0
+        && SuperShredder_Information.telegraph_vector[1] == 0)
+    {
+        return;
+    }
+
+    // Step the telegraph position
+    SuperShredder_Information.screen_boarder_hit_location[0] += SuperShredder_Information.telegraph_vector[0];
+    SuperShredder_Information.screen_boarder_hit_location[1] += SuperShredder_Information.telegraph_vector[1];
+
+    // We operate on the same rules as the Super Shredder
+    // If we go out of bounds not in the movement direction, then move us back in bounds
+    if (SuperShredder_Information.move_direction == 0) // Moving up/down
+    {
+        // Go back in bounds if out of bounds
+        if (SuperShredder_Information.screen_boarder_hit_location[0] < 0)
+        {
+            SuperShredder_Information.screen_boarder_hit_location[0] = 0;
+            SuperShredder_Information.telegraph_vector[0] = -SuperShredder_Information.telegraph_vector[0];
+        }
+        else if (SuperShredder_Information.screen_boarder_hit_location[0] > SCREEN_WIDTH - SUPERSHREDDER_WIDTH)
+        {
+            SuperShredder_Information.screen_boarder_hit_location[0] = SCREEN_WIDTH - SUPERSHREDDER_WIDTH;
+            SuperShredder_Information.telegraph_vector[0] = -SuperShredder_Information.telegraph_vector[0];
+        }
+
+        // Also check if we are out of bounds in the direction of movement
+        // If so, zero the vector as nothing more needs to be done
+        const int off_top = SuperShredder_Information.telegraph_vector[1] < 0
+                            && SuperShredder_Information.screen_boarder_hit_location[1] < 0;
+        const int off_bottom = SuperShredder_Information.telegraph_vector[1] > 0
+                               && SuperShredder_Information.screen_boarder_hit_location[1]
+                               > SCREEN_HEIGHT - SUPERSHREDDER_HEIGHT;
+        if (off_top || off_bottom)
+        {
+            SuperShredder_Information.telegraph_vector[0] = 0;
+            SuperShredder_Information.telegraph_vector[1] = 0;
+            return;
+        }
+    }
+    else // Moving left/right
+    {
+        if (SuperShredder_Information.screen_boarder_hit_location[1] < 0)
+        {
+            SuperShredder_Information.screen_boarder_hit_location[1] = 0;
+            SuperShredder_Information.telegraph_vector[1] = -SuperShredder_Information.telegraph_vector[1];
+        }
+        else if (SuperShredder_Information.screen_boarder_hit_location[1] > SCREEN_HEIGHT - SUPERSHREDDER_HEIGHT)
+        {
+            SuperShredder_Information.screen_boarder_hit_location[1] = SCREEN_HEIGHT - SUPERSHREDDER_HEIGHT;
+            SuperShredder_Information.telegraph_vector[1] = -SuperShredder_Information.telegraph_vector[1];
+        }
+
+        const int off_left = SuperShredder_Information.telegraph_vector[0] < 0
+                             && SuperShredder_Information.screen_boarder_hit_location[0] < 0;
+        const int off_right = SuperShredder_Information.telegraph_vector[0] > 0
+                              && SuperShredder_Information.screen_boarder_hit_location[0]
+                              > SCREEN_WIDTH - SUPERSHREDDER_WIDTH;
+        if (off_left || off_right)
+        {
+            SuperShredder_Information.telegraph_vector[0] = 0;
+            SuperShredder_Information.telegraph_vector[1] = 0;
+            return;
+        }
+    }
+
+    // Skip bullet set up if not a multiple of 6 frames
+    if (frame_number % 6) { return; }
+
+    // Telegraph time
+    // Telegraph time
+    BulletSetupInBulletArray(
+        bullet_array, MAX_BULLET_COUNT,
+        // ToDo: correct offset when telegraph sprite made
+        SuperShredder_Information.screen_boarder_hit_location[0] + (float) SUPERSHREDDER_WIDTH / 2 - 4,
+        // ToDo: here as well
+        SuperShredder_Information.screen_boarder_hit_location[1] + (float) SUPERSHREDDER_HEIGHT / 2 - 4,
+        8, 8,
+        0, 0,
+        50,
+        0,
+        BulletType_SuperShredderTelegraph
+    );
+}
+
+/// We have a series of responsibilities here.
+///
+/// First, we need to pause the Super Shredder for a few frames if it hits the edge of the screen.
+/// Oh, and do some screen shake whilst we are at it.
+///
+/// Second, we need to telegraph its movement, probably 60 frames in the future.
+/// The way we will do this is by stepping the wall hit location every frame as if it is the Super Shredder's position.
+/// On every sixth frame, we set up a telegraph bullet.
+/// Simple, I think.
+static void HandleZoomAttack(
+    Entity *super_shredder,
+    Bullet bullet_array[],
+    const int frame_number,
+    const int bg_id,
+    const int screen_shake_x[9],
+    const int screen_shake_y[9],
+    int *screen_shake_index
+)
+{
+    // Pretty
+    ZoomTelegraph(bullet_array, frame_number);
+
+    // Check if we have run off of the screen in the direction of movement, if so, we can go back to thinking
+    if (SuperShredder_Information.move_direction == 0) // Moving up/down
+    {
+        const int off_top = SuperShredder_Information.vector[1] < 0
+                            && super_shredder->y < -SUPERSHREDDER_HEIGHT;
+        const int off_bottom = SuperShredder_Information.vector[1] > 0
+                               && super_shredder->y > SCREEN_HEIGHT;
+
+        if (off_top || off_bottom)
+        {
+            SuperShredder_Information.state = SuperShredderState_AttackPreamble;
+            return;
+        }
+    }
+    else // Moving left/right
+    {
+        const int off_left = SuperShredder_Information.vector[0] < 0
+                             && super_shredder->x < -SUPERSHREDDER_HEIGHT;
+        const int off_right = SuperShredder_Information.vector[0] > 0
+                              && super_shredder->x > SCREEN_WIDTH;
+
+        if (off_left || off_right)
+        {
+            SuperShredder_Information.state = SuperShredderState_AttackPreamble;
+            return;
+        }
+    }
+
+    // Cool, well, the setup for the cool
+    if (SuperShredder_Information.boarder_hit)
+    {
+        SuperShredder_Information.boarder_hit = 0;
+        super_shredder->current_bullet_delay = 15;
+    }
+
+    // Screen shake
+    if (super_shredder->current_bullet_delay > 0)
+    {
+        super_shredder->current_bullet_delay--;
+        if (super_shredder->current_bullet_delay < 10)
+        {
+            bgSetScroll(bg_id, screen_shake_x[*screen_shake_index], screen_shake_y[*screen_shake_index]);
+            bgUpdate();
+            *screen_shake_index = (*screen_shake_index + 1) % 9;
+        }
+    }
+    else
+    {
+        bgSetScroll(bg_id, 0, 0);
+    }
+}
+
+void SuperShredder_Think(
+    Entity *super_shredder,
+    const Entity *player,
+    Bullet bullet_array[],
+    const int frame_number,
+    const int bg_id,
+    const int screen_shake_x[9],
+    const int screen_shake_y[9],
+    int *screen_shake_index
+)
 {
     // If we are to choose an attack, aka an attack has finished
-    if (SuperShredder_Information.State == SuperShredderState_AttackPreamble)
+    if (SuperShredder_Information.state == SuperShredderState_AttackPreamble)
     {
         AttackPreamble(super_shredder);
     }
 
-    switch (SuperShredder_Information.State)
+    switch (SuperShredder_Information.state)
     {
     case SuperShredderState_ThinkAboutRushAttack:
         RushPreambleAndTelegraph(super_shredder, player, bullet_array);
         break;
 
-    case SuperShredderState_AttackingAkaThinkAboutNoThink:
+    case SuperShredderState_RushAttack:
+        // If we are out of bounds
+        if (IsSuperShredderOutOfBounds(super_shredder))
         {
-            if (IsSuperShredderOutOfBounds(super_shredder))
-            {
-                super_shredder->current_bullet_delay = super_shredder->bullet_delay;
-                SuperShredder_Information.State = SuperShredderState_AttackPreamble;
-            }
-
-            break;
+            // Begin thinking again
+            super_shredder->current_bullet_delay = super_shredder->bullet_delay;
+            SuperShredder_Information.state = SuperShredderState_AttackPreamble;
         }
+        break;
+
+    case SuperShredderState_ThinkAboutZoomAttack:
+        ZoomPreamble(super_shredder);
+        break;
+
+    case SuperShredderState_ZoomAttack:
+        HandleZoomAttack(
+            super_shredder,
+            bullet_array,
+            frame_number,
+            bg_id,
+            screen_shake_x,
+            screen_shake_y,
+            screen_shake_index
+        );
+        break;
 
     default: ; // SuperShredderState_AttackPreamble, aka we have already handled this
     }
@@ -379,8 +694,9 @@ void SuperShredder_FireBullets(
     const int player_centre[2]
 )
 {
+    // Firing bullets during the first stage
     if (super_shredder->health > SUPERSHREDDER_SECOND_STAGE_HEALTH
-        && super_shredder->health <= SUPERSHREDDER_HEALTH - 40)
+        && super_shredder->health <= SUPERSHREDDER_HEALTH - 30)
     {
         // Attempt to fire a bullet, we will use the counter attribute of the entity
         // This is normally used for animation purposes but is not used for the Super Shredder
@@ -405,6 +721,34 @@ void SuperShredder_FireBullets(
                 (float) my_centre[1] - 4,
                 8, 8,
                 angle + (float) M_PI_2 * (float) i,
+                1,
+                320,
+                1,
+                BulletType_BossBullet
+            );
+        }
+    }
+    // Firing bullets during the second stage
+    else if (SuperShredder_Information.should_fire &&
+             (super_shredder->current_bullet_delay == 14
+              || super_shredder->current_bullet_delay == 1))
+    {
+        const float angle = GetAngleFromOriginTo(
+            (float) (player_centre[0] - my_centre[0]),
+            (float) (player_centre[1] - my_centre[1])
+        );
+
+        // ToDo: figure out if this is a good idea, it feels a little too difficult
+        const float angle_offset = super_shredder->current_bullet_delay == 14 ? 0.f : (float) M_PI_4;
+
+        for (int i = 0; i < 4; i++)
+        {
+            BulletSetupInBulletArray(
+                bullet_array, bullet_array_len,
+                (float) my_centre[0] - 4,
+                (float) my_centre[1] - 4,
+                8, 8,
+                angle + (float) M_PI_2 * (float) i + angle_offset,
                 1,
                 320,
                 1,
@@ -671,14 +1015,18 @@ void SuperShredder_SetupForGameLoop(
 
 static const char *GetSuperShredderStateString()
 {
-    switch (SuperShredder_Information.State)
+    switch (SuperShredder_Information.state)
     {
     case SuperShredderState_AttackPreamble:
         return "Attack Preamble";
     case SuperShredderState_ThinkAboutRushAttack:
         return "Think About Rush Attack";
-    case SuperShredderState_AttackingAkaThinkAboutNoThink:
-        return "Attacking";
+    case SuperShredderState_RushAttack:
+        return "Rush Attack";
+    case SuperShredderState_ThinkAboutZoomAttack:
+        return "Thing About Zoom Attack";
+    case SuperShredderState_ZoomAttack:
+        return "Zoom Attack";
     default:
         return "Unknown/Unimplemented";
     }
@@ -691,9 +1039,9 @@ int SuperShredder_RunGameLoop(
     Bullet bullet_array[],
     const int bullet_array_len,
     int *frame_number,
+    const int bg_id,
     int playable_area[4],
-    int hitbox_array[][4],
-    const int hitbox_array_len
+    int hitbox_array[][4], const int hitbox_array_len
 )
 {
     // The blade of death
@@ -713,6 +1061,13 @@ int SuperShredder_RunGameLoop(
     // Set to false when we need to exit the loop
     int exit_condition = 1;
     int return_value = 0;
+
+    // Shakey shakey
+    int screen_shake_x[9] = {-1, -1, -1, 0, 0, 0, 1, 1, 1};
+    int screen_shake_y[9] = {-1, -1, -1, 0, 0, 0, 1, 1, 1};
+    ShuffleIntArray(screen_shake_x, 9);
+    ShuffleIntArray(screen_shake_y, 9);
+    int screen_shake_index = 0;
 
     do
     {
@@ -740,7 +1095,16 @@ int SuperShredder_RunGameLoop(
         EntityGetCenterArray(super_shredder, my_centre);
 
         // ToDo: Super Shredder thinking
-        SuperShredder_Think(super_shredder, player, bullet_array);
+        SuperShredder_Think(
+            super_shredder,
+            player,
+            bullet_array,
+            *frame_number,
+            bg_id,
+            screen_shake_x,
+            screen_shake_y,
+            &screen_shake_index
+        );
 
         // ToDo: Super Shredder moving
         SuperShredder_Move(super_shredder);
@@ -752,7 +1116,6 @@ int SuperShredder_RunGameLoop(
             my_centre,
             player_centre
         );
-
 
         // Handling bullets
         BulletHandleBulletArray(
@@ -780,11 +1143,6 @@ int SuperShredder_RunGameLoop(
         {
             EntityTakeDamage(player, 1);
         }
-        // ToDo: uncomment if we end up having mini shredders
-        // EnemiesCheckCollisionAgainstPlayer(
-        //     enemy_array + 1, enemy_array_len - 1,
-        //     player
-        // );
 
         //
         // Drawing and animation
@@ -890,15 +1248,21 @@ int SuperShredder_RunGameLoop(
         sprintf(temp, "boarder hit loc = %.1f, %.1f",
                 SuperShredder_Information.screen_boarder_hit_location[0],
                 SuperShredder_Information.screen_boarder_hit_location[1]);
-        UIWriteTextAtOffset(temp, 4, 1);
-
-        sprintf(temp, "step vector = %.1f, %.1f",
-                SuperShredder_Information.rush_telegraph_vector_step[0],
-                SuperShredder_Information.rush_telegraph_vector_step[1]);
         UIWriteTextAtOffset(temp, 5, 1);
 
-        sprintf(temp, "bullet count = %d", BulletGetNumberAliveBulletsInBulletArray(bullet_array, MAX_BULLET_COUNT));
+        sprintf(temp, "step vector = %.1f, %.1f",
+                SuperShredder_Information.telegraph_vector[0],
+                SuperShredder_Information.telegraph_vector[1]);
         UIWriteTextAtOffset(temp, 6, 1);
+
+        sprintf(temp, "hit boarder = %d", SuperShredder_Information.boarder_hit);
+        UIWriteTextAtOffset(temp, 8, 1);
+
+        sprintf(temp, "screen shake index = %d", screen_shake_index);
+        UIWriteTextAtOffset(temp, 10, 1);
+
+        sprintf(temp, "bullet count = %d", BulletGetNumberAliveBulletsInBulletArray(bullet_array, MAX_BULLET_COUNT));
+        UIWriteTextAtOffset(temp, 20, 1);
 
         sprintf(temp, "health = %d", super_shredder->health);
         UIWriteTextAtOffset(temp, 22, 1);

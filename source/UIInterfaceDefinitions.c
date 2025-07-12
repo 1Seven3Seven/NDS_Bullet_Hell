@@ -384,8 +384,11 @@ UIInterfaceStruct UIIDCreateTestSuperShredderInterface(void)
     UIInitInterface(
         &ui,
         "Test Super Shredder",
-        2,
-        "Start",
+        5,
+        "Initial Stage pt. 1",
+        "Initial Stage pt. 2",
+        "Second Stage pt. 1",
+        "Second Stage pt. 2",
         "Return to Test Bosses Menu"
     );
     ui.Choice = ui.NumUIOptions - 1;
